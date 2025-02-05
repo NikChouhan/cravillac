@@ -8,7 +8,6 @@
 
 #include "Application.h"
 #include "Log.h"
-
 #undef max;
 
 namespace VKTest
@@ -171,6 +170,22 @@ namespace VKTest
         }
     }
 
+    uint32_t VulkanTest::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+    {
+        VkPhysicalDeviceMemoryProperties memProperties{};
+        vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
+
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) 
+            {
+                return i;
+            }
+        }
+        Log::Error("[MEMORY] Failed to find suitable memory type");
+
+    }
+
     void VulkanTest::TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout)
     {
         VkImageMemoryBarrier2 imageBarrier{
@@ -274,12 +289,15 @@ namespace VKTest
         CreateImageView();
         CreateGraphicsPipeline();
         CreateCommandPool();
+        CreateVertexBuffer();
         CreateCommandBuffer();
         CreateSynObjects();
     }
 
     void VulkanTest::Cleanup() const
     {
+        vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
+        vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
             vkDestroySemaphore(m_device, m_imageAvailableSemaphore[i], nullptr);
@@ -487,7 +505,7 @@ namespace VKTest
 
         //we do the imageCount > maximagecount check for following reason
         /*  For example :
-            Let’s say minImageCount = 2 (double buffering is the minimum requirement).
+            Letï¿½s say minImageCount = 2 (double buffering is the minimum requirement).
             You set imageCount = 3 (triple buffering for better performance).
             But the platform only supports a maximum of 2 images(maxImageCount = 2).
             In this case, imageCount = 3 would exceed maxImageCount = 2, which is not allowed.*/
@@ -574,6 +592,14 @@ namespace VKTest
             else Log::Info("[VULKAN] Image Views creation Success");
         }
     }
+    // TODO
+    //void VulkanTest::RecreateSwapChain()
+    //{
+    //    vkDeviceWaitIdle(m_device);
+
+    //    CreateSwapChain();
+    //    CreateImageView();
+    //}
 
     void VulkanTest::CreateGraphicsPipeline()
     {
@@ -604,12 +630,15 @@ namespace VKTest
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertexShaderStageInfo, fragShaderStageInfo};
 
+        auto bindingDesc = Vertex::getBindingDescription();
+        auto attribDesc = Vertex::getAttributeDescription();
+
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
-        vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribDesc.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attribDesc.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -750,6 +779,45 @@ namespace VKTest
         else Log::Info("[VULKAN] Command Pool creation Success");
     }
 
+    // TODO: when the project is big, crete a "CreateBuffer function which takes in as parameter, the "usage", buffer (like the vertices/indices in the future) for "size" entry, and create on basis of the type, orr simply take in enum type and create the type 
+    void VulkanTest::CreateVertexBuffer()
+    {
+        VkBufferCreateInfo bufferCI{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = sizeof(vertices[0]) * vertices.size(),
+            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+        };
+
+        if (vkCreateBuffer(m_device, &bufferCI, nullptr, &m_vertexBuffer) != VK_SUCCESS)
+        {
+            Log::Error("[VULKAN] Vertex Buffer creation Failure");
+        }
+        else Log::Info("[VULKAN] Vertex Buffer creation Success");
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(m_device, m_vertexBuffer, &memRequirements);
+
+
+        VkMemoryAllocateInfo allocInfo{
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        };
+
+        if (vkAllocateMemory(m_device, &allocInfo, nullptr, &m_vertexBufferMemory) != VK_SUCCESS)
+        {
+            Log::Error("[VULKAN] Allocation of Vertex Buffer Memory Failed");
+        }
+        else Log::Info("[VULKAN] Allocation of Vertex Buffer Memory Success");
+        vkBindBufferMemory(m_device, m_vertexBuffer, m_vertexBufferMemory, 0);
+
+        void* data{};
+        vkMapMemory(m_device, m_vertexBufferMemory, 0, bufferCI.size, 0, &data);
+        memcpy(data, vertices.data(), bufferCI.size);
+        vkUnmapMemory(m_device, m_vertexBufferMemory);
+    }
+
     void VulkanTest::CreateCommandBuffer()
     {
         m_commandBuffer.resize(MAX_FRAMES_IN_FLIGHT);
@@ -806,6 +874,10 @@ namespace VKTest
 
         vkCmdBeginRendering(m_commandBuffer[currentFrame], &renderingInfo);
         vkCmdBindPipeline(m_commandBuffer[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+
+        VkBuffer vertexBuffers[] = { m_vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(m_commandBuffer[currentFrame], 0, 1, vertexBuffers, offsets);
 
         VkViewport viewport{};
         viewport.x = 0.0f;

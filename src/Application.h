@@ -4,8 +4,11 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include "glm/glm.hpp"
+
 #include <vector>
 #include <optional>
+#include <array>
 
 namespace VKTest
 {
@@ -13,6 +16,52 @@ namespace VKTest
     constexpr uint32_t HEIGHT = 600;
 
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
+    enum class Buffer
+    {
+        VERTEX,
+        INDEX
+    };
+
+    struct Vertex
+    {
+        glm::vec2 pos;
+        glm::vec3 color;
+
+        static VkVertexInputBindingDescription getBindingDescription()
+        {
+            VkVertexInputBindingDescription bindingDesc{
+                .binding = 0,
+                .stride = sizeof(Vertex),
+                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+            };
+
+            return bindingDesc;
+        }
+
+        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescription()
+        {
+            std::array<VkVertexInputAttributeDescription, 2> attrDescs{};
+
+            attrDescs[0].binding = 0;
+            attrDescs[0].location = 0;
+            attrDescs[0].format = VK_FORMAT_R32G32_SFLOAT;
+            attrDescs[0].offset = offsetof(Vertex, pos);
+
+            attrDescs[1].binding = 0;
+            attrDescs[1].location = 1;
+            attrDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attrDescs[1].offset = offsetof(Vertex, color);
+
+            return attrDescs;
+        }
+    };
+
+    const std::vector<Vertex> vertices = {
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    };
 
     const std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation"
@@ -68,10 +117,12 @@ namespace VKTest
         void CreateLogicalDevice();
         void CreateSwapChain();
         void CreateImageView();
+        //void RecreateSwapChain(); // TODO
 
         // drawing stuff
         void CreateGraphicsPipeline();
         void CreateCommandPool();
+        void CreateVertexBuffer();
         void CreateCommandBuffer();
         void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
         void DrawFrame();
@@ -91,6 +142,8 @@ namespace VKTest
         VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
         VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
         VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+        uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
         // transition image layout for rendering/presenting, etc etc
         void TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
@@ -117,6 +170,11 @@ namespace VKTest
         std::vector<VkImageView> m_swapChainImageViews{};
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
         VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+
+        // bufffer vars
+        VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
+
 
         // issue commands
         VkCommandPool m_commandPool = VK_NULL_HANDLE;
