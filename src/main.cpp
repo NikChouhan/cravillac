@@ -6,7 +6,7 @@
 
 int main() 
 {
-    VKTest::VulkanTest app;
+    VKTest::Application app;
 
     app.Run();
 }
