@@ -1,18 +1,14 @@
 #pragma once
 
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-
-#include "glm\glm.hpp"
+#define GL_FORCE_RADIANS
+#include <glm/glm.hpp>
 
 #include <vector>
 #include <optional>
 #include <array>
 #include <string>
 
+#include "common.hpp"
 namespace VKTest
 {
     constexpr uint32_t WIDTH = 800;
@@ -26,7 +22,8 @@ namespace VKTest
         INDEX
     };
 
-    struct UniformBufferObject {
+    struct UniformBufferObject 
+    {
         glm::mat4 model;
         glm::mat4 view;
         glm::mat4 proj;
@@ -66,49 +63,17 @@ namespace VKTest
         }
     };
 
-    const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
-    };
-
-    const std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0
-    };
-
-    const std::vector<const char*> validationLayers = {
-        "VK_LAYER_KHRONOS_validation"
-    };
-
-    const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-
-
-#ifdef NDEBUG
-    const bool enableValidationLayers = false;
-#else
-    const bool enableValidationLayers = true;
-#endif
-
-
-    struct QueueFamilyIndices
+    const std::vector<Vertex> vertices = 
     {
-        std::optional<uint32_t> _graphicsFamily;
-        std::optional<uint32_t> _presentFamily;
-
-        bool _IsComplete()
-        {
-            return _graphicsFamily.has_value() && _presentFamily.has_value();
-        }
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
     };
 
-    struct SwapChainSupportDetails
+    const std::vector<uint16_t> indices = 
     {
-        VkSurfaceCapabilitiesKHR capabilities;
-        std::vector<VkSurfaceFormatKHR> formats;
-        std::vector<VkPresentModeKHR> presentModes;
+        0, 1, 2, 2, 3, 0
     };
 
     class Renderer
@@ -129,6 +94,9 @@ namespace VKTest
         void CreateLogicalDevice();
         void CreateSwapChain();
         void CreateImageView();
+        void CreateDesctriptorSetLayout();
+        void CreateDescriptorSets();
+
         //void RecreateSwapChain(); // TODO
 
         // drawing stuff
@@ -136,41 +104,23 @@ namespace VKTest
         void CreateCommandPool();
         void CreateVertexBuffer();
         void CreateIndexBuffer();
+        void CreateUniformBuffers();
+        void CreateDescriptorPool();
         void CreateCommandBuffer();
         void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
         void DrawFrame();
 
+        // update stuff
+        void UpdateUniformBuffer(uint32_t currentImage);
+
         // fence stuff
         void CreateSynObjects();
-
-        // vulkan base support funcs
-        QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
-        bool CheckValidationLayerSupport();
-        std::vector<const char*> GetRequiredExtensions();
         void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
         void SetupDebugMessenger();
-        bool IsDeviceSuitable(VkPhysicalDevice device);
-        bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
-        SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice) const;
-        VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-        VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-        VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-        void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propertyFlags, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-
-
-        uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-        // transition image layout for rendering/presenting, etc etc
-        void TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
-        void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
-        // shaders stuff
-        static std::vector<char> ReadFile(const std::string& filename);
         VkShaderModule CreateShaderModule(const std::vector<char>& code) const;
 
     public:
         GLFWwindow* m_window;
-    private:
         uint32_t currentFrame = 0;
 
         VkInstance m_instance = VK_NULL_HANDLE;
@@ -184,6 +134,7 @@ namespace VKTest
         VkExtent2D m_swapChainExtent;
         std::vector<VkImage> m_swapChainImages{};
         std::vector<VkImageView> m_swapChainImageViews{};
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
         VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
@@ -192,6 +143,14 @@ namespace VKTest
         VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
         VkBuffer m_indexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
+
+        std::vector<VkBuffer> m_uniformBuffers{};
+        std::vector<VkDeviceMemory> m_uniformBufferMemory{};
+        std::vector<void*>m_uniformBufferMapped{};
+
+        // descriptor pool
+        VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> m_descriptorSets;
 
 
         // issue commands

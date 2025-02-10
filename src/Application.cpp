@@ -5,7 +5,7 @@ namespace VKTest
 {
 	Application::Application()
 	{
-		renderer = std::make_shared<Renderer>();
+		renderer = std::make_unique<Renderer>();
 	}
 	void Application::Run()
 	{

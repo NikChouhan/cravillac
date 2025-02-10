@@ -1,7 +1,7 @@
 -- Shader configuration target
 target("shaders")
     set_group("shaders")
-    set_kind("binary")  -- Changed to binary for output tracking
+    set_kind("phony")  -- Changed to binary for output tracking
     
     -- Organized shader sources
     add_files("**.vert", {rule = "shader_vert"})

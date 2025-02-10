@@ -11,7 +11,7 @@ add_includedirs("src")
 add_syslinks("user32.lib", "kernel32.lib", "shell32.lib")
 add_defines("UNICODE", "_UNICODE")
 
-add_includedirs("src", "src/core", "src/renderer", {public = true})
+add_includedirs("src","src/common", "src/core", "src/renderer", {public = true})
 
 set_languages("cxx23", "c17")
 
@@ -35,5 +35,15 @@ target("VulkanTest")
     add_files("src/*.cpp")
     add_headerfiles("src/*.h")
     add_deps("core", "renderer")
+    local vulkan_sdk = os.getenv("VULKAN_SDK")
+    if is_os("windows") then
+        if vulkan_sdk then
+            --add_includedirs(path.join(vulkan_sdk, "Include"), {public = true})
+            add_linkdirs(path.join(vulkan_sdk, "Lib"))
+            add_links("vulkan-1", {public = true})
+        else
+            print("Warning: VULKAN_SDK environment variable is not set.")
+        end
+    end
 target_end()
 
