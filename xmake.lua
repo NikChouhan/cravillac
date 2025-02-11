@@ -8,7 +8,11 @@ includes("shaders/xmake.lua")
 add_rules("mode.debug", "mode.release")
 set_defaultmode("debug")
 add_includedirs("src")
-add_syslinks("user32.lib", "kernel32.lib", "shell32.lib")
+if is_os("windows") then
+    add_syslinks("user32.lib", "kernel32.lib", "shell32.lib")
+elseif is_os("linux") then
+    add_syslinks("pthread", "dl", "X11", "Xrandr", "Xi", "Xxf86vm", "vulkan")
+end
 add_defines("UNICODE", "_UNICODE")
 
 add_includedirs("src","src/common", "src/core", "src/renderer", {public = true})
@@ -29,7 +33,7 @@ elseif(is_mode("release")) then
     --set_policy("build.optimization.lto", true)
 end
 
-target("VulkanTest")
+target("cravillac")
     set_default(true)
     set_kind("binary")
     add_files("src/*.cpp")

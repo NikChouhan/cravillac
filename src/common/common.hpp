@@ -1,13 +1,23 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef COMMON_HPP
+#define COMMON_HPP
 
+#ifdef _WIN32
+    #define VK_USE_PLATFORM_WIN32_KHR
+    #define GLFW_EXPOSE_NATIVE_WIN32
+#elif defined(__linux__)
+    #ifdef __WAYLAND__
+        #define VK_USE_PLATFORM_WAYLAND_KHR
+        #define GLFW_EXPOSE_NATIVE_WAYLAND
+    #else
+        #define VK_USE_PLATFORM_XLIB_KHR
+        #define GLFW_EXPOSE_NATIVE_X11
+    #endif
+#endif
 
-#define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
 #include "Log.h"
 
-#endif // !COMMON_H
+#endif // COMMON_HPP
