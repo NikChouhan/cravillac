@@ -1,32 +1,4 @@
-add_requires("stb",
-{
-    debug =	is_mode("debug"),
-    configs =
-    {
-        shared = false,
-        runtimes = "MTd",
-    }
-})
-
-add_requires("glfw",
-{
-    debug =	is_mode("debug"),
-    configs =
-    {
-        shared = false,
-        runtimes = "MTd",
-    }
-})
-
-add_requires("directxtk",
-{
-    debug =	is_mode("debug"),
-    configs =
-    {
-        shared = false,
-        runtimes = "MTd",
-    }
-})
+add_requires("stb")
 
 add_requires("glm",
 {
@@ -47,3 +19,15 @@ add_requires("vulkan-headers",
         runtimes = "MTd",
     }
 })
+
+add_requires("directxmath",
+{
+    debug = is_mode("debug"),
+    configs =
+    {
+        shared = false,
+        runtimes = "MTd",
+    }
+})
+
+add_requires("glfw")

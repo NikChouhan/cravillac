@@ -8,3 +8,8 @@ build/
 
 vsxmake2022
 .vscode
+cmake-build-debug
+.idea
+Makefile
+CMakeLists.txt
+compile_commands.json

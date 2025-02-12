@@ -1,29 +1,28 @@
 target("core")
     set_kind("static")
-    set_group("engine")
+    set_group("VKEngine")
     add_files("core/*.cpp")
     add_headerfiles("core/*.h")
-    add_deps("renderer")
+    add_packages("directxmath", "stb", "glfw", "glm", {public = true})
+    if is_os("windows") then
+        local vulkan_sdk = os.getenv("VULKAN_SDK")
+        if vulkan_sdk then
+            add_includedirs(path.join(vulkan_sdk, "Include"), {public = true})
+            add_linkdirs(path.join(vulkan_sdk, "Lib"))
+            add_links("vulkan-1")
+        else
+            print("Warning: VULKAN_SDK environment variable is not set.")
+        end
+    elseif is_os("linux") then 
+        add_links("vulkan")
+    end
 target_end()
 
 target("renderer")
     set_kind("static")
-    set_group("engine")
+    set_group("VKEngine")
     add_files("renderer/*.cpp")
     add_headerfiles("renderer/*.h")
-    add_deps("common")
-target_end()
+    add_deps("core")
 
-target("common")
-    set_group("common")
-    set_kind("static")
-    add_deps("deps")
-    add_headerfiles("common/**.hpp", "common/**.h", {public = true})
-    add_files("common/**.cpp")
-target_end()
-
-target("deps")
-    set_group("common")
-    set_kind("static")
-    add_packages("glfw","stb","glm", "vulkan-headers", {public = true})
 target_end()

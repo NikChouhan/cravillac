@@ -3,6 +3,7 @@
 #include <fstream>
 #include <set>
 #include <algorithm>
+#include <cstring>
 
 #include "common.hpp"
 #include "vk_utils.h"
