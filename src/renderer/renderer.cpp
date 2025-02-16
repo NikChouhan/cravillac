@@ -1,34 +1,40 @@
-﻿#include <string>
+﻿#include <mutex>
 #include <iostream>
 #include <set>
 #include <cstdint>
 #include <algorithm>
 #include <limits>
 #include <fstream>
+#include <cstring>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 
 #include "renderer.h"
 #include "Log.h"
-#include <vk_utils.cpp>
+#include "vk_utils.h"
+#include <Texture.h>
 
 namespace VKTest
 {
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
     {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-        if (func != nullptr) {
+        if (func != nullptr)
+        {
             return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
         }
-        else {
+        else
+        {
             return VK_ERROR_EXTENSION_NOT_PRESENT;
         }
     }
 
-    void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator)
+    {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-        if (func != nullptr) {
+        if (func != nullptr)
+        {
             func(instance, debugMessenger, pAllocator);
         }
     }
@@ -36,15 +42,16 @@ namespace VKTest
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData) {
-
+        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+        void *pUserData)
+    {
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;
     }
 
-    void Renderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+    void Renderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
+    {
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -54,7 +61,8 @@ namespace VKTest
 
     void Renderer::SetupDebugMessenger()
     {
-        if (!enableValidationLayers) return;
+        if (!enableValidationLayers)
+            return;
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 
@@ -64,18 +72,16 @@ namespace VKTest
         {
             Log::Error("[VULKAN] Debug Messenger Failure");
         }
-        else Log::Info("[VULKAN] Debug messenger Success");
+        else
+            Log::Info("[VULKAN] Debug messenger Success");
     }
 
-
-
-    VkShaderModule Renderer::CreateShaderModule(const std::vector<char>& code) const
+    VkShaderModule Renderer::CreateShaderModule(const std::vector<char> &code) const
     {
         VkShaderModuleCreateInfo createInfo{
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = code.size(),
-        .pCode = reinterpret_cast<const uint32_t*>(code.data())
-        };
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = code.size(),
+            .pCode = reinterpret_cast<const uint32_t *>(code.data())};
 
         VkShaderModule shaderModule;
 
@@ -83,17 +89,22 @@ namespace VKTest
         {
             Log::Error("[SHADER] Shader Module creation Failed");
         }
-        else Log::Info("[SHADER] Shader Module creation Success");
+        else
+            Log::Info("[SHADER] Shader Module creation Success");
 
         return shaderModule;
     }
 
+    Renderer::Renderer()
+    {
+        tex->LoadTexture("../../../../assets/textures/texture.jpg");
+    }
 
     void Renderer::Run()
     {
         Log::Init();
         InitWindow();
-        InitVulkan();;
+        InitVulkan();
     }
 
     void Renderer::InitWindow()
@@ -116,13 +127,6 @@ namespace VKTest
         CreateDesctriptorSetLayout();
         CreateGraphicsPipeline();
         CreateCommandPool();
-        CreateVertexBuffer();
-        CreateIndexBuffer();
-        CreateUniformBuffers();
-        CreateDescriptorPool();
-        CreateDescriptorSets();
-        CreateCommandBuffer();
-        CreateSynObjects();
     }
 
     void Renderer::Cleanup() const
@@ -168,7 +172,6 @@ namespace VKTest
         glfwTerminate();
     }
 
-
     void Renderer::Render()
     {
         while (!glfwWindowShouldClose(m_window))
@@ -180,13 +183,27 @@ namespace VKTest
         vkDeviceWaitIdle(m_device);
     }
 
+    void Renderer::Submit(Texture tex)
+    {
+        CreateVertexBuffer();
+        CreateIndexBuffer();
+        CreateUniformBuffers();
+        CreateDescriptorPool();
+        CreateDescriptorSets();
+        CreateCommandBuffer();
+        CreateSynObjects();
+
+        this->tex = &tex;
+    }
+
     void Renderer::CreateInstance()
     {
         if (enableValidationLayers && !CheckValidationLayerSupport())
         {
             Log::Error("[VULKAN] Validation layers requested but not available");
         }
-        else Log::Info("[VULKAN] Validation layers requested available");
+        else
+            Log::Info("[VULKAN] Validation layers requested available");
 
         VkApplicationInfo appInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -194,8 +211,7 @@ namespace VKTest
             .applicationVersion = VK_API_VERSION_1_3,
             .pEngineName = "TestEngine",
             .engineVersion = VK_API_VERSION_1_3,
-            .apiVersion = VK_API_VERSION_1_3
-        };
+            .apiVersion = VK_API_VERSION_1_3};
 
         auto extensions = GetRequiredExtensions();
 
@@ -207,14 +223,16 @@ namespace VKTest
         };
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-        if (enableValidationLayers) {
+        if (enableValidationLayers)
+        {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
 
             populateDebugMessengerCreateInfo(debugCreateInfo);
-            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugCreateInfo;
         }
-        else {
+        else
+        {
             createInfo.enabledLayerCount = 0;
 
             createInfo.pNext = nullptr;
@@ -224,7 +242,8 @@ namespace VKTest
         {
             Log::Error("[VULKAN] Instance creation Failed");
         }
-        else Log::Info("[VULKAN] Instance creation Success");
+        else
+            Log::Info("[VULKAN] Instance creation Success");
     }
 
     void Renderer::CreateSurface()
@@ -248,7 +267,8 @@ namespace VKTest
         {
             Log::Error("[VULKAN] Surface Creation Failure");
         }
-        else Log::Info("[VULKAN] Surface Creation Success");
+        else
+            Log::Info("[VULKAN] Surface Creation Success");
     }
 
     void Renderer::PickPhysicalDevice()
@@ -256,13 +276,14 @@ namespace VKTest
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
 
-        if (deviceCount == 0) Log::Error("[VULKAN] Failed to find GPUs with Vulkan support");
+        if (deviceCount == 0)
+            Log::Error("[VULKAN] Failed to find GPUs with Vulkan support");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
 
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
-        for (const auto& physicalDevice : devices)
+        for (const auto &physicalDevice : devices)
         {
             if (IsDeviceSuitable(physicalDevice, m_surface))
             {
@@ -271,13 +292,15 @@ namespace VKTest
             }
         }
 
-        if (m_physicalDevice == VK_NULL_HANDLE) Log::Error("[VULKAN] Failed to find a suitable GPU");
-        else {
-            for (const auto& physdev : devices)
+        if (m_physicalDevice == VK_NULL_HANDLE)
+            Log::Error("[VULKAN] Failed to find a suitable GPU");
+        else
+        {
+            for (const auto &physdev : devices)
             {
                 VkPhysicalDeviceProperties properties;
                 vkGetPhysicalDeviceProperties(physdev, &properties);
-                const char* name = properties.deviceName;
+                const char *name = properties.deviceName;
                 Log::InfoDebug("[VULKAN] Device: ", name);
             }
         }
@@ -288,7 +311,7 @@ namespace VKTest
         QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, m_surface);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = { indices._graphicsFamily.value(), indices._presentFamily.value() };
+        std::set<uint32_t> uniqueQueueFamilies = {indices._graphicsFamily.value(), indices._presentFamily.value()};
 
         float queuePriority = 1.f;
         for (auto queueFamily : uniqueQueueFamilies)
@@ -297,14 +320,13 @@ namespace VKTest
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                 .queueFamilyIndex = queueFamily,
                 .queueCount = 1,
-                .pQueuePriorities = &queuePriority
-            };
+                .pQueuePriorities = &queuePriority};
             queueCreateInfos.push_back(queueCreateInfo);
         }
         VkPhysicalDeviceVulkan13Features enabledFeatures{
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-        .synchronization2 = true,
-        .dynamicRendering = true,
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .synchronization2 = true,
+            .dynamicRendering = true,
         };
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
@@ -319,11 +341,13 @@ namespace VKTest
             .pEnabledFeatures = &deviceFeatures,
         };
 
-        if (enableValidationLayers) {
+        if (enableValidationLayers)
+        {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
         }
-        else {
+        else
+        {
             createInfo.enabledLayerCount = 0;
         }
 
@@ -331,11 +355,11 @@ namespace VKTest
         {
             Log::Error("[VULKAN] Logical Device creation Failure");
         }
-        else Log::Info("[VULKAN] Logical Device creation Success");
+        else
+            Log::Info("[VULKAN] Logical Device creation Success");
 
         vkGetDeviceQueue(m_device, indices._graphicsFamily.value(), 0, &m_graphicsQueue);
         vkGetDeviceQueue(m_device, indices._presentFamily.value(), 0, &m_presentQueue);
-
     }
 
     void Renderer::CreateSwapChain()
@@ -349,7 +373,7 @@ namespace VKTest
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
-        //we do the imageCount > maximagecount check for following reason
+        // we do the imageCount > maximagecount check for following reason
         /*  For example :
             Let�s say minImageCount = 2 (double buffering is the minimum requirement).
             You set imageCount = 3 (triple buffering for better performance).
@@ -370,11 +394,10 @@ namespace VKTest
             .imageColorSpace = surfaceFormat.colorSpace,
             .imageExtent = extent,
             .imageArrayLayers = 1,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-        };
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
 
         QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, m_surface);
-        uint32_t queueFamilyIndices[] = { indices._graphicsFamily.value(), indices._presentFamily.value() };
+        uint32_t queueFamilyIndices[] = {indices._graphicsFamily.value(), indices._presentFamily.value()};
 
         if (indices._graphicsFamily != indices._presentFamily)
         {
@@ -398,7 +421,8 @@ namespace VKTest
         {
             Log::Error("[VULKAN] SwapChain creation Failed");
         }
-        else Log::Info("[VULKAN] SwapChain creation Success");
+        else
+            Log::Info("[VULKAN] SwapChain creation Success");
 
         vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
         m_swapChainImages.resize(imageCount);
@@ -424,19 +448,24 @@ namespace VKTest
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .pImmutableSamplers = nullptr
-        };
-
+            .pImmutableSamplers = nullptr};
+        VkDescriptorSetLayoutBinding samplerLayoutBinding{
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
         VkDescriptorSetLayoutCreateInfo pipelineLayoutCI{
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 1,
-            .pBindings = &uboLayoutBinding
-        };
+            .bindingCount = static_cast<uint32_t>(bindings.size()),
+            .pBindings = bindings.data()};
         if (vkCreateDescriptorSetLayout(m_device, &pipelineLayoutCI, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
         {
             Log::Error("[VULKAN] Descriptor Layout creation Failed");
         }
-        else Log::Info("[VULKAN] Descriptor Layout creation Success");
+        else
+            Log::Info("[VULKAN] Descriptor Layout creation Success");
     }
 
     void Renderer::CreateDescriptorSets()
@@ -446,15 +475,15 @@ namespace VKTest
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = m_descriptorPool,
             .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-            .pSetLayouts = layouts.data()
-        };
+            .pSetLayouts = layouts.data()};
 
         m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
         if (vkAllocateDescriptorSets(m_device, &descSetAllocInfo, m_descriptorSets.data()) != VK_SUCCESS)
         {
             Log::Error("[VULKAN] Descriptor Sets creation Failed");
-        } 
-        else Log::Info("[VULKAN] Descriptor Sets creation Success");
+        }
+        else
+            Log::Info("[VULKAN] Descriptor Sets creation Success");
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
@@ -462,25 +491,43 @@ namespace VKTest
             VkDescriptorBufferInfo descBI{
                 .buffer = m_uniformBuffers[i],
                 .offset = 0,
-                .range = sizeof(UniformBufferObject)
+                .range = sizeof(UniformBufferObject)};
+
+            VkDescriptorImageInfo imageInfo{
+                .sampler = tex->m_texSampler,
+                .imageView = tex->m_texImageView,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
 
-            VkWriteDescriptorSet writeDescSet{
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
-            };
-            writeDescSet.dstSet = m_descriptorSets[i];
-            writeDescSet.descriptorCount = 1;
-            writeDescSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            writeDescSet.pBufferInfo = &descBI;
-            writeDescSet.dstBinding = 0;
+            std::array<VkWriteDescriptorSet, 2> writeDescSet{};
 
-            vkUpdateDescriptorSets(m_device, 1, &writeDescSet, 0, nullptr);
+            // here the binding is for the descriptor in the descriptor set.
+            // 0 for ubo , 1 for texture image and both are part of the same m_descriptorSet[frameNumber]
+            // refer to YouTube Brendan Galea's descriptor to get an image of what's going on. 
+            // same set, different bindings for fast access
+
+            writeDescSet[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescSet[0].dstSet = m_descriptorSets[i];
+            writeDescSet[0].dstBinding = 0;
+            writeDescSet[0].dstArrayElement = 0;
+            writeDescSet[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writeDescSet[0].descriptorCount = 1;
+            writeDescSet[0].pBufferInfo = &descBI;
+
+            writeDescSet[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescSet[1].dstSet = m_descriptorSets[i];
+            writeDescSet[1].dstBinding = 1;
+            writeDescSet[1].dstArrayElement = 0;
+            writeDescSet[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescSet[1].descriptorCount = 1;
+            writeDescSet[1].pImageInfo = &imageInfo;
+
+            vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescSet.size()), writeDescSet.data(), 0, nullptr);
         }
     }
 
-
     // TODO
-    //void Renderer::RecreateSwapChain()
+    // void Renderer::RecreateSwapChain()
     //{
     //    vkDeviceWaitIdle(m_device);
 
@@ -505,17 +552,15 @@ namespace VKTest
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .stage = VK_SHADER_STAGE_VERTEX_BIT,
             .module = vertShaderModule,
-            .pName = "main"
-        };
+            .pName = "main"};
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .module = fragShaderModule,
-        .pName = "main"
-        };
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .module = fragShaderModule,
+            .pName = "main"};
 
-        VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShaderStageInfo, fragShaderStageInfo };
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertexShaderStageInfo, fragShaderStageInfo};
 
         auto bindingDesc = Vertex::getBindingDescription();
         auto attribDesc = Vertex::getAttributeDescription();
@@ -541,13 +586,12 @@ namespace VKTest
         viewport.maxDepth = 1.0f;
 
         VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
+        scissor.offset = {0, 0};
         scissor.extent = m_swapChainExtent;
 
         std::vector<VkDynamicState> dynamicStates = {
             VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-        };
+            VK_DYNAMIC_STATE_SCISSOR};
 
         VkPipelineDynamicStateCreateInfo dynamicState{};
         dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -569,27 +613,27 @@ namespace VKTest
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-        rasterizer.depthBiasClamp = 0.0f; // Optional
-        rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+        rasterizer.depthBiasClamp = 0.0f;          // Optional
+        rasterizer.depthBiasSlopeFactor = 0.0f;    // Optional
 
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        multisampling.minSampleShading = 1.0f; // Optional
-        multisampling.pSampleMask = nullptr; // Optional
+        multisampling.minSampleShading = 1.0f;          // Optional
+        multisampling.pSampleMask = nullptr;            // Optional
         multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-        multisampling.alphaToOneEnable = VK_FALSE; // Optional
+        multisampling.alphaToOneEnable = VK_FALSE;      // Optional
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;             // Optional
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
         colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;             // Optional
 
         VkPipelineColorBlendStateCreateInfo colorBlending{};
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -604,45 +648,47 @@ namespace VKTest
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1; 
+        pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout,
-        pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+        pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-        if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
+        {
             Log::Error("[VULKAN] Pipeline Layout creation Failure");
         }
-        else Log::Info("[VULKAN] Pipeline Layout creation Success");
+        else
+            Log::Info("[VULKAN] Pipeline Layout creation Success");
 
         VkPipelineRenderingCreateInfo pipelineRenderingInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-        .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = &m_swapChainImageFormat,
-        .depthAttachmentFormat = VK_FORMAT_UNDEFINED
-        };
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            .colorAttachmentCount = 1,
+            .pColorAttachmentFormats = &m_swapChainImageFormat,
+            .depthAttachmentFormat = VK_FORMAT_UNDEFINED};
 
         VkGraphicsPipelineCreateInfo pipelineCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .pNext = &pipelineRenderingInfo,
-        .stageCount = 2,
-        .pStages = shaderStages,
-        .pVertexInputState = &vertexInputInfo,
-        .pInputAssemblyState = &inputAssembly,
-        .pViewportState = &viewportState,
-        .pRasterizationState = &rasterizer,
-        .pMultisampleState = &multisampling,
-        .pDepthStencilState = nullptr,
-        .pColorBlendState = &colorBlending,
-        .pDynamicState = &dynamicState,
-        .layout = m_pipelineLayout,
-        .renderPass = VK_NULL_HANDLE,
+            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .pNext = &pipelineRenderingInfo,
+            .stageCount = 2,
+            .pStages = shaderStages,
+            .pVertexInputState = &vertexInputInfo,
+            .pInputAssemblyState = &inputAssembly,
+            .pViewportState = &viewportState,
+            .pRasterizationState = &rasterizer,
+            .pMultisampleState = &multisampling,
+            .pDepthStencilState = nullptr,
+            .pColorBlendState = &colorBlending,
+            .pDynamicState = &dynamicState,
+            .layout = m_pipelineLayout,
+            .renderPass = VK_NULL_HANDLE,
         };
 
         if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS)
         {
             Log::Error("[VULKAN] Pipeline creation Failure");
         }
-        else Log::Info("[VULKAN] Pipeline creation Success");
+        else
+            Log::Info("[VULKAN] Pipeline creation Success");
 
         // clean
         vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
@@ -656,17 +702,17 @@ namespace VKTest
         VkCommandPoolCreateInfo poolInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = queueFamilyIndices._graphicsFamily.value()
-        };
+            .queueFamilyIndex = queueFamilyIndices._graphicsFamily.value()};
 
         if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
         {
             Log::Error("[VULKAN] Command Pool creation Failure");
         }
-        else Log::Info("[VULKAN] Command Pool creation Success");
+        else
+            Log::Info("[VULKAN] Command Pool creation Success");
     }
 
-    // TODO: when the project is big, crete a "CreateBuffer function which takes in as parameter, the "usage", buffer (like the vertices/indices in the future) for "size" entry, and create on basis of the type, orr simply take in enum type and create the type 
+    // TODO: when the project is big, crete a "CreateBuffer function which takes in as parameter, the "usage", buffer (like the vertices/indices in the future) for "size" entry, and create on basis of the type, orr simply take in enum type and create the type
     void Renderer::CreateVertexBuffer()
     {
         VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
@@ -677,13 +723,13 @@ namespace VKTest
 
         // What map does is : "When you call vkMapMemory, what gets mapped is a region of GPU memory (allocated via vkAllocateMemory) into the CPU's address space. This allows the CPU to directly access that GPU memory as if it were regular RAM."
         // the void data* (its stored in CPU address space or RAM (or caches and bla bla but for CPU remember) and it stores the gpu memory pointer(?) and is mapping of the GPU memory where the contents are copied
-        void* data{};
+        void *data{};
 
         // imagine vkmapmemory as a function that takes in gpu memory and cpu memory pointer, map the memory and return a cpu pointer (void data*) to be used to copy stuf into it, which due to its mappingis also stored in the gpu memory
         vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, vertices.data(), size_t(bufferSize));
 
-        // (this releases and frees the data pointer implicitly after unmapping it ?) 
+        // (this releases and frees the data pointer implicitly after unmapping it ?)
         vkUnmapMemory(m_device, stagingBufferMemory);
 
         CreateBuffer(m_device, m_physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
@@ -702,7 +748,7 @@ namespace VKTest
         VkDeviceMemory staginGBufferMem{};
         CreateBuffer(m_device, m_physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, staginGBufferMem);
 
-        void* data{};
+        void *data{};
         vkMapMemory(m_device, staginGBufferMem, 0, bufferSize, 0, &data);
         memcpy(data, indices.data(), (size_t)bufferSize);
         vkUnmapMemory(m_device, staginGBufferMem);
@@ -728,29 +774,30 @@ namespace VKTest
             CreateBuffer(m_device, m_physicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformBuffers[i], m_uniformBufferMemory[i]);
             vkMapMemory(m_device, m_uniformBufferMemory[i], 0, bufferSize, 0, &m_uniformBufferMapped[i]);
         }
-
     }
 
     void Renderer::CreateDescriptorPool()
     {
-        VkDescriptorPoolSize poolSize{
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
-        };
+        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
         VkDescriptorPoolCreateInfo descPoolCI{
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-            .poolSizeCount = 1,
-            .pPoolSizes = &poolSize,
+            .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+            .pPoolSizes = poolSizes.data(),
         };
 
         if (vkCreateDescriptorPool(m_device, &descPoolCI, nullptr, &m_descriptorPool) != VK_SUCCESS)
         {
             Log::Error("[VULKAN] Descriptor Pool creation Failed");
         }
-        else Log::Info("[VULKAN] Descriptor Pool creation Success");
+        else
+            Log::Info("[VULKAN] Descriptor Pool creation Success");
     }
-
 
     void Renderer::CreateCommandBuffer()
     {
@@ -759,14 +806,14 @@ namespace VKTest
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool = m_commandPool,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = (uint32_t)m_commandBuffer.size()
-        };
+            .commandBufferCount = (uint32_t)m_commandBuffer.size()};
 
         if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffer.data()) != VK_SUCCESS)
         {
             Log::Error("[VULKAN] Command Buffer creation Failure");
         }
-        else Log::Info("[VULKAN] Command Buffer creation Success");
+        else
+            Log::Info("[VULKAN] Command Buffer creation Success");
     }
 
     void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -774,33 +821,31 @@ namespace VKTest
         VkCommandBufferBeginInfo beginInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = 0,
-            .pInheritanceInfo = nullptr
-        };
+            .pInheritanceInfo = nullptr};
 
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+        {
             Log::Error("[DRAW] Recording Command buffer Failure");
         }
-        //else Log::Info("[DRAW] Recording Command buffer Success");
+        // else Log::Info("[DRAW] Recording Command buffer Success");
 
         // dynamic rendering stuff
 
         // transition color image from undefined to optimal for rendering
         TransitionImage(commandBuffer, m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
-
         VkRenderingAttachmentInfo colorAttachmentInfo{
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .imageView = m_swapChainImageViews[imageIndex],
             .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE
-        };
-        colorAttachmentInfo.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE};
+        colorAttachmentInfo.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
         VkRenderingInfo renderingInfo{
             .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
         };
-        renderingInfo.renderArea.offset = { 0, 0 };
+        renderingInfo.renderArea.offset = {0, 0};
         renderingInfo.renderArea.extent = m_swapChainExtent;
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = 1;
@@ -809,8 +854,8 @@ namespace VKTest
         vkCmdBeginRendering(commandBuffer, &renderingInfo);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-        VkBuffer vertexBuffers[] = { m_vertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
+        VkBuffer vertexBuffers[] = {m_vertexBuffer};
+        VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
@@ -824,12 +869,11 @@ namespace VKTest
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
+        scissor.offset = {0, 0};
         scissor.extent = m_swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[currentFrame], 0, nullptr);
-
 
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -841,7 +885,7 @@ namespace VKTest
         {
             Log::Error("[DRAW] Recording Command buffer Failure");
         }
-        //else Log::Info("[DRAW] Recording Command buffer Success");
+        // else Log::Info("[DRAW] Recording Command buffer Success");
     }
 
     void Renderer::DrawFrame()
@@ -858,12 +902,10 @@ namespace VKTest
 
         RecordCommandBuffer(m_commandBuffer[currentFrame], imageIndex);
 
-
         VkSubmitInfo submitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO
-        };
-        VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[currentFrame] };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
+        VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[currentFrame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
@@ -871,7 +913,7 @@ namespace VKTest
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_commandBuffer[currentFrame];
 
-        VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphore[currentFrame] };
+        VkSemaphore signalSemaphore[] = {m_renderFinishedSemaphore[currentFrame]};
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphore;
 
@@ -879,9 +921,9 @@ namespace VKTest
         {
             Log::Error("[DRAW] Submit Draw Command buffer Failed");
         }
-        //else Log::Info("[DRAW] Submit Draw Command buffer Success");
+        // else Log::Info("[DRAW] Submit Draw Command buffer Success");
 
-        VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+        VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[currentFrame];
         presentInfo.swapchainCount = 1;
@@ -922,17 +964,18 @@ namespace VKTest
         };
         VkFenceCreateInfo fenceCI{
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT
-        };
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
             if (vkCreateSemaphore(m_device, &semaphoreCI, nullptr, &m_imageAvailableSemaphore[i]) != VK_SUCCESS ||
                 vkCreateSemaphore(m_device, &semaphoreCI, nullptr, &m_renderFinishedSemaphore[i]) != VK_SUCCESS ||
-                vkCreateFence(m_device, &fenceCI, nullptr, &m_inFlightFence[i]) != VK_SUCCESS) {
+                vkCreateFence(m_device, &fenceCI, nullptr, &m_inFlightFence[i]) != VK_SUCCESS)
+            {
                 Log::Error("[VULKAN] Fence/Semaphore creation Failure");
             }
-            else Log::Info("[VULKAN] Fence/Semaphore creation Success");
+            else
+                Log::Info("[VULKAN] Fence/Semaphore creation Success");
         }
     }
 };

@@ -14,7 +14,6 @@ namespace VKTest
         this->renderer = renderer;
     }
 
-
     Texture::~Texture()
     {
         vkDestroySampler(renderer->m_device, m_texSampler, nullptr);
@@ -24,14 +23,15 @@ namespace VKTest
         vkFreeMemory(renderer->m_device, m_texImageMemory, nullptr);
     }
 
-    void Texture::LoadTexture(const char* filename)
+    void Texture::LoadTexture(const char *filename)
     {
         // Load the image using stb_image
         int width, height, channels;
-        stbi_set_flip_vertically_on_load(true);  // Flip the image vertically for DirectX
-        unsigned char* imgData = stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
+        stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
+        unsigned char *imgData = stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
 
-        if (!imgData) {
+        if (!imgData)
+        {
             Log::Error("[STB] Failed to load texture");
             return;
         }
@@ -44,13 +44,13 @@ namespace VKTest
 
             CreateBuffer(renderer->m_device, renderer->m_physicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-            void* data;
+            void *data;
             vkMapMemory(renderer->m_device, stagingBufferMemory, 0, imageSize, 0, &data);
             memcpy(data, imgData, static_cast<size_t>(imageSize));
             vkUnmapMemory(renderer->m_device, stagingBufferMemory);
             stbi_image_free(imgData);
 
-            CreateImage(renderer->m_physicalDevice,renderer->m_device, width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texImage, m_texImageMemory);            
+            CreateImage(renderer->m_physicalDevice, renderer->m_device, width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texImage, m_texImageMemory);
 
             VkCommandBuffer tempCmdBuffer = BeginSingleTimeCommands(renderer->m_device, renderer->m_commandPool);
 
@@ -68,12 +68,12 @@ namespace VKTest
     }
     void Texture::CreateTextureImageView()
     {
-        m_texImageView = CreateImageView(renderer->m_device, m_texImage, VK_FORMAT_R8G8B8A8_SRGB);   
+        m_texImageView = CreateImageView(renderer->m_device, m_texImage, VK_FORMAT_R8G8B8A8_SRGB);
     }
     void Texture::CreateTextureSampler()
     {
         VkSamplerCreateInfo samplerInfo{
-            .sType= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .magFilter = VK_FILTER_LINEAR,
             .minFilter = VK_FILTER_LINEAR,
         };
@@ -95,10 +95,11 @@ namespace VKTest
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
 
-        if(vkCreateSampler(renderer->m_device, &samplerInfo, nullptr, &m_texSampler) != VK_SUCCESS)
+        if (vkCreateSampler(renderer->m_device, &samplerInfo, nullptr, &m_texSampler) != VK_SUCCESS)
         {
             Log::Error("[TEXTURE] Failure to create Texture Sampler");
         }
-        else Log::Info("[TEXTURE] Success to create Texture Sampler");
+        else
+            Log::Info("[TEXTURE] Success to create Texture Sampler");
     }
 };

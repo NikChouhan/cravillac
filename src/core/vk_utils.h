@@ -44,7 +44,9 @@ namespace VKTest
 	};
 
 	// vulkan base support funcs
+	bool CheckValidationLayerSupport();
 	std::vector<const char*> GetRequiredExtensions();
+	bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
@@ -63,5 +65,9 @@ namespace VKTest
 	void CreateImage(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
 	void CopyBufferToImage(VkCommandBuffer commandBuffer, VkImage image, VkBuffer buffer, uint32_t width, uint32_t height);
     VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format);
+
+	// read file idk shdader
+	std::vector<char> ReadFile(const std::string &filename);
+
 }
 #endif

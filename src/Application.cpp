@@ -15,6 +15,8 @@ namespace VKTest
 		Texture tex{renderer};
 		tex.LoadTexture("../../../../assets/textures/texture.jpg");
 
+		renderer->Submit(tex);
+
 		Render();
 	}
 	void Application::Render()

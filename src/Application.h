@@ -5,7 +5,6 @@ namespace VKTest
 {
 	class Renderer;
 
-
 	class Application
 	{
 	public:
@@ -19,6 +18,5 @@ namespace VKTest
 		std::shared_ptr<Renderer> renderer;
 
 	public:
-		
 	};
 }

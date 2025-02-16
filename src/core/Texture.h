@@ -15,6 +15,7 @@ namespace VKTest
     class Texture
     {
     public:
+        Texture();
         Texture(std::shared_ptr<Renderer> renderer);
         ~Texture();
         void LoadTexture(const char* path);
@@ -25,7 +26,6 @@ namespace VKTest
         VkDeviceMemory m_texImageMemory;
         VkImageView m_texImageView;
         VkSampler m_texSampler;
-    private:
         std::shared_ptr<VKTest::Renderer> renderer;
     };
 }

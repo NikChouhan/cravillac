@@ -6,11 +6,14 @@
 #include <vector>
 #include <optional>
 #include <array>
-#include <string>
 
 #include "common.h"
+
+
 namespace VKTest
 {
+    class Texture;
+
     constexpr uint32_t WIDTH = 800;
     constexpr uint32_t HEIGHT = 600;
 
@@ -22,7 +25,7 @@ namespace VKTest
         INDEX
     };
 
-    struct UniformBufferObject 
+    struct UniformBufferObject
     {
         glm::mat4 model;
         glm::mat4 view;
@@ -33,22 +36,24 @@ namespace VKTest
     {
         glm::vec2 pos;
         glm::vec3 color;
+        glm::vec2 texCoord;
 
         static VkVertexInputBindingDescription getBindingDescription()
         {
             VkVertexInputBindingDescription bindingDesc{
                 .binding = 0,
                 .stride = sizeof(Vertex),
-                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-            };
+                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
 
             return bindingDesc;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescription()
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription()
         {
-            std::array<VkVertexInputAttributeDescription, 2> attrDescs{};
+            std::array<VkVertexInputAttributeDescription, 3> attrDescs{};
 
+            // here binding is for the vertex position for a particular vertex buffer
+            // means all the binding is for the same vertex buffer, with different locations for pos, color, texcoord
             attrDescs[0].binding = 0;
             attrDescs[0].location = 0;
             attrDescs[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -59,34 +64,40 @@ namespace VKTest
             attrDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
             attrDescs[1].offset = offsetof(Vertex, color);
 
+            attrDescs[2].binding = 0;
+            attrDescs[2].location = 2;
+            attrDescs[2].format = VK_FORMAT_R32G32_SFLOAT;
+            attrDescs[2].offset = offsetof(Vertex, texCoord);
+
             return attrDescs;
         }
     };
 
-    const std::vector<Vertex> vertices = 
+    const std::vector<Vertex> vertices =
     {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
     };
 
-    const std::vector<uint16_t> indices = 
-    {
-        0, 1, 2, 2, 3, 0
-    };
+    const std::vector<uint16_t> indices =
+        {
+            0, 1, 2, 2, 3, 0
+        };
 
     class Renderer
     {
     public:
+        Renderer();
         void Run();
         void InitVulkan();
         void InitWindow();
+        void Submit(Texture tex);
         void Render();
         void Cleanup() const;
 
     private:
-
         // Vulkan base setup
         void CreateInstance();
         void CreateSurface();
@@ -97,7 +108,7 @@ namespace VKTest
         void CreateDesctriptorSetLayout();
         void CreateDescriptorSets();
 
-        //void RecreateSwapChain(); // TODO
+        // void RecreateSwapChain(); // TODO
 
         // drawing stuff
         void CreateGraphicsPipeline();
@@ -115,12 +126,12 @@ namespace VKTest
 
         // fence stuff
         void CreateSynObjects();
-        void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+        void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
         void SetupDebugMessenger();
-        VkShaderModule CreateShaderModule(const std::vector<char>& code) const;
+        VkShaderModule CreateShaderModule(const std::vector<char> &code) const;
 
     public:
-        GLFWwindow* m_window;
+        GLFWwindow *m_window;
         uint32_t currentFrame = 0;
 
         VkInstance m_instance = VK_NULL_HANDLE;
@@ -146,12 +157,11 @@ namespace VKTest
 
         std::vector<VkBuffer> m_uniformBuffers{};
         std::vector<VkDeviceMemory> m_uniformBufferMemory{};
-        std::vector<void*>m_uniformBufferMapped{};
+        std::vector<void *> m_uniformBufferMapped{};
 
         // descriptor pool
         VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
         std::vector<VkDescriptorSet> m_descriptorSets;
-
 
         // issue commands
         VkCommandPool m_commandPool = VK_NULL_HANDLE;
@@ -163,5 +173,7 @@ namespace VKTest
         std::vector<VkFence> m_inFlightFence;
 
         VkDebugUtilsMessengerEXT debugMessenger;
+
+        Texture* tex;
     };
 };
