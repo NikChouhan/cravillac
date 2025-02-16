@@ -1,9 +1,11 @@
 #pragma once
+#include <vector>
 #include <memory>
 
 namespace VKTest
 {
 	class Renderer;
+	class Texture;
 
 	class Application
 	{
@@ -16,7 +18,7 @@ namespace VKTest
 
 	private:
 		std::shared_ptr<Renderer> renderer;
-
+		std::vector<Texture> textures;
 	public:
 	};
 }

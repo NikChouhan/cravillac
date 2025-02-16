@@ -182,18 +182,17 @@ namespace VKTest
         vkDeviceWaitIdle(m_device);
     }
 
-    void Renderer::Submit(Texture tex)
+    void Renderer::Submit(std::vector<Texture> textures)
     {
         CreateVertexBuffer();
         CreateIndexBuffer();
         CreateUniformBuffers();
         CreateDescriptorPool();
-
-        this->tex = &tex;
-
-
-        this->tex->LoadTexture("../../../../assets/textures/texture.jpg");
-        CreateDescriptorSets();
+        
+        for (auto& tex : textures)
+        {
+            CreateDescriptorSets(tex);
+        }
         CreateCommandBuffer();
         CreateSynObjects();
 
@@ -471,7 +470,7 @@ namespace VKTest
             Log::Info("[VULKAN] Descriptor Layout creation Success");
     }
 
-    void Renderer::CreateDescriptorSets()
+    void Renderer::CreateDescriptorSets(Texture& tex)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
         VkDescriptorSetAllocateInfo descSetAllocInfo{
@@ -497,8 +496,8 @@ namespace VKTest
                 .range = sizeof(UniformBufferObject)};
 
             VkDescriptorImageInfo imageInfo{
-                .sampler = tex->m_texSampler,
-                .imageView = tex->m_texImageView,
+                .sampler = tex.m_texSampler,
+                .imageView = tex.m_texImageView,
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
 

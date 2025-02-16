@@ -15,12 +15,12 @@ namespace VKTest
     class Texture
     {
     public:
-        Texture();
-        Texture(std::shared_ptr<Renderer> renderer);
+        Texture() {};
         ~Texture();
-        void LoadTexture(const char* path);
+        void LoadTexture(std::shared_ptr<Renderer> renderer, const char* path);
         void CreateTextureImageView();
         void CreateTextureSampler();
+
     public:
         VkImage m_texImage;
         VkDeviceMemory m_texImageMemory;

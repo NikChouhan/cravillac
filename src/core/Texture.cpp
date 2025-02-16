@@ -9,11 +9,6 @@
 
 namespace VKTest
 {
-    Texture::Texture(std::shared_ptr<Renderer> renderer)
-    {
-        this->renderer = renderer;
-    }
-
     Texture::~Texture()
     {
         vkDestroySampler(renderer->m_device, m_texSampler, nullptr);
@@ -23,8 +18,9 @@ namespace VKTest
         vkFreeMemory(renderer->m_device, m_texImageMemory, nullptr);
     }
 
-    void Texture::LoadTexture(const char *filename)
+    void Texture::LoadTexture(std::shared_ptr<Renderer> renderer, const char *filename)
     {
+        this->renderer = renderer;
         // Load the image using stb_image
         int width, height, channels;
         stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
@@ -56,6 +52,7 @@ namespace VKTest
 
             TransitionImage(tempCmdBuffer, m_texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
             CopyBufferToImage(tempCmdBuffer, m_texImage, stagingBuffer, width, height);
+            TransitionImage(tempCmdBuffer, m_texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             EndSingleTimeCommands(renderer->m_device, renderer->m_graphicsQueue, renderer->m_commandPool, tempCmdBuffer);
 

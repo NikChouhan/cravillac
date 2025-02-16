@@ -93,7 +93,7 @@ namespace VKTest
         void Run();
         void InitVulkan();
         void InitWindow();
-        void Submit(Texture tex);
+        void Submit(std::vector<Texture> textures);
         void Render();
         void Cleanup() const;
 
@@ -106,7 +106,7 @@ namespace VKTest
         void CreateSwapChain();
         void CreateImageViews();
         void CreateDesctriptorSetLayout();
-        void CreateDescriptorSets();
+        void CreateDescriptorSets(Texture& tex);
 
         // void RecreateSwapChain(); // TODO
 
@@ -173,7 +173,5 @@ namespace VKTest
         std::vector<VkFence> m_inFlightFence;
 
         VkDebugUtilsMessengerEXT debugMessenger;
-
-        Texture* tex;
     };
 };

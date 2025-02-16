@@ -11,11 +11,11 @@ namespace VKTest
 	void Application::Run()
 	{
 		renderer->Run();
-
-		Texture tex{renderer};
-		tex.LoadTexture("../../../../assets/textures/texture.jpg");
-
-		renderer->Submit(tex);
+		
+		Texture tex1;
+		tex1.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
+		textures.push_back(tex1);
+		renderer->Submit(textures);
 
 		Render();
 	}
@@ -25,6 +25,7 @@ namespace VKTest
 	}
 	void Application::CleanUp()
 	{
+		//tex->~Texture();
 		renderer->Cleanup();
 	}
 	Application::~Application()
