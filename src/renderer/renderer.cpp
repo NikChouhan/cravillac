@@ -12,7 +12,6 @@
 #include "renderer.h"
 #include "Log.h"
 #include <vk_utils.cpp>
-#undef max;
 
 namespace VKTest
 {
@@ -113,7 +112,7 @@ namespace VKTest
         PickPhysicalDevice();
         CreateLogicalDevice();
         CreateSwapChain();
-        CreateImageView();
+        CreateImageViews();
         CreateDesctriptorSetLayout();
         CreateGraphicsPipeline();
         CreateCommandPool();
@@ -308,6 +307,7 @@ namespace VKTest
         .dynamicRendering = true,
         };
         VkPhysicalDeviceFeatures deviceFeatures{};
+        deviceFeatures.samplerAnisotropy = VK_TRUE;
 
         VkDeviceCreateInfo createInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -408,34 +408,13 @@ namespace VKTest
         m_swapChainExtent = extent;
     }
 
-    void Renderer::CreateImageView()
+    void Renderer::CreateImageViews()
     {
         m_swapChainImageViews.resize(m_swapChainImages.size());
 
         for (size_t i = 0; i < m_swapChainImages.size(); i++)
         {
-            VkImageViewCreateInfo createInfo{
-                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .image = m_swapChainImages[i],
-                .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                .format = m_swapChainImageFormat,
-            };
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS)
-            {
-                Log::Error("[VULKAN] Image Views creation Failed");
-            }
-            else Log::Info("[VULKAN] Image Views creation Success");
+            m_swapChainImageViews[i] = CreateImageView(m_device, m_swapChainImages[i], m_swapChainImageFormat);
         }
     }
     void Renderer::CreateDesctriptorSetLayout()

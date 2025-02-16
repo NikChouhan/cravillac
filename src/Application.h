@@ -16,7 +16,7 @@ namespace VKTest
 		~Application();
 
 	private:
-		std::unique_ptr<Renderer> renderer;
+		std::shared_ptr<Renderer> renderer;
 
 	public:
 		

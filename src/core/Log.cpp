@@ -1,6 +1,5 @@
 #include <iostream>
 #include <iomanip>
-#include <DirectXMath.h>
 #include "Log.h"
 
 std::vector<Log::LogMessageData> Log::m_messages;

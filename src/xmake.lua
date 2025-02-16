@@ -3,7 +3,7 @@ target("core")
     set_group("VKEngine")
     add_files("core/*.cpp")
     add_headerfiles("core/*.h")
-    add_packages("directxmath", "stb", "glfw", "glm", {public = true})
+    add_packages("directxmath", "glfw", "glm", {public = true})
     if is_os("windows") then
         local vulkan_sdk = os.getenv("VULKAN_SDK")
         if vulkan_sdk then

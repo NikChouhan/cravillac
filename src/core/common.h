@@ -1,5 +1,5 @@
-#ifndef COMMON_HPP
-#define COMMON_HPP
+#ifndef COMMON_H
+#define COMMON_H
 
 #ifdef _WIN32
     #define VK_USE_PLATFORM_WIN32_KHR
@@ -18,7 +18,5 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
-#include "Log.h"
 
-
-#endif // COMMON_HPP
+#endif // COMMON_H

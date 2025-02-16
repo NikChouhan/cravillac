@@ -8,7 +8,7 @@
 #include <array>
 #include <string>
 
-#include "common.hpp"
+#include "common.h"
 namespace VKTest
 {
     constexpr uint32_t WIDTH = 800;
@@ -93,7 +93,7 @@ namespace VKTest
         void PickPhysicalDevice();
         void CreateLogicalDevice();
         void CreateSwapChain();
-        void CreateImageView();
+        void CreateImageViews();
         void CreateDesctriptorSetLayout();
         void CreateDescriptorSets();
 

@@ -1,15 +1,20 @@
 #include "Application.h"
 #include "renderer.h"
+#include "Texture.h"
 
 namespace VKTest
 {
 	Application::Application()
 	{
-		renderer = std::make_unique<Renderer>();
+		renderer = std::make_shared<Renderer>();
 	}
 	void Application::Run()
 	{
 		renderer->Run();
+
+		Texture tex{renderer};
+		tex.LoadTexture("../../../../assets/textures/texture.jpg");
+
 		Render();
 	}
 	void Application::Render()
