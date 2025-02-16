@@ -97,7 +97,6 @@ namespace VKTest
 
     Renderer::Renderer()
     {
-        tex->LoadTexture("../../../../assets/textures/texture.jpg");
     }
 
     void Renderer::Run()
@@ -189,11 +188,15 @@ namespace VKTest
         CreateIndexBuffer();
         CreateUniformBuffers();
         CreateDescriptorPool();
+
+        this->tex = &tex;
+
+
+        this->tex->LoadTexture("../../../../assets/textures/texture.jpg");
         CreateDescriptorSets();
         CreateCommandBuffer();
         CreateSynObjects();
 
-        this->tex = &tex;
     }
 
     void Renderer::CreateInstance()
@@ -450,8 +453,8 @@ namespace VKTest
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
             .pImmutableSamplers = nullptr};
         VkDescriptorSetLayoutBinding samplerLayoutBinding{
-            .binding = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .descriptorCount = 1,
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
             .pImmutableSamplers = nullptr};
