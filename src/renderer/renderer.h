@@ -93,7 +93,7 @@ namespace VKTest
         void Run();
         void InitVulkan();
         void InitWindow();
-        void Submit(std::vector<Texture> textures);
+        void Submit(std::vector<Texture>& textures);
         void Render();
         void Cleanup() const;
 

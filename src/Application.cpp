@@ -25,7 +25,6 @@ namespace VKTest
 	}
 	void Application::CleanUp()
 	{
-		//tex->~Texture();
 		renderer->Cleanup();
 	}
 	Application::~Application()

@@ -182,7 +182,7 @@ namespace VKTest
         vkDeviceWaitIdle(m_device);
     }
 
-    void Renderer::Submit(std::vector<Texture> textures)
+    void Renderer::Submit(std::vector<Texture>& textures)
     {
         CreateVertexBuffer();
         CreateIndexBuffer();
