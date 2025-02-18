@@ -31,3 +31,5 @@ add_requires("directxmath",
 })
 
 add_requires("glfw")
+
+add_requires("fastgltf")

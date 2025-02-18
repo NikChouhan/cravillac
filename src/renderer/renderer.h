@@ -82,9 +82,11 @@ namespace VKTest
     };
 
     const std::vector<uint16_t> indices =
-        {
-            0, 1, 2, 2, 3, 0
-        };
+    {
+        0, 1, 2, 2, 3, 0
+    };
+
+    constexpr uint32_t MAX_TEXTURES = 3;
 
     class Renderer
     {
@@ -106,7 +108,7 @@ namespace VKTest
         void CreateSwapChain();
         void CreateImageViews();
         void CreateDesctriptorSetLayout();
-        void CreateDescriptorSets(Texture& tex);
+        void CreateDescriptorSets(std::vector<Texture>& textures);
 
         // void RecreateSwapChain(); // TODO
 
