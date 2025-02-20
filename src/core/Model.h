@@ -1,7 +1,5 @@
 #include <memory>
 
-#include <fastgltf/core.hpp>
-
 #include "common.h"
 
 struct Primitive
@@ -19,14 +17,15 @@ namespace VKTest
 	class Model
 	{
 	public:
-		Model() {};
-		void LoadModel(std::shared_ptr<Renderer> renderer, const char* path);
+		Model();
+		void LoadModel(std::shared_ptr<Renderer> renderer, std::string path);
 
 	private:
 
 	public:
 
 	private:
-		fastgltf::Asset gltfModel;
+		std::shared_ptr<Renderer> renderer;
+		std::string m_dirPath;	
 	};
 }

@@ -95,6 +95,7 @@ namespace VKTest
         if (vkCreateSampler(renderer->m_device, &samplerInfo, nullptr, &m_texSampler) != VK_SUCCESS)
         {
             Log::Error("[TEXTURE] Failure to create Texture Sampler");
+            m_texSampler = VK_NULL_HANDLE;
         }
         else
             Log::Info("[TEXTURE] Success to create Texture Sampler");

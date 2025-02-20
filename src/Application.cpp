@@ -14,7 +14,10 @@ namespace VKTest
 		
 		Texture tex1;
 		tex1.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
+		Texture tex2;
+		tex2.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
 		textures.push_back(tex1);
+		textures.push_back(tex2);
 		renderer->Submit(textures);
 
 		Render();

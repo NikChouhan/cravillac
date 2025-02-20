@@ -188,12 +188,11 @@ namespace VKTest
         CreateIndexBuffer();
         CreateUniformBuffers();
         CreateDescriptorPool();
-        
+
         CreateDescriptorSets(textures);
 
         CreateCommandBuffer();
         CreateSynObjects();
-
     }
 
     void Renderer::CreateInstance()
@@ -324,10 +323,12 @@ namespace VKTest
             queueCreateInfos.push_back(queueCreateInfo);
         }
         // bindless
-        VkPhysicalDeviceDescriptorIndexingFeatures bindless{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES };
+        VkPhysicalDeviceDescriptorIndexingFeatures bindless{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
         bindless.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
         bindless.descriptorBindingPartiallyBound = VK_TRUE;
         bindless.runtimeDescriptorArray = VK_TRUE;
+        bindless.descriptorBindingVariableDescriptorCount = VK_TRUE;
+        bindless.descriptorBindingSampledImageUpdateAfterBind = true;
         // dynamic rendering
         VkPhysicalDeviceVulkan13Features enabledFeatures{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
@@ -347,7 +348,6 @@ namespace VKTest
             .ppEnabledExtensionNames = deviceExtensions.data(),
             .pEnabledFeatures = &deviceFeatures,
         };
-
 
         if (enableValidationLayers)
         {
@@ -450,7 +450,7 @@ namespace VKTest
         }
     }
 
-    // what this does is create a simple layout for the descriptor set. It tells the driver that we will be 
+    // what this does is create a simple layout for the descriptor set. It tells the driver that we will be
     // creating a set with two bindings. One for the ubo buffer and the other for the sampler and inform it about the characteristics of both.
     // so that the validation layers can come in to help with the issues if the actual descriptor set has discrepancy with the layout.
     //
@@ -476,24 +476,28 @@ namespace VKTest
         VkDescriptorSetLayoutBinding samplerLayoutBinding{
             .binding = 1,
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = MAX_TEXTURES,
+            .descriptorCount = 1000,
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
             .pImmutableSamplers = nullptr,
         };
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
 
-        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{ .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-        bindingFlags.bindingCount = bindings.size();
-        VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-        bindingFlags.pBindingFlags = &flags;
+        std::array<VkDescriptorBindingFlags, 2> bindingFlagsArr = {
+            0, // No special flags for the UBO
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT};
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount = static_cast<uint32_t>(bindingFlagsArr.size()),
+            .pBindingFlags = bindingFlagsArr.data()};
 
         VkDescriptorSetLayoutCreateInfo pipelineLayoutCI{
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .pNext = &bindingFlags,
+            .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
             .bindingCount = static_cast<uint32_t>(bindings.size()),
-            .pBindings = bindings.data()
-        };
+            .pBindings = bindings.data()};
 
         if (vkCreateDescriptorSetLayout(m_device, &pipelineLayoutCI, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
         {
@@ -506,14 +510,25 @@ namespace VKTest
     // that we are going to push to it. So if I have multiple models whose data -textures, primitives, indices are to be handled
     // I can't do it at the global renderer level. What I need is the implementation in the model class itself. If I do it here, all the data - tex, primitives,indices
     // must be known to the VkDescriptorWriteInfo. Passing the texture data for every samppler feels foolish
-    // 
+    //
     // (remember I might keep the descriptor set for the ubo buffer as I know it its meant to be for the global renderer, and is not model specific.
     //
-    void Renderer::CreateDescriptorSets(std::vector<Texture>& textures)
+    void Renderer::CreateDescriptorSets(std::vector<Texture> &textures)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
+
+        // // specify the number of descriptors for the bindless array (binding 1)
+        // std::vector<uint32_t> variableCounts(MAX_FRAMES_IN_FLIGHT, static_cast<uint32_t>(textures.size()));
+
+        // VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{
+        //     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+        //     .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+        //     .pDescriptorCounts = variableCounts.data()
+        // };
+
         VkDescriptorSetAllocateInfo descSetAllocInfo{
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext = nullptr,
             .descriptorPool = m_descriptorPool,
             .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
             .pSetLayouts = layouts.data()};
@@ -526,11 +541,11 @@ namespace VKTest
         else
             Log::Info("[VULKAN] Descriptor Sets creation Success");
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++)
         {
             // binding 0
             VkDescriptorBufferInfo descBI{
-                .buffer = m_uniformBuffers[i],
+                .buffer = m_uniformBuffers[j],
                 .offset = 0,
                 .range = sizeof(UniformBufferObject)};
 
@@ -542,13 +557,13 @@ namespace VKTest
             };*/
 
             VkWriteDescriptorSet uboWriteDescSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = m_descriptorSets[i],
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .pBufferInfo = &descBI };
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = m_descriptorSets[j],
+                .dstBinding = 0,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .pBufferInfo = &descBI};
 
             // bindless
             std::vector<VkDescriptorImageInfo> imageInfos{};
@@ -556,6 +571,9 @@ namespace VKTest
             for (size_t i = 0; i < textures.size(); i++)
             {
                 VkDescriptorImageInfo info;
+                assert(textures[i].m_texImage);
+                assert(textures[i].m_texSampler);
+                assert(textures[i].m_texImageView);
                 info.sampler = textures[i].m_texSampler;
                 info.imageView = textures[i].m_texImageView;
                 info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -565,20 +583,19 @@ namespace VKTest
 
             // here the binding is for the descriptor in the descriptor set.
             // 0 for ubo , 1 for texture image and both are part of the same m_descriptorSet[frameNumber]
-            // refer to YouTube Brendan Galea's descriptor to get an image of what's going on. 
+            // refer to YouTube Brendan Galea's descriptor to get an image of what's going on.
             // same set, different bindings for fast access
 
             VkWriteDescriptorSet samplerWriteDescSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = m_descriptorSets[i],
-            .dstBinding = 1,
-            .dstArrayElement = 0,
-            .descriptorCount = static_cast<uint32_t>(textures.size()),
-            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = imageInfos.data() 
-            };
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = m_descriptorSets[j],
+                .dstBinding = 1,
+                .dstArrayElement = 0,
+                .descriptorCount = static_cast<uint32_t>(textures.size()),
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo = imageInfos.data()};
 
-            std::array<VkWriteDescriptorSet, 2> writeDescSets = { uboWriteDescSet, samplerWriteDescSet };
+            std::array<VkWriteDescriptorSet, 2> writeDescSets = {uboWriteDescSet, samplerWriteDescSet};
 
             vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescSets.size()), writeDescSets.data(), 0, nullptr);
         }
@@ -842,10 +859,11 @@ namespace VKTest
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES);
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 1000);
 
         VkDescriptorPoolCreateInfo descPoolCI{
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
             .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
             .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
             .pPoolSizes = poolSizes.data(),

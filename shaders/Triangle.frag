@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_EXT_nonuniform_qualifier : enable
+
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexcoord;
 
@@ -9,5 +11,5 @@ layout(set = 0, binding = 1) uniform sampler2D textures[];
 
 void main() 
 {
-    outColor = texture(textures[0], fragTexcoord);
+    outColor = texture(textures[1], fragTexcoord);
 }

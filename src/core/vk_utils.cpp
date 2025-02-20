@@ -214,7 +214,7 @@ namespace VKTest
         Log::Error("[MEMORY] Failed to find suitable memory type");
     }
 
-    void TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout)
+    void TransitionImage(VkCommandBuffer commandBuffer, VkImage& image, VkImageLayout currentLayout, VkImageLayout newLayout)
     {
         VkImageMemoryBarrier2 imageBarrier{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -303,7 +303,7 @@ namespace VKTest
         vkBindBufferMemory(device, buffer, bufferMemory, 0);
     }
 
-    void CopyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+    void CopyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize size)
     {
         VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
@@ -364,10 +364,10 @@ namespace VKTest
         imageCI.extent.height = static_cast<uint32_t>(height);
         imageCI.extent.depth = 1;
 
-        imageCI.format = VK_FORMAT_R8G8B8A8_SRGB;
-        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.format = format;
+        imageCI.tiling = tiling;
         imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageCI.usage = usage;
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
         imageCI.flags = 0;
@@ -385,7 +385,7 @@ namespace VKTest
         VkMemoryAllocateInfo allocInfo{
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+            .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties)};
 
         if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
         {
@@ -398,7 +398,7 @@ namespace VKTest
     }
 
 
-    void CopyBufferToImage(VkCommandBuffer commandBuffer, VkImage image, VkBuffer buffer, uint32_t width, uint32_t height)
+    void CopyBufferToImage(VkCommandBuffer commandBuffer, VkImage& image, VkBuffer& buffer, uint32_t width, uint32_t height)
     {
         VkBufferImageCopy2 region{
             .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2};
@@ -422,7 +422,7 @@ namespace VKTest
     }
 
 
-    VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format)
+    VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format)
     {
         VkImageSubresourceRange range{
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -437,17 +437,20 @@ namespace VKTest
             .image = image,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
             .format = format,
-            .subresourceRange = range
+            .subresourceRange = range,
         };
 
         VkImageView imageView;
 
         if(vkCreateImageView(device, &imageViewCI, nullptr, &imageView) != VK_SUCCESS)
         {
-            Log::Error("[TEXTURE] Failed to create Texture View");
+            Log::Error("[TEXTURE] Failed to create Image View");
+            imageView == VK_NULL_HANDLE;
         }
-        else Log::Info("[TEXTURE] Success to create Texture View");
-
+        else 
+        {
+            Log::Info("[TEXTURE] Success to create Image View");
+        }
         return imageView;
     }
 

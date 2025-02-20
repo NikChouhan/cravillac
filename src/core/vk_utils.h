@@ -56,15 +56,15 @@ namespace VKTest
 	void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propertyFlags, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	// transition image layout for rendering/presenting, etc etc
-	void TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
-	void CopyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+	void TransitionImage(VkCommandBuffer commandBuffer, VkImage& image, VkImageLayout currentLayout, VkImageLayout newLayout);
+	void CopyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize size);
 	VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
 	void EndSingleTimeCommands(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkCommandBuffer commandBuffer);
 
 	// Image handling
 	void CreateImage(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
-	void CopyBufferToImage(VkCommandBuffer commandBuffer, VkImage image, VkBuffer buffer, uint32_t width, uint32_t height);
-    VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format);
+	void CopyBufferToImage(VkCommandBuffer commandBuffer, VkImage& image, VkBuffer& buffer, uint32_t width, uint32_t height);
+    VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format);
 
 	// read file idk shdader
 	std::vector<char> ReadFile(const std::string &filename);
