@@ -9,15 +9,6 @@
 
 namespace VKTest
 {
-    Texture::~Texture()
-    {
-        vkDestroySampler(renderer->m_device, m_texSampler, nullptr);
-        vkDestroyImageView(renderer->m_device, m_texImageView, nullptr);
-
-        vkDestroyImage(renderer->m_device, m_texImage, nullptr);
-        vkFreeMemory(renderer->m_device, m_texImageMemory, nullptr);
-    }
-
     void Texture::LoadTexture(std::shared_ptr<Renderer> renderer, const char *filename)
     {
         this->renderer = renderer;
