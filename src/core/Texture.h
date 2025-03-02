@@ -5,12 +5,12 @@
 
 #include <memory>
 
-namespace VKTest
+namespace Cravillac
 {
     class Renderer;
 }
 
-namespace VKTest
+namespace Cravillac
 {
     class Texture
     {
@@ -24,7 +24,7 @@ namespace VKTest
         VkDeviceMemory m_texImageMemory = VK_NULL_HANDLE;
         VkImageView m_texImageView = VK_NULL_HANDLE;
         VkSampler m_texSampler = VK_NULL_HANDLE;
-        std::shared_ptr<VKTest::Renderer> renderer;
+        std::shared_ptr<Cravillac::Renderer> renderer;
     };
 }
 

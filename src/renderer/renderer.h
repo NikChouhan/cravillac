@@ -10,7 +10,7 @@
 #include "common.h"
 
 
-namespace VKTest
+namespace Cravillac
 {
     class Texture;
 
@@ -106,7 +106,6 @@ namespace VKTest
         void PickPhysicalDevice();
         void CreateLogicalDevice();
         void CreateSwapChain();
-        void CreateImageViews();
         void CreateDesctriptorSetLayout();
         void CreateDescriptorSets(std::vector<Texture>& textures);
 

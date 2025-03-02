@@ -11,5 +11,5 @@ layout(set = 0, binding = 1) uniform sampler2D textures[];
 
 void main() 
 {
-    outColor = texture(textures[0], fragTexcoord);
+    outColor = texture(textures[1], fragTexcoord);
 }

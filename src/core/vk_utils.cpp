@@ -11,10 +11,10 @@
 
 #ifdef _WIN32
 #undef max;
-#endif // _WIN32
+#endif
 
 
-namespace VKTest
+namespace Cravillac
 {
     bool CheckValidationLayerSupport()
     {
@@ -228,17 +228,19 @@ namespace VKTest
 
         if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
         {
-            imageBarrier.srcAccessMask = 0;
-            imageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            // access mask - how the resource is being used
+            // stage mask - at what stage the ops need to be done
+            imageBarrier.srcAccessMask = 0;                                     // no memory access for source (no previous memory operations to sync with)
+            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;      // start at the top of pipeline stage
+            imageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;          // enable transfer write ops 
+            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // after the barrier finishes start the transfter at the transfer stage
         }
         else if (currentLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         {
-            imageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            imageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;          // the previous (src) operation is being done, so wait it out
+            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // start at the transfer stage (transfer ops are handled by seperate units in a physical gpu)
+            imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;             // enable access of shader for read
+            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;  // after the barrier finishes start the ops (transition here) at the fragment stage in pipeline
         }
         else
         {
@@ -264,7 +266,7 @@ namespace VKTest
 
         vkCmdPipelineBarrier2(commandBuffer, &depInfo);
     }
-
+    // redundant
     void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propertyFlags, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
     {
         // whats happening here is simple af. Create a bufferCI with appropriate size , then create a buffer
@@ -347,7 +349,7 @@ namespace VKTest
         submitInfo.pCommandBuffers = &commandBuffer;
 
         vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(queue);
+        vkQueueWaitIdle(queue); // very very inefficient.TODO: Implement memory barrier instead
 
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     }

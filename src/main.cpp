@@ -6,7 +6,7 @@
 
 int main() 
 {
-    VKTest::Application app;
+    Cravillac::Application app;
 
     app.Run();
 }

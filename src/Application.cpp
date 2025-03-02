@@ -2,7 +2,7 @@
 #include "renderer.h"
 #include "Texture.h"
 
-namespace VKTest
+namespace Cravillac
 {
 	Application::Application()
 	{

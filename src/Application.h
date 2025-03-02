@@ -2,7 +2,7 @@
 #include <vector>
 #include <memory>
 
-namespace VKTest
+namespace Cravillac
 {
 	class Renderer;
 	class Texture;
@@ -12,9 +12,6 @@ namespace VKTest
 	public:
 		Application();
 		void Run();
-		void Render();
-		void CleanUp();
-		~Application();
 
 	private:
 		std::shared_ptr<Renderer> renderer;

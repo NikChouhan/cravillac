@@ -4,8 +4,9 @@
 #include "common.h"
 #include <vector>
 #include <optional>
+#include <string>
 
-namespace VKTest
+namespace Cravillac
 {
 
 	const std::vector<const char*> validationLayers =

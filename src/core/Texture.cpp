@@ -7,7 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <includes/stb_image.h>
 
-namespace VKTest
+namespace Cravillac
 {
     void Texture::LoadTexture(std::shared_ptr<Renderer> renderer, const char *filename)
     {

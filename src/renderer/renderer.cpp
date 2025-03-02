@@ -15,7 +15,7 @@
 #include "vk_utils.h"
 #include <Texture.h>
 
-namespace VKTest
+namespace Cravillac
 {
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
     {
@@ -122,7 +122,6 @@ namespace VKTest
         PickPhysicalDevice();
         CreateLogicalDevice();
         CreateSwapChain();
-        CreateImageViews();
         CreateDesctriptorSetLayout();
         CreateGraphicsPipeline();
         CreateCommandPool();
@@ -438,10 +437,8 @@ namespace VKTest
 
         m_swapChainImageFormat = surfaceFormat.format;
         m_swapChainExtent = extent;
-    }
 
-    void Renderer::CreateImageViews()
-    {
+        // swapchain image views
         m_swapChainImageViews.resize(m_swapChainImages.size());
 
         for (size_t i = 0; i < m_swapChainImages.size(); i++)
