@@ -99,13 +99,6 @@ namespace Cravillac
     {
     }
 
-    void Renderer::Run()
-    {
-        Log::Init();
-        InitWindow();
-        InitVulkan();
-    }
-
     void Renderer::InitWindow()
     {
         glfwInit();
@@ -118,13 +111,10 @@ namespace Cravillac
     {
         CreateInstance();
         SetupDebugMessenger();
-        CreateSurface();
-        PickPhysicalDevice();
-        CreateLogicalDevice();
-        CreateSwapChain();
-        CreateDesctriptorSetLayout();
-        CreateGraphicsPipeline();
-        CreateCommandPool();
+        //CreateSurface();
+        //PickPhysicalDevice();
+        //CreateLogicalDevice();
+        //CreateSwapChain();
     }
 
     void Renderer::Cleanup() const
@@ -567,7 +557,7 @@ namespace Cravillac
 
             for (size_t i = 0; i < textures.size(); i++)
             {
-                VkDescriptorImageInfo info;
+                VkDescriptorImageInfo info{};
                 assert(textures[i].m_texImage);
                 assert(textures[i].m_texSampler);
                 assert(textures[i].m_texImageView);
@@ -980,7 +970,7 @@ namespace Cravillac
         VkSubmitInfo submitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
         VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore[currentFrame]};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};        // after the fragment stage cuz the actual shading occurs after. fragemnt stage only computes the color, doesnt actually render to the frame
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;

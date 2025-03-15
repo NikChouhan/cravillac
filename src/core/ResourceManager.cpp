@@ -70,20 +70,19 @@ namespace Cravillac
 		}
 	}
 
-	VkDescriptorSet ResourceManager::AllocateDescriptorSet(std::vector<VkDescriptorSetLayout>& layout)
+	DescriptorBuilder ResourceManager::CreateDescriptorBuilder()
 	{
-		if (m_descriptorPool != VK_NULL_HANDLE)
-		{
-			vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
-		}
-
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = m_descriptorPool;
-		allocInfo.descriptorSetCount = 2;
-		allocInfo.pSetLayouts = layout.data();
-
-		
+		return DescriptorBuilder(*this);
 	}
 
+	VkDescriptorSet ResourceManager::CreateDescriptorSet(VkDescriptorSetLayout& layout)
+	{
+		return CreateDescriptorBuilder()
+			.allocateDescriptorSet(layout);
+	}
+	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet& set)
+	{
+		return CreateDescriptorBuilder()
+			.updateDescriptorSet(set);
+	}
 };

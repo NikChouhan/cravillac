@@ -14,9 +14,6 @@ namespace Cravillac
 {
     class Texture;
 
-    constexpr uint32_t WIDTH = 800;
-    constexpr uint32_t HEIGHT = 600;
-
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
     enum class Buffer
@@ -92,20 +89,23 @@ namespace Cravillac
     {
     public:
         Renderer();
-        void Run();
         void InitVulkan();
-        void InitWindow();
         void Submit(std::vector<Texture>& textures);
         void Render();
         void Cleanup() const;
 
+        void CreateSwapChain();
+        void 
+
+
     private:
         // Vulkan base setup
+        void InitWindow();
+
         void CreateInstance();
         void CreateSurface();
         void PickPhysicalDevice();
         void CreateLogicalDevice();
-        void CreateSwapChain();
         void CreateDesctriptorSetLayout();
         void CreateDescriptorSets(std::vector<Texture>& textures);
 

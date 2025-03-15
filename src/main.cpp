@@ -6,7 +6,5 @@
 
 int main() 
 {
-    Cravillac::Application app;
-
-    app.Run();
+    Cravillac::Application app("Hello Vulkan");
 }

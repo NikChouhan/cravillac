@@ -5,7 +5,7 @@
 
 namespace Cravillac
 {
-	BufferBuilder::BufferBuilder(ResourceManager& recourceManager) : m_resourceManager(recourceManager) {}
+	BufferBuilder::BufferBuilder(ResourceManager& resourceManager) : m_resourceManager(resourceManager) {}
 
 	BufferBuilder& BufferBuilder::setSize(VkDeviceSize size)
 	{

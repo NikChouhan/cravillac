@@ -1,11 +1,11 @@
 #ifndef RESOURCE_MANAGER_H
 #define RESOURCE_MANAGER_H
 
-#include <unordered_map>
 
-#include "vk_utils.h"
+#include "common.h"
 #include "BufferBuilder.h"
 #include "ImageBuilder.h"
+#include "DescriptorBuilder.h"
 
 namespace Cravillac
 {
@@ -16,6 +16,7 @@ namespace Cravillac
 		~ResourceManager();
 		VkDevice getDevice() { return m_device; }
 		VkPhysicalDevice getPhysicalDevice() { return m_physicalDevice; }
+		VkDescriptorPool getDescriptorPool() { return m_descriptorPool; }
 		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 		// buffer
 		BufferBuilder CreateBufferBuilder();
@@ -26,8 +27,9 @@ namespace Cravillac
 		
 		// descriptor
 		void ConfigureDescriptorPoolSizes(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets);
-		VkDescriptorSet AllocateDescriptorSet(std::vector<VkDescriptorSetLayout>& layout);
-		void UpdateDescriptorSet(VkDescriptorSet set);
+		DescriptorBuilder CreateDescriptorBuilder();
+		VkDescriptorSet CreateDescriptorSet(VkDescriptorSetLayout& layout);
+		VkDescriptorSet UpdateDescriptorSet(VkDescriptorSet& set);
 
 	private:
 		VkDevice m_device;
