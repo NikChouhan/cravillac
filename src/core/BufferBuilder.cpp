@@ -62,7 +62,6 @@ namespace Cravillac
 			vkFreeMemory(device, outMemory, nullptr);
 			throw std::runtime_error("Failed to bind memory to buffer");
 		}
-		return buffer;
-	}
 
+		return buffer;
 };

@@ -30,6 +30,10 @@ void Log::Error(const std::string &msg)
     LogMessage(msg, LogLevel::Error);
 }
 
+void Log::Error(const std::string& msg, const std::string& value)
+{
+    LogMessage(msg, value,LogLevel::Error);
+}
 void Log::LogMessage(const std::string &msg, LogLevel level)
 {
     if (!m_initialized)
@@ -56,6 +60,38 @@ void Log::LogMessage(const std::string &msg, LogLevel level)
         break;
     case LogLevel::Error:
         std::cout << "\033[31mERROR: " << msg << "\033[0m" << std::endl;
+        break;
+    default:
+        break;
+    }
+}
+
+void Log::LogMessage(const std::string& msg, const std::string& value, LogLevel level)
+{
+    if (!m_initialized)
+    {
+        return;
+    }
+
+    LogMessageData data;
+    data.message = msg;
+    data.level = level;
+
+    m_messages.push_back(data);
+
+    switch (level)
+    {
+    case LogLevel::Info:
+        std::cout << "\033[32mINFO: " << msg << value << "\033[0m" << std::endl;
+        break;
+    case LogLevel::InfoDebug:
+        std::cout << "\033[36mINFO_DEBUG: " << msg << value << "\033[0m" << std::endl;
+        break;
+    case LogLevel::Warn:
+        std::cout << "\033[33mWARN: " << msg << value << "\033[0m" << std::endl;
+        break;
+    case LogLevel::Error:
+        std::cout << "\033[31mERROR: " << msg << value << "\033[0m" << std::endl;
         break;
     default:
         break;

@@ -20,7 +20,7 @@ namespace Cravillac
 		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 		// buffer
 		BufferBuilder CreateBufferBuilder();
-		VkBuffer CreateBuffer(VkDeviceSize size, VkDeviceMemory& outMemory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties); // pass the usage for the vertex/index buffer distinction
+		VkBuffer CreateBuffer(VkDeviceSize size, VkDeviceMemory& outMemory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 		// image
 		// TODO
 		// ImageBuilder CreateImageBuilder();
@@ -29,7 +29,7 @@ namespace Cravillac
 		void ConfigureDescriptorPoolSizes(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets);
 		DescriptorBuilder CreateDescriptorBuilder();
 		VkDescriptorSet CreateDescriptorSet(VkDescriptorSetLayout& layout);
-		VkDescriptorSet UpdateDescriptorSet(VkDescriptorSet& set);
+		VkDescriptorSet UpdateDescriptorSet(VkDescriptorSet& set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::vector<Cravillac::Texture>* textures);
 
 	private:
 		VkDevice m_device;

@@ -33,15 +33,15 @@ namespace Cravillac
 		return descriptorSet;
 	}
 
-	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(VkDescriptorSet& set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, std::vector<Cravillac::Texture>& textures)
+	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(VkDescriptorSet& set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::vector<Cravillac::Texture>* textures)
 	{
 		auto device = m_resourceManager.getDevice();
-		if (buffer != VK_NULL_HANDLE)
+		if (buffer != VK_NULL_HANDLE && (textures == nullptr && textures->empty()))
 		{
 			VkDescriptorBufferInfo descBI{};
 			descBI.buffer = buffer;
 			descBI.offset = 0;
-			//descBI.range = sizeof()	//TBD where should the constant buffer handled
+			descBI.range = bufferSize;
 
 			VkWriteDescriptorSet uboSet
 			{
@@ -50,26 +50,26 @@ namespace Cravillac
 				.dstBinding = binding,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.descriptorType = type,
 				.pBufferInfo = &descBI
 			};
 
 			vkUpdateDescriptorSets(device, 1, &uboSet, 0, nullptr);
 		}
 
-		if (textures.data() != nullptr)
+		if (buffer == VK_NULL_HANDLE && (textures != nullptr && !textures->empty()))
 		{
 			// bindless
 			std::vector<VkDescriptorImageInfo> imageInfos{};
 
-			for (size_t i = 0; i < textures.size(); i++)
+			for (auto tex : *textures)
 			{
 				VkDescriptorImageInfo info{};
-				assert(textures[i].m_texImage);
-				assert(textures[i].m_texSampler);
-				assert(textures[i].m_texImageView);
-				info.sampler = textures[i].m_texSampler;
-				info.imageView = textures[i].m_texImageView;
+				assert(tex.m_texImage);
+				assert(tex.m_texSampler);
+				assert(tex.m_texImageView);
+				info.sampler = tex.m_texSampler;
+				info.imageView = tex.m_texImageView;
 				info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 				imageInfos.push_back(info);
@@ -84,10 +84,10 @@ namespace Cravillac
 			{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = set,
-				.dstBinding = 1,
+				.dstBinding = binding,
 				.dstArrayElement = 0,
-				.descriptorCount = static_cast<uint32_t>(textures.size()),
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = static_cast<uint32_t>(textures->size()),
+				.descriptorType = type,
 				.pImageInfo = imageInfos.data() 
 			};
 			vkUpdateDescriptorSets(device, 1, &sampSet, 0, nullptr);

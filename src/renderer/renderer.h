@@ -22,68 +22,7 @@ namespace Cravillac
         INDEX
     };
 
-    struct UniformBufferObject
-    {
-        glm::mat4 model;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
-    struct Vertex
-    {
-        glm::vec2 pos;
-        glm::vec3 color;
-        glm::vec2 texCoord;
-
-        static VkVertexInputBindingDescription getBindingDescription()
-        {
-            VkVertexInputBindingDescription bindingDesc{
-                .binding = 0,
-                .stride = sizeof(Vertex),
-                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
-
-            return bindingDesc;
-        }
-
-        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription()
-        {
-            std::array<VkVertexInputAttributeDescription, 3> attrDescs{};
-
-            // here binding is for the vertex position for a particular vertex buffer
-            // means all the binding is for the same vertex buffer, with different locations for pos, color, texcoord
-            attrDescs[0].binding = 0;
-            attrDescs[0].location = 0;
-            attrDescs[0].format = VK_FORMAT_R32G32_SFLOAT;
-            attrDescs[0].offset = offsetof(Vertex, pos);
-
-            attrDescs[1].binding = 0;
-            attrDescs[1].location = 1;
-            attrDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-            attrDescs[1].offset = offsetof(Vertex, color);
-
-            attrDescs[2].binding = 0;
-            attrDescs[2].location = 2;
-            attrDescs[2].format = VK_FORMAT_R32G32_SFLOAT;
-            attrDescs[2].offset = offsetof(Vertex, texCoord);
-
-            return attrDescs;
-        }
-    };
-
-    const std::vector<Vertex> vertices =
-    {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-    };
-
-    const std::vector<uint16_t> indices =
-    {
-        0, 1, 2, 2, 3, 0
-    };
-
-    constexpr uint32_t MAX_TEXTURES = 3;
+    
 
     class Renderer
     {
@@ -95,13 +34,8 @@ namespace Cravillac
         void Cleanup() const;
 
         void CreateSwapChain();
-        void 
 
-
-    private:
         // Vulkan base setup
-        void InitWindow();
-
         void CreateInstance();
         void CreateSurface();
         void PickPhysicalDevice();

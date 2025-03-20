@@ -80,9 +80,9 @@ namespace Cravillac
 		return CreateDescriptorBuilder()
 			.allocateDescriptorSet(layout);
 	}
-	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet& set)
+	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet& set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::vector<Cravillac::Texture>* textures)
 	{
 		return CreateDescriptorBuilder()
-			.updateDescriptorSet(set);
+			.updateDescriptorSet(set, binding, type, buffer, size, textures);
 	}
 };

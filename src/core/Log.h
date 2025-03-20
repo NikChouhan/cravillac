@@ -25,7 +25,7 @@ public:
     static void Info(const std::string& msg);
     static void Warn(const std::string& msg);
     static void Error(const std::string& msg);
-
+    static void Log::Error(const std::string& msg, const std::string& value);
     template <typename T>
     static void InfoDebug(const std::string& msg, const T& value)
     {
@@ -40,6 +40,8 @@ private:
         LogLevel level;
     };
     static void LogMessage(const std::string& msg, LogLevel level);
+
+    tatic void LogMessage(const std::string& msg, const std::string& value, LogLevel level);
 
     template <typename T>
     static std::string FormatLogs(const std::string& msg, const T& value)

@@ -27,4 +27,4 @@ namespace Cravillac
 	};
 }
 
-#endif // !BUFFER_BUILDER_H
+#endif
