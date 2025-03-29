@@ -23,21 +23,13 @@ namespace Cravillac
         throw std::runtime_error("Pipeline not found");
     }
 
-    VkPipelineLayout PipelineManager::getPipelineLayout(const std::vector<std::string>& descLayoutKeys)
+    VkPipelineLayout PipelineManager::getPipelineLayout(std::string pipelineLayoutKey)
     {
-        std::string pipelineLayoutKey{};
-
-        for (const auto& key : descLayoutKeys)
-        {
-            pipelineLayoutKey += key + ";";
-        }
-
         if (m_pipelineCache.contains(pipelineLayoutKey))
         {
             return m_pipelineLayoutCache[pipelineLayoutKey];
         }
-
-        createPipelineLayout(descLayoutKeys);
+        return VK_NULL_HANDLE;
     }
 
     PipelineManager::Builder::Builder(PipelineManager* manager) : m_manager(manager)
@@ -175,7 +167,9 @@ namespace Cravillac
         VkPipelineViewportStateCreateInfo viewportState{};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1;
+        viewportState.pViewports = nullptr;  // Null for dynamic
         viewportState.scissorCount = 1;
+        viewportState.pScissors = nullptr;   // Null for dynamic
 
         VkPipelineRasterizationStateCreateInfo rasterizer{};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -283,7 +277,7 @@ namespace Cravillac
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.setLayoutCount = 2;
         pipelineLayoutInfo.pSetLayouts = layouts.data();
     	pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional

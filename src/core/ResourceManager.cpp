@@ -63,6 +63,7 @@ namespace Cravillac
 
 		VkDescriptorPoolCreateInfo poolCI{};
 		poolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolCI.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 		poolCI.maxSets = maxSets;
 		poolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolCI.pPoolSizes = poolSizes.data();
@@ -87,10 +88,10 @@ namespace Cravillac
 		return CreateDescriptorBuilder()
 			.allocateDescriptorSet(layout);
 	}
-	VkDescriptorSet ResourceManager::UpdateDescriptorSet(uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::vector<Cravillac::Texture>* textures)
+	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::vector<Cravillac::Texture>* textures)
 	{
 		return CreateDescriptorBuilder()
-			.updateDescriptorSet(binding, type, buffer, size, textures);
+			.updateDescriptorSet(set, binding, type, buffer, size, textures);
 	}
 
 	VkShaderModule ResourceManager::getShaderModule(const std::string& shaderPath)
@@ -159,9 +160,9 @@ namespace Cravillac
 		}
 		else if (layoutKey == "textures") {
 			VkDescriptorSetLayoutBinding textureBinding{};
-			textureBinding.binding = 1;
+			textureBinding.binding = 0;
 			textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			textureBinding.descriptorCount = 32;
+			textureBinding.descriptorCount = 4;
 			textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			textureBinding.pImmutableSamplers = nullptr;
 			bindings.push_back(textureBinding);

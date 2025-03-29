@@ -13,15 +13,11 @@ namespace Cravillac
 	{
 		VkDescriptorPool descriptorPool = m_resourceManager.getDescriptorPool();
 		VkDevice device = m_resourceManager.getDevice();
-		if (descriptorPool != VK_NULL_HANDLE)
-		{
-			vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-		}
 
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
-		allocInfo.descriptorSetCount = 2;
+		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &layout;
 
 		VkDescriptorSet descriptorSet;
@@ -29,13 +25,14 @@ namespace Cravillac
 		if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet) != VK_SUCCESS)
 		{
 			Log::Error("[VULKAN] Descriptor Sets creation Failed");
+			return VK_NULL_HANDLE;
 		}
 		else
 			Log::Info("[VULKAN] Descriptor Sets creation Success");
 		return descriptorSet;
 	}
 
-	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::vector<Cravillac::Texture>* textures)
+	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::vector<Cravillac::Texture>* textures)
 	{
 
 		// here the binding is for the descriptor in the descriptor set.
@@ -43,9 +40,8 @@ namespace Cravillac
 		// refer to YouTube Brendan Galea's descriptor to get an image of what's going on.
 		// same set, different bindings for fast access
 
-		VkDescriptorSet set{};
 		auto device = m_resourceManager.getDevice();
-		if (buffer != VK_NULL_HANDLE && (textures == nullptr && textures->empty()))
+		if (buffer != VK_NULL_HANDLE && (textures == nullptr))
 		{
 			VkDescriptorBufferInfo descBI{};
 			descBI.buffer = buffer;

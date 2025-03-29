@@ -22,7 +22,7 @@ namespace Cravillac
 		~PipelineManager();
 
 		VkPipeline getPipeline(const std::string& pipelineKey);
-		VkPipelineLayout getPipelineLayout(const std::vector<std::string>& descLayoutKeys);
+		VkPipelineLayout getPipelineLayout(std::string pipelineLayoutKey);
 
 
 		class Builder

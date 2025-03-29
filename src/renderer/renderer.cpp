@@ -157,7 +157,7 @@ namespace Cravillac
             Log::Info("[VULKAN] Instance creation Success");
     }
 
-    void Renderer::PickPhysicalDevice()
+    void Renderer::PickPhysicalDevice(VkSurfaceKHR surface)
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
@@ -171,7 +171,7 @@ namespace Cravillac
 
         for (const auto &physicalDevice : devices)
         {
-            if (IsDeviceSuitable(physicalDevice, m_surface))
+            if (IsDeviceSuitable(physicalDevice, surface))
             {
                 m_physicalDevice = physicalDevice;
                 break;
@@ -192,9 +192,9 @@ namespace Cravillac
         }
     }
 
-    void Renderer::CreateLogicalDevice()
+    void Renderer::CreateLogicalDevice(VkSurfaceKHR surface)
     {
-        QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, m_surface);
+        QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, surface);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = {indices._graphicsFamily.value(), indices._presentFamily.value()};
@@ -257,14 +257,32 @@ namespace Cravillac
         vkGetDeviceQueue(m_device, indices._presentFamily.value(), 0, &m_presentQueue);
     }
 
-    void Renderer::CreateSwapChain()
+
+    void Renderer::CreateCommandPool(VkSurfaceKHR surface)
+    {
+        QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_physicalDevice, surface);
+
+        VkCommandPoolCreateInfo poolInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = queueFamilyIndices._graphicsFamily.value() };
+
+        if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
+        {
+            Log::Error("[VULKAN] Command Pool creation Failure");
+        }
+        else
+            Log::Info("[VULKAN] Command Pool creation Success");
+    }
+
+    void Renderer::CreateSwapChain(VkSurfaceKHR surface, GLFWwindow* window)
     {
         assert(m_physicalDevice);
-        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(m_physicalDevice, m_surface);
+        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(m_physicalDevice, surface);
 
         VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = ChooseSwapExtent(m_window, swapChainSupport.capabilities);
+        VkExtent2D extent = ChooseSwapExtent(window, swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
@@ -283,7 +301,7 @@ namespace Cravillac
         assert(m_device);
         VkSwapchainCreateInfoKHR createInfo{
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .surface = m_surface,
+            .surface = surface,
             .minImageCount = imageCount,
             .imageFormat = surfaceFormat.format,
             .imageColorSpace = surfaceFormat.colorSpace,
@@ -291,7 +309,7 @@ namespace Cravillac
             .imageArrayLayers = 1,
             .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
 
-        QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, m_surface);
+        QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, surface);
         uint32_t queueFamilyIndices[] = {indices._graphicsFamily.value(), indices._presentFamily.value()};
 
         if (indices._graphicsFamily != indices._presentFamily)
@@ -352,7 +370,7 @@ namespace Cravillac
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool = m_commandPool,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = (uint32_t)m_commandBuffer.size()};
+            .commandBufferCount = static_cast<uint32_t>(cmdBuffers.size())};
 
         if (vkAllocateCommandBuffers(m_device, &allocInfo, cmdBuffers.data()) != VK_SUCCESS)
         {

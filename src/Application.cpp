@@ -20,6 +20,7 @@ namespace Cravillac
 	Application::Application(const char* title) : m_resourceManager(nullptr), m_window(nullptr), m_surface(VK_NULL_HANDLE)
 	{
 		renderer = std::make_shared<Renderer>();
+		textures = new std::vector<Texture>();
 	}
 	void Application::Init()
 	{
@@ -51,11 +52,13 @@ namespace Cravillac
 			Log::Error("[VULKAN] Surface Creation Failure");
 		}
 		else
-			Log::Info("[VULKAN] Surface Creation Success");	
+			Log::Info("[VULKAN] Surface Creation Success");
 		// post surface stuff
-		renderer->PickPhysicalDevice();
-		renderer->CreateLogicalDevice();
-		renderer->CreateSwapChain();
+		renderer->PickPhysicalDevice(m_surface);
+		renderer->CreateLogicalDevice(m_surface);
+		renderer->CreateSwapChain(m_surface, m_window);
+
+		renderer->CreateCommandPool(m_surface);
 
 		m_resourceManager = new ResourceManager(renderer);
 
@@ -199,9 +202,9 @@ namespace Cravillac
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 1000);
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 32);
 
-		m_resourceManager->ConfigureDescriptorPoolSizes(poolSizes, MAX_FRAMES_IN_FLIGHT);
+		m_resourceManager->ConfigureDescriptorPoolSizes(poolSizes, MAX_FRAMES_IN_FLIGHT*2);
 
 		VkDescriptorPool descPool = m_resourceManager->getDescriptorPool();
 		std::vector<VkDescriptorSetLayout> descLayout;
@@ -223,10 +226,10 @@ namespace Cravillac
 			// create two descriptor sets and update them
 			// first ubo buffer
 			VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-			descriptorSets[0] = m_resourceManager->UpdateDescriptorSet(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_uniformBuffers[i], bufferSize, nullptr);
+			descriptorSets[0] = m_resourceManager->UpdateDescriptorSet(descriptorSets[0], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_uniformBuffers[i], bufferSize, nullptr);
 			// the texture descriptor
 			VkBuffer buffer = VK_NULL_HANDLE;
-			descriptorSets[1] = m_resourceManager->UpdateDescriptorSet(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer , NULL, textures);
+			descriptorSets[1] = m_resourceManager->UpdateDescriptorSet(descriptorSets[1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, NULL, textures);
 			
 		}
 
@@ -238,6 +241,8 @@ namespace Cravillac
 
 		std::array<VkVertexInputAttributeDescription, 3> attributes{ Vertex::getAttributeDescription() };
 
+
+
 		PipelineManager::Builder(pipelineManager)
 			.setVertexShader("../../../../shaders/Triangle.vert.spv")
 			.setFragmentShader("../../../../shaders/Triangle.frag.spv")
@@ -245,9 +250,11 @@ namespace Cravillac
 			.addDescriptorSetLayout("textures")
 			.setVertexInput(binding, attributes)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+			.setDynamicStates({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR })
 			.setDepthTest(true)
 			.setBlendMode(false)
 			.build("triangle");
+		
 
 		// cmd buffer and sync objects
 		renderer->CreateCommandBuffer(m_cmdBuffers);
@@ -257,7 +264,7 @@ namespace Cravillac
 	void Application::RecordCmdBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	{
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
-		VkPipelineLayout pipelineLayout = pipelineManager->getPipelineLayout({ "ubo", "textures" });
+		VkPipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("ubo;textures;");
 
 		VkCommandBufferBeginInfo beginInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -317,7 +324,7 @@ namespace Cravillac
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, descriptorSets.data(), 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 

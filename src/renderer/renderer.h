@@ -30,12 +30,13 @@ namespace Cravillac
         Renderer();
         void InitVulkan();
 
-        void CreateSwapChain();
+        void CreateSwapChain(VkSurfaceKHR surface, GLFWwindow* window);
 
         // Vulkan base setup
         void CreateInstance();
-        void PickPhysicalDevice();
-        void CreateLogicalDevice();
+        void PickPhysicalDevice(VkSurfaceKHR surface);
+        void CreateLogicalDevice(VkSurfaceKHR surface);
+        void CreateCommandPool(VkSurfaceKHR surface);
 
         // void RecreateSwapChain(); // TODO
 
@@ -50,11 +51,7 @@ namespace Cravillac
         VkShaderModule CreateShaderModule(const std::vector<char> &code) const;
 
     public:
-        GLFWwindow *m_window;
-        uint32_t currentFrame = 0;
-
         VkInstance m_instance = VK_NULL_HANDLE;
-        VkSurfaceKHR m_surface = VK_NULL_HANDLE;
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
         VkDevice m_device = VK_NULL_HANDLE;
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
@@ -69,10 +66,6 @@ namespace Cravillac
         std::vector<VkBuffer> m_uniformBuffers{};
         std::vector<VkDeviceMemory> m_uniformBufferMemory{};
         std::vector<void *> m_uniformBufferMapped{};
-
-        // descriptor pool
-        VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-        std::vector<VkDescriptorSet> m_descriptorSets;
 
         // issue commands
         VkCommandPool m_commandPool = VK_NULL_HANDLE;
