@@ -10,7 +10,7 @@ namespace Cravillac
 	class BufferBuilder
 	{
 	public:
-		BufferBuilder(ResourceManager& recourceManager);
+		BufferBuilder(ResourceManager& resourceManager);
 		~BufferBuilder() {}
 
 		BufferBuilder& setSize(VkDeviceSize size);

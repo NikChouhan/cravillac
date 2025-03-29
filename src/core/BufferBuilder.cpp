@@ -64,4 +64,5 @@ namespace Cravillac
 		}
 
 		return buffer;
-};
+	};
+}

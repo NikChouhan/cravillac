@@ -68,7 +68,7 @@ namespace Cravillac
     VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format);
 
 	// read file idk shdader
-	std::vector<char> ReadFile(const std::string &filename);
+	std::vector<char> ReadShaderFile(const std::string &filename);
 
 }
 #endif

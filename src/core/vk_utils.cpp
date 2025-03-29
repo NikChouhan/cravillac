@@ -456,7 +456,7 @@ namespace Cravillac
         return imageView;
     }
 
-    std::vector<char> ReadFile(const std::string &filename)
+    std::vector<char> ReadShaderFile(const std::string &filename)
     {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

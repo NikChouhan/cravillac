@@ -14,7 +14,7 @@ namespace Cravillac
 {
     class Texture;
 
-    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+    constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
     enum class Buffer
     {
@@ -29,38 +29,22 @@ namespace Cravillac
     public:
         Renderer();
         void InitVulkan();
-        void Submit(std::vector<Texture>& textures);
-        void Render();
-        void Cleanup() const;
 
         void CreateSwapChain();
 
         // Vulkan base setup
         void CreateInstance();
-        void CreateSurface();
         void PickPhysicalDevice();
         void CreateLogicalDevice();
-        void CreateDesctriptorSetLayout();
-        void CreateDescriptorSets(std::vector<Texture>& textures);
 
         // void RecreateSwapChain(); // TODO
 
         // drawing stuff
-        void CreateGraphicsPipeline();
-        void CreateCommandPool();
-        void CreateVertexBuffer();
-        void CreateIndexBuffer();
-        void CreateUniformBuffers();
-        void CreateDescriptorPool();
-        void CreateCommandBuffer();
-        void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-        void DrawFrame();
+        void CreateCommandBuffer(std::vector<VkCommandBuffer>& cmdBuffers) const;
 
-        // update stuff
-        void UpdateUniformBuffer(uint32_t currentImage);
 
         // fence stuff
-        void CreateSynObjects();
+        void CreateSynObjects(std::vector<VkSemaphore>& imgAvailableSem, std::vector<VkSemaphore>& renderFinishedSem, std::vector<VkFence>& inFlightFences);
         void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
         void SetupDebugMessenger();
         VkShaderModule CreateShaderModule(const std::vector<char> &code) const;
@@ -80,15 +64,7 @@ namespace Cravillac
         VkExtent2D m_swapChainExtent;
         std::vector<VkImage> m_swapChainImages{};
         std::vector<VkImageView> m_swapChainImageViews{};
-        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
-        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-        VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
-        // bufffer vars
-        VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
-        VkBuffer m_indexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
 
         std::vector<VkBuffer> m_uniformBuffers{};
         std::vector<VkDeviceMemory> m_uniformBufferMemory{};
@@ -103,9 +79,6 @@ namespace Cravillac
         std::vector<VkCommandBuffer> m_commandBuffer;
 
         // sync primitives
-        std::vector<VkSemaphore> m_imageAvailableSemaphore;
-        std::vector<VkSemaphore> m_renderFinishedSemaphore;
-        std::vector<VkFence> m_inFlightFence;
 
         VkDebugUtilsMessengerEXT debugMessenger;
     };

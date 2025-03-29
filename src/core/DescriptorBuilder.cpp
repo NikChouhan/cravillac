@@ -3,11 +3,13 @@
 #include "Log.h"
 #include "Texture.h"
 
+
+
 namespace Cravillac 
 {
 	DescriptorBuilder::DescriptorBuilder(ResourceManager& resourceManager) : m_resourceManager(resourceManager){}
 
-	VkDescriptorSet DescriptorBuilder::allocateDescriptorSet(VkDescriptorSetLayout& layouts)
+	VkDescriptorSet DescriptorBuilder::allocateDescriptorSet(VkDescriptorSetLayout layout)
 	{
 		VkDescriptorPool descriptorPool = m_resourceManager.getDescriptorPool();
 		VkDevice device = m_resourceManager.getDevice();
@@ -20,7 +22,7 @@ namespace Cravillac
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
 		allocInfo.descriptorSetCount = 2;
-		allocInfo.pSetLayouts = &layouts;
+		allocInfo.pSetLayouts = &layout;
 
 		VkDescriptorSet descriptorSet;
 
@@ -33,8 +35,15 @@ namespace Cravillac
 		return descriptorSet;
 	}
 
-	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(VkDescriptorSet& set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::vector<Cravillac::Texture>* textures)
+	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::vector<Cravillac::Texture>* textures)
 	{
+
+		// here the binding is for the descriptor in the descriptor set.
+		// 0 for ubo , 1 for texture image and both are part of the same m_descriptorSet[frameNumber]
+		// refer to YouTube Brendan Galea's descriptor to get an image of what's going on.
+		// same set, different bindings for fast access
+
+		VkDescriptorSet set{};
 		auto device = m_resourceManager.getDevice();
 		if (buffer != VK_NULL_HANDLE && (textures == nullptr && textures->empty()))
 		{
