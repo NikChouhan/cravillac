@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 
 #include "common.h"
+#include "renderer.h"
 #include "Vertex.h"
 
 namespace Cravillac
@@ -66,7 +67,7 @@ namespace Cravillac
         std::vector<VkDeviceMemory> m_uniformBufferMem;
         std::vector<void*> m_uboMemMapped;
 
-        std::vector<VkDescriptorSet> descriptorSets;
+        std::vector<std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>> descriptorSets;
 
         std::vector<VkCommandBuffer> m_cmdBuffers;
 

@@ -37,7 +37,7 @@ namespace Cravillac
 				const  VkVertexInputBindingDescription& binding,
 				const std::array<VkVertexInputAttributeDescription, 3>& attributes
 			);
-			Builder& setDynamicStates(std::vector<VkDynamicState> dynamicStates);
+			Builder& setDynamicStates(const std::vector<VkDynamicState>& dynamicStates);
 			Builder& setTopology(VkPrimitiveTopology topology);
 			Builder& setDepthTest(bool enable);
 			Builder& setBlendMode(bool enable);

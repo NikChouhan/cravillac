@@ -25,7 +25,7 @@ namespace Cravillac
 
     VkPipelineLayout PipelineManager::getPipelineLayout(std::string pipelineLayoutKey)
     {
-        if (m_pipelineCache.contains(pipelineLayoutKey))
+        if (m_pipelineLayoutCache.contains(pipelineLayoutKey))
         {
             return m_pipelineLayoutCache[pipelineLayoutKey];
         }
@@ -70,7 +70,7 @@ namespace Cravillac
         return *this;
     }
 
-    PipelineManager::Builder& PipelineManager::Builder::setDynamicStates(std::vector<VkDynamicState> dynamicStates)
+    PipelineManager::Builder& PipelineManager::Builder::setDynamicStates(const std::vector<VkDynamicState>& dynamicStates)
     {
         m_dynamicStates.resize(dynamicStates.size());
         m_dynamicStates = dynamicStates;
@@ -195,7 +195,7 @@ namespace Cravillac
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE;
+        colorBlendAttachment.blendEnable = builder.m_blendMode;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;             // Optional
@@ -246,12 +246,10 @@ namespace Cravillac
             Log::Error("[VULKAN] Pipeline creation Failure");
         }
         else
-            Log::Info("[VULKAN] Pipeline creation Success");
-
+        {
+            Log::InfoDebug("[PIPELINE] Pipeline created with key: ", pipelineKey);
+        }
         m_pipelineCache[pipelineKey] = graphicsPipeline;
-
-        Log::InfoDebug("[PIPELINE] Pipeline created with key: ", pipelineKey);
-
         return graphicsPipeline;
     }
 

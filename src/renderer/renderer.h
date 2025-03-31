@@ -14,7 +14,7 @@ namespace Cravillac
 {
     class Texture;
 
-    constexpr int MAX_FRAMES_IN_FLIGHT = 1;
+    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
     enum class Buffer
     {

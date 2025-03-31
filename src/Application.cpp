@@ -138,7 +138,7 @@ namespace Cravillac
 
 		void* data{};
 		vkMapMemory(renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), size_t(bufferSize));
+		memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
 		vkUnmapMemory(renderer->m_device, stagingBufferMemory);
 
 		m_vertexBuffer = m_resourceManager->CreateBufferBuilder()
@@ -160,7 +160,7 @@ namespace Cravillac
 
 		data = nullptr;
 		vkMapMemory(renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
+		memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
 		vkUnmapMemory(renderer->m_device, stagingBufferMemory);
 
 		m_indexBuffer = m_resourceManager->CreateBufferBuilder()
@@ -216,20 +216,20 @@ namespace Cravillac
 		tex.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
 		textures->push_back(tex);
 
+		descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
+		descLayout[1] = m_resourceManager->getDescriptorSetLayout("textures");
+
+
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
-			descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
-			descriptorSets[0] = m_resourceManager->CreateDescriptorSet(descLayout[0]);
-
-			descLayout[1] = m_resourceManager->getDescriptorSetLayout("textures");
-			descriptorSets[1] = m_resourceManager->CreateDescriptorSet(descLayout[1]);
+			descriptorSets[i][0] = m_resourceManager->CreateDescriptorSet(descLayout[0]);
+			descriptorSets[i][1] = m_resourceManager->CreateDescriptorSet(descLayout[1]);
 			// create two descriptor sets and update them
 			// first ubo buffer
-			VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-			descriptorSets[0] = m_resourceManager->UpdateDescriptorSet(descriptorSets[0], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_uniformBuffers[i], bufferSize, nullptr);
+			descriptorSets[i][0] = m_resourceManager->UpdateDescriptorSet(descriptorSets[i][0], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_uniformBuffers[i], sizeof(UniformBufferObject), nullptr);
 			// the texture descriptor
 			VkBuffer buffer = VK_NULL_HANDLE;
-			descriptorSets[1] = m_resourceManager->UpdateDescriptorSet(descriptorSets[1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, NULL, textures);
+			descriptorSets[i][1] = m_resourceManager->UpdateDescriptorSet(descriptorSets[i][1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, NULL, textures);
 			
 		}
 
@@ -237,9 +237,9 @@ namespace Cravillac
 
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
 
-		VkVertexInputBindingDescription binding{ Vertex::getBindingDescription() };
+		VkVertexInputBindingDescription binding = Vertex::getBindingDescription();
 
-		std::array<VkVertexInputAttributeDescription, 3> attributes{ Vertex::getAttributeDescription() };
+		std::array<VkVertexInputAttributeDescription, 3> attributes = Vertex::getAttributeDescription();
 
 
 
@@ -251,7 +251,7 @@ namespace Cravillac
 			.setVertexInput(binding, attributes)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setDynamicStates({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR })
-			.setDepthTest(true)
+			.setDepthTest(false)
 			.setBlendMode(false)
 			.build("triangle");
 		
@@ -324,7 +324,7 @@ namespace Cravillac
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, descriptorSets.data(), 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, descriptorSets[currentFrame].data(), 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -350,7 +350,7 @@ namespace Cravillac
 		UniformBufferObject ubo{};
 		ubo.model = glm::rotate(glm::mat4(1.f), time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
 		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), renderer->m_swapChainExtent.width / (float)renderer->m_swapChainExtent.height, 0.1f, 10.0f);
+		ubo.proj = glm::perspective(glm::radians(45.0f), renderer->m_swapChainExtent.width / static_cast<float>(renderer->m_swapChainExtent.height), 0.1f, 10.0f);
 
 		ubo.proj[1][1] *= -1;
 
