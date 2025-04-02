@@ -16,7 +16,7 @@ xmake run
 ## Linux
 ### Vscode
 ```
-xmake project -k compile_commands.json
+xmake project -k compile_commands
 ```
 Create `c_cpp_properties.json` in `.vscode` folder and add a configuration something of this sort:
 ```
