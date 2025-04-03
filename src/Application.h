@@ -2,11 +2,20 @@
 #include <vector>
 #include <memory>
 #include <array>
-#include "glm/glm.hpp"
 
 #include "common.h"
 #include "renderer.h"
 #include "Vertex.h"
+
+namespace Cravillac 
+{
+	class Renderer;
+	class Texture;
+	class ResourceManager;
+    class PipelineManager;
+}
+
+struct ImGuiIO;
 
 namespace Cravillac
 {
@@ -35,11 +44,6 @@ namespace Cravillac
     };
 
     constexpr uint32_t MAX_TEXTURES = 3;
-
-	class Renderer;
-	class Texture;
-	class ResourceManager;
-    class PipelineManager;
 
 	class Application
 	{
@@ -80,5 +84,6 @@ namespace Cravillac
 
         uint32_t currentFrame{ 0 };
 
+        ImGuiIO* io;
 	};
 }

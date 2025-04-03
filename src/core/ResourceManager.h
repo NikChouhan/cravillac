@@ -3,7 +3,6 @@
 
 #include "common.h"
 #include "BufferBuilder.h"
-#include "ImageBuilder.h"
 #include "DescriptorBuilder.h"
 #include "Texture.h"
 #include "PipelineManager.h"

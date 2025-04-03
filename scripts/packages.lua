@@ -33,3 +33,12 @@ add_requires("directxmath",
 add_requires("glfw")
 
 add_requires("cgltf")
+
+add_requires("imgui docking", 
+{ 
+    configs = 
+    {
+        glfw = true,
+        vulkan = true
+    }}
+)

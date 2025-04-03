@@ -4,11 +4,8 @@
 #include <glm/glm.hpp>
 
 #include <vector>
-#include <optional>
-#include <array>
 
 #include "common.h"
-
 
 namespace Cravillac
 {
@@ -21,9 +18,7 @@ namespace Cravillac
         VERTEX,
         INDEX
     };
-
     
-
     class Renderer
     {
     public:

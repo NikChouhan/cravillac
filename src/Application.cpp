@@ -1,18 +1,19 @@
 #include "Application.h"
 
 #include <chrono>
+#include <cstring>
 
 #define GL_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "common.h"
 #include "renderer.h"
 #include "Texture.h"
 #include "Log.h"
 #include "ResourceManager.h"
 #include "PipelineManager.h"
 #include "vk_utils.h"
-#include "common.h"
 #include "Vertex.h"
 
 namespace Cravillac
@@ -21,6 +22,7 @@ namespace Cravillac
 	{
 		renderer = std::make_shared<Renderer>();
 		textures = new std::vector<Texture>();
+		io = nullptr;
 	}
 	void Application::Init()
 	{
@@ -61,6 +63,8 @@ namespace Cravillac
 		renderer->CreateCommandPool(m_surface);
 
 		m_resourceManager = new ResourceManager(renderer);
+
+		// init imgui
 
 		SetResources();
 
@@ -212,9 +216,11 @@ namespace Cravillac
 		descLayout.resize(2);
 		descriptorSets.resize(2);
 
-		Texture tex;
-		tex.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
-		textures->push_back(tex);
+		Texture tex1, tex2;
+		tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
+		textures->push_back(tex1);
+		tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
+		textures->push_back(tex2);
 
 		descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
 		descLayout[1] = m_resourceManager->getDescriptorSetLayout("textures");
@@ -229,8 +235,7 @@ namespace Cravillac
 			descriptorSets[i][0] = m_resourceManager->UpdateDescriptorSet(descriptorSets[i][0], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_uniformBuffers[i], sizeof(UniformBufferObject), nullptr);
 			// the texture descriptor
 			VkBuffer buffer = VK_NULL_HANDLE;
-			descriptorSets[i][1] = m_resourceManager->UpdateDescriptorSet(descriptorSets[i][1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, NULL, textures);
-			
+			descriptorSets[i][1] = m_resourceManager->UpdateDescriptorSet(descriptorSets[i][1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, static_cast<uint64_t>(0), textures);
 		}
 
 		// manage pipelines
@@ -240,8 +245,6 @@ namespace Cravillac
 		VkVertexInputBindingDescription binding = Vertex::getBindingDescription();
 
 		std::array<VkVertexInputAttributeDescription, 3> attributes = Vertex::getAttributeDescription();
-
-
 
 		PipelineManager::Builder(pipelineManager)
 			.setVertexShader("../../../../shaders/Triangle.vert.spv")
@@ -254,13 +257,10 @@ namespace Cravillac
 			.setDepthTest(false)
 			.setBlendMode(false)
 			.build("triangle");
-		
-
 		// cmd buffer and sync objects
 		renderer->CreateCommandBuffer(m_cmdBuffers);
 		renderer->CreateSynObjects(m_imageAvailableSemaphore, m_renderFinishedSemaphore, m_inFlightFence);
 	}
-
 	void Application::RecordCmdBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	{
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
