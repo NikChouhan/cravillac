@@ -7,6 +7,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <includes/stb_image.h>
 
+#define CGLTF_IMPLEMENTATION
+#include <cgltf.h>
+
 namespace Cravillac
 {
     void Texture::LoadTexture(std::shared_ptr<Renderer> renderer, const char *filename)

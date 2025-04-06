@@ -2,18 +2,14 @@
 #include <iostream>
 #include <set>
 #include <cstdint>
-#include <algorithm>
-#include <limits>
-#include <fstream>
-#include <cstring>
-
-#include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 
 #include "renderer.h"
 #include "Log.h"
 #include "vk_utils.h"
-#include <Texture.h>
+
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 namespace Cravillac
 {

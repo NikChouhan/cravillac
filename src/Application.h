@@ -4,8 +4,8 @@
 #include <array>
 
 #include "common.h"
-#include "renderer.h"
 #include "Vertex.h"
+#include "Model.h"
 
 namespace Cravillac 
 {
@@ -22,6 +22,7 @@ namespace Cravillac
 	constexpr uint32_t WIDTH = 800;
 	constexpr uint32_t HEIGHT = 600;
 
+
     struct UniformBufferObject
     {
         glm::mat4 model;
@@ -32,10 +33,10 @@ namespace Cravillac
 
     const std::vector<Vertex> vertices =
     {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f}},
+        {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f}},
+        {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f}},
+        {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f}}
     };
 
     const std::vector<uint16_t> indices =
@@ -45,23 +46,23 @@ namespace Cravillac
 
     constexpr uint32_t MAX_TEXTURES = 3;
 
-	class Application
-	{
-	public:
-		Application(const char* title);
-		void Init();
-		void Run();
-		void DrawFrame();
-		void SetResources();
+    class Application
+    {
+    public:
+        Application(const char* title);
+        void Init();
+        void Run();
+        void DrawFrame();
+        void SetResources();
 
         void RecordCmdBuffer(VkCommandBuffer, uint32_t imageIndex);
         void UpdateUniformBuffer(uint32_t currentImage);
 
-	private:
-		VkSurfaceKHR m_surface;
-		std::shared_ptr<Renderer> renderer;
-		GLFWwindow* m_window = nullptr;
-		ResourceManager* m_resourceManager;
+    private:
+        VkSurfaceKHR m_surface;
+        std::shared_ptr<Renderer> renderer;
+        GLFWwindow* m_window = nullptr;
+        ResourceManager* m_resourceManager;
 
         VkBuffer m_vertexBuffer;
         VkBuffer m_indexBuffer;
@@ -84,6 +85,6 @@ namespace Cravillac
 
         uint32_t currentFrame{ 0 };
 
-        ImGuiIO* io;
+        std::vector<Model> models;
 	};
 }

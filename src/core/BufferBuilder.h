@@ -3,6 +3,8 @@
 
 #include <common.h>
 
+// have the staging buffers here so no staging buffer copying or such is not visible in the application side
+
 namespace Cravillac
 {
 	class ResourceManager;

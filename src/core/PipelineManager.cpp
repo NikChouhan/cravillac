@@ -62,7 +62,7 @@ namespace Cravillac
 
     PipelineManager::Builder& PipelineManager::Builder::setVertexInput(
         const VkVertexInputBindingDescription& binding,
-	    const std::array<VkVertexInputAttributeDescription, 3>& attributes)
+	    const std::array<VkVertexInputAttributeDescription, 2>& attributes)
     {
         m_vertexBinding = binding;
         m_vertexAttributes = attributes;

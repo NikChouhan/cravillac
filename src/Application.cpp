@@ -22,7 +22,6 @@ namespace Cravillac
 	{
 		renderer = std::make_shared<Renderer>();
 		textures = new std::vector<Texture>();
-		io = nullptr;
 	}
 	void Application::Init()
 	{
@@ -129,57 +128,13 @@ namespace Cravillac
 	}
 	void Application::SetResources()
 	{
-		// vertex buffer
-		VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
-		VkBuffer stagingBuffer{};
-		VkDeviceMemory stagingBufferMemory{};
-
-		stagingBuffer = m_resourceManager->CreateBufferBuilder()
-			.setSize(bufferSize)
-			.setUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
-			.setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-			.build(stagingBufferMemory);
-
-		void* data{};
-		vkMapMemory(renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-		vkUnmapMemory(renderer->m_device, stagingBufferMemory);
-
-		m_vertexBuffer = m_resourceManager->CreateBufferBuilder()
-			.setSize(bufferSize)
-			.setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-			.setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-			.build(m_vertexMemory);
-
-		CopyBuffer(renderer->m_device, renderer->m_commandPool, renderer->m_graphicsQueue, stagingBuffer, m_vertexBuffer, bufferSize);
-
-		// index buffer
-		bufferSize = indices.size() * sizeof(indices[0]);
-
-		stagingBuffer = m_resourceManager->CreateBufferBuilder()
-			.setSize(bufferSize)
-			.setUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
-			.setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-			.build(stagingBufferMemory);
-
-		data = nullptr;
-		vkMapMemory(renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-		vkUnmapMemory(renderer->m_device, stagingBufferMemory);
-
-		m_indexBuffer = m_resourceManager->CreateBufferBuilder()
-			.setSize(bufferSize)
-			.setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
-			.setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-			.build(m_indexMemory);
-
-		CopyBuffer(renderer->m_device, renderer->m_commandPool, renderer->m_graphicsQueue, stagingBuffer, m_indexBuffer, bufferSize);
-		vkDestroyBuffer(renderer->m_device, stagingBuffer, nullptr);
-		vkFreeMemory(renderer->m_device, stagingBufferMemory, nullptr);
+		Model mod1;
+		mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
+		models.push_back(mod1);
 
 		// ubo for camera
 
-		bufferSize = sizeof(UniformBufferObject);
+		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
 		m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 		m_uniformBufferMem.resize(MAX_FRAMES_IN_FLIGHT);
@@ -244,7 +199,7 @@ namespace Cravillac
 
 		VkVertexInputBindingDescription binding = Vertex::getBindingDescription();
 
-		std::array<VkVertexInputAttributeDescription, 3> attributes = Vertex::getAttributeDescription();
+		std::array<VkVertexInputAttributeDescription, 2> attributes = Vertex::getAttributeDescription();
 
 		PipelineManager::Builder(pipelineManager)
 			.setVertexShader("../../../../shaders/Triangle.vert.spv")
@@ -271,16 +226,16 @@ namespace Cravillac
 			.flags = 0,
 			.pInheritanceInfo = nullptr };
 
+		// begin cmd buffer -> do the transition stuff, fill rendering struct -> begin rendering ->bind pipeline
+		// -> bind vert/idx buffers -> bind desc sets -> draw -> end rendering -> do the remaining stuff like transition -> end command buffer
+
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 		{
 			Log::Error("[DRAW] Recording Command buffer Failure");
 		}
-		// else Log::Info("[DRAW] Recording Command buffer Success");
-
-		// dynamic rendering stuff
-
 		// transition color image from undefined to optimal for rendering
-		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED,
+		                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
 		VkRenderingAttachmentInfo colorAttachmentInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -293,7 +248,7 @@ namespace Cravillac
 		VkRenderingInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 		};
-		renderingInfo.renderArea.offset = { 0, 0 };
+		renderingInfo.renderArea.offset = { .x= 0, .y= 0};
 		renderingInfo.renderArea.extent = renderer->m_swapChainExtent;
 		renderingInfo.layerCount = 1;
 		renderingInfo.colorAttachmentCount = 1;

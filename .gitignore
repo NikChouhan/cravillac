@@ -13,3 +13,7 @@ cmake-build-debug
 Makefile
 CMakeLists.txt
 compile_commands.json
+
+# too large 
+assets/models/bistro/
+assets/models/bistrogodot

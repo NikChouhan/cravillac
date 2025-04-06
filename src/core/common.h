@@ -18,5 +18,8 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
+
 
 #endif // COMMON_H

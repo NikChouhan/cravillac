@@ -35,7 +35,7 @@ namespace Cravillac
 			Builder& addDescriptorSetLayout(const std::string& key);
 			Builder& setVertexInput(
 				const  VkVertexInputBindingDescription& binding,
-				const std::array<VkVertexInputAttributeDescription, 3>& attributes
+				const std::array<VkVertexInputAttributeDescription, 2>& attributes
 			);
 			Builder& setDynamicStates(const std::vector<VkDynamicState>& dynamicStates);
 			Builder& setTopology(VkPrimitiveTopology topology);
@@ -52,7 +52,7 @@ namespace Cravillac
 			std::vector<std::string> m_descriptorSetLayoutKeys;
 			VkPipelineLayout m_pipelineLayout;
 			VkVertexInputBindingDescription m_vertexBinding;
-			std::array<VkVertexInputAttributeDescription, 3> m_vertexAttributes;
+			std::array<VkVertexInputAttributeDescription, 2> m_vertexAttributes;
 			VkPrimitiveTopology m_topology;
 			bool m_depthTest;
 			bool m_blendMode;

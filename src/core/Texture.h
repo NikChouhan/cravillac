@@ -16,7 +16,7 @@ namespace Cravillac
     {
     public:
         Texture() {}
-        void LoadTexture(std::shared_ptr<Renderer> renderer, const char* path);
+        void LoadTexture(std::shared_ptr<Renderer> renderer, const char *filename);
         void CreateTextureImageView();
         void CreateTextureSampler();
 

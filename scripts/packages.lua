@@ -42,3 +42,4 @@ add_requires("imgui docking",
         vulkan = true
     }}
 )
+add_requires("vulkan-memory-allocator")
