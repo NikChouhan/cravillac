@@ -9,8 +9,8 @@
 
 namespace Cravillac 
 {
+    class Texture;
 	class Renderer;
-	class Texture;
 	class ResourceManager;
     class PipelineManager;
 }
@@ -64,22 +64,22 @@ namespace Cravillac
         GLFWwindow* m_window = nullptr;
         ResourceManager* m_resourceManager;
 
-        VkBuffer m_vertexBuffer;
-        VkBuffer m_indexBuffer;
-        VkDeviceMemory m_vertexMemory;
-        VkDeviceMemory m_indexMemory;
-        std::vector<VkBuffer> m_uniformBuffers;
-        std::vector<VkDeviceMemory> m_uniformBufferMem;
-        std::vector<void*> m_uboMemMapped;
+        VkBuffer m_vertexBuffer {VK_NULL_HANDLE};
+        VkBuffer m_indexBuffer{ VK_NULL_HANDLE };
+        VkDeviceMemory m_vertexMemory{ VK_NULL_HANDLE };
+        VkDeviceMemory m_indexMemory{ VK_NULL_HANDLE };
+        std::vector<VkBuffer> m_uniformBuffers{ VK_NULL_HANDLE };
+        std::vector<VkDeviceMemory> m_uniformBufferMem{ VK_NULL_HANDLE };
+        std::vector<void*> m_uboMemMapped{ VK_NULL_HANDLE };
 
         std::vector<std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>> descriptorSets;
 
-        std::vector<VkCommandBuffer> m_cmdBuffers;
+        std::vector<VkCommandBuffer> m_cmdBuffers{ VK_NULL_HANDLE };
 
         // sync primitives
-        std::vector<VkSemaphore> m_imageAvailableSemaphore;
-        std::vector<VkSemaphore> m_renderFinishedSemaphore;
-        std::vector<VkFence> m_inFlightFence;
+        std::vector<VkSemaphore> m_imageAvailableSemaphore{ VK_NULL_HANDLE };
+        std::vector<VkSemaphore> m_renderFinishedSemaphore{ VK_NULL_HANDLE };
+        std::vector<VkFence> m_inFlightFence{ VK_NULL_HANDLE };
 
         std::vector<Texture>* textures;
 

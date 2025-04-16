@@ -9,7 +9,6 @@
 
 #include "common.h"
 #include "renderer.h"
-#include "Texture.h"
 #include "Log.h"
 #include "ResourceManager.h"
 #include "PipelineManager.h"

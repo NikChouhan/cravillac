@@ -15,6 +15,8 @@ Cravillac::Model::~Model()
 void Cravillac::Model::LoadModel(std::shared_ptr<Renderer> renderer, std::string path)
 {
     this->renderer = renderer;
+
+    m_resourceManager = new ResourceManager(renderer);
     cgltf_options options = {};
     cgltf_data *data = nullptr;
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
@@ -163,7 +165,7 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
         }
     }
 
-    if (!pos_attribute || !tex_attribute || !norm_attribute)
+    if (!pos_attribute || !tex_attribute)
     {
         Log::Warn("[CGLTF] Missing attributes in primitive");
         return;
@@ -356,7 +358,7 @@ void Cravillac::Model::SetBuffers()
         .build(stagingBufferMemory);
 
     void* data{};
-    vkMapMemory(renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(this->renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, m_vertices.data(), static_cast<size_t>(bufferSize));
     vkUnmapMemory(renderer->m_device, stagingBufferMemory);
 
