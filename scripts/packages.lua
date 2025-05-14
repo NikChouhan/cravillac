@@ -1,15 +1,5 @@
 add_requires("stb")
 
-add_requires("glm",
-{
-    debug =	is_mode("debug"),
-    configs =
-    {
-        shared = false,
-        runtimes = "MTd",
-    }
-})
-
 add_requires("vulkan-headers",
 {
     debug =	is_mode("debug"),
@@ -30,7 +20,13 @@ add_requires("directxmath",
     }
 })
 
-add_requires("glfw")
+add_requires("glfw",
+{
+    -- configs =
+    -- {
+    --     glfw_include = "vulkan",
+    -- }
+})
 
 add_requires("cgltf")
 
@@ -40,6 +36,8 @@ add_requires("imgui docking",
     {
         glfw = true,
         vulkan = true
-    }}
-)
+    }
+})
 add_requires("vulkan-memory-allocator")
+
+--add_requires("directxtk")

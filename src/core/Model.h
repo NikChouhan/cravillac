@@ -100,7 +100,7 @@ namespace Cravillac
     public:
         Model();
         ~Model();
-        void LoadModel(std::shared_ptr<Renderer> renderer, std::string path);
+        void LoadModel(const std::shared_ptr<Renderer>& renderer, std::string path);
         void SetBuffers();
         bool SetTexResources(uint32_t materialIndex);
         void UpdateCB(Primitive prim);
@@ -130,10 +130,11 @@ namespace Cravillac
 
         std::shared_ptr<Renderer> renderer;
 
-    private:
 
         VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
         VkBuffer m_indexBuffer = VK_NULL_HANDLE;
+    private:
+
 
         VkDeviceMemory m_vertexMemory = VK_NULL_HANDLE;
         VkDeviceMemory m_indexMemory = VK_NULL_HANDLE;

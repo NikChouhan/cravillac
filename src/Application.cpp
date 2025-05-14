@@ -3,10 +3,7 @@
 #include <chrono>
 #include <cstring>
 
-#define GL_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
+#include "Camera.h"
 #include "common.h"
 #include "renderer.h"
 #include "Log.h"
@@ -15,16 +12,28 @@
 #include "vk_utils.h"
 #include "Vertex.h"
 
+namespace
+{
+	static void HandleCameraMovement(const std::shared_ptr<Cravillac::Camera>& camera, GLFWwindow* window, float deltaTime, float sensitivity);
+	void HandleMouseMovement(std::shared_ptr<Cravillac::Camera>& camera, float deltaX, float deltaY, float sensitivity);
+	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+}
 namespace Cravillac
 {
 	Application::Application(const char* title) : m_resourceManager(nullptr), m_window(nullptr), m_surface(VK_NULL_HANDLE)
 	{
 		renderer = std::make_shared<Renderer>();
 		textures = new std::vector<Texture>();
+		m_camera = std::make_unique<Camera>();
 	}
 	void Application::Init()
 	{
 		Log::Init();
+
+		// camera setup
+		m_camera->InitAsPerspective(45.0f, WIDTH, HEIGHT);
+		//m_camera->InitAsOrthographic(m_renderer->m_width, m_renderer->m_height);
+		m_camera->SetPosition({ 0.0f, 0.0f, 6.f });
 
 		// commented out cuz this is meant to be cross-platform, and the hinstance and hwnd part only works for windows
 		/*
@@ -46,6 +55,13 @@ namespace Cravillac
 		m_window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan Test", nullptr, nullptr);
 
 		renderer->InitVulkan();
+
+		glfwSetWindowUserPointer(m_window, this);
+
+		glfwSetCursorPosCallback(m_window, mouse_callback);
+
+		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 
 		if (glfwCreateWindowSurface(renderer->m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
 		{
@@ -73,21 +89,26 @@ namespace Cravillac
 	}
 	void Application::DrawFrame()
 	{
+		static float lastFrameTime = 0.f;
 		while (!glfwWindowShouldClose(m_window))
 		{
 			glfwPollEvents();
 
+			float currentFrameTime = static_cast<float>(glfwGetTime());
+			float deltaTime = currentFrameTime - lastFrameTime;
+			lastFrameTime = currentFrameTime;
+
+			HandleCameraMovement(m_camera, m_window, deltaTime, 2.f);
+
 			vkWaitForFences(renderer->m_device, 1, &m_inFlightFence[currentFrame], VK_TRUE, UINT64_MAX);
 			vkResetFences(renderer->m_device, 1, &m_inFlightFence[currentFrame]);
-
-			UpdateUniformBuffer(currentFrame);
 
 			uint32_t imageIndex{};
 			vkAcquireNextImageKHR(renderer->m_device, renderer->m_swapChain, UINT64_MAX, m_imageAvailableSemaphore[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 			vkResetCommandBuffer(m_cmdBuffers[currentFrame], 0);
 
-			RecordCmdBuffer(m_cmdBuffers[currentFrame], imageIndex);
+			RecordCmdBuffer(m_cmdBuffers[currentFrame], imageIndex, currentFrame);
 
 			VkSubmitInfo submitInfo{
 				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -128,12 +149,13 @@ namespace Cravillac
 	void Application::SetResources()
 	{
 		Model mod1;
-		mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
+		//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
+		//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
+		mod1.LoadModel(renderer,"../../../../assets/models/sponza/Sponza.gltf");
+		//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 		models.push_back(mod1);
 
 		// ubo for camera
-
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
 		m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 		m_uniformBufferMem.resize(MAX_FRAMES_IN_FLIGHT);
@@ -141,11 +163,12 @@ namespace Cravillac
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
+			VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 			m_uniformBuffers[i] = m_resourceManager->CreateBufferBuilder()
-				.setSize(bufferSize)
-				.setUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
-				.setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-				.build(m_uniformBufferMem[i]);
+			                                       .setSize(bufferSize)
+			                                       .setUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+			                                       .setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+			                                       .build(m_uniformBufferMem[i]);
 			vkMapMemory(renderer->m_device, m_uniformBufferMem[i], 0, bufferSize, 0, &m_uboMemMapped[i]);
 		}
 
@@ -173,7 +196,8 @@ namespace Cravillac
 		Texture tex1, tex2;
 		tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
 		textures->push_back(tex1);
-		tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
+		//tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
+		tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
 		textures->push_back(tex2);
 
 		descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
@@ -215,7 +239,7 @@ namespace Cravillac
 		renderer->CreateCommandBuffer(m_cmdBuffers);
 		renderer->CreateSynObjects(m_imageAvailableSemaphore, m_renderFinishedSemaphore, m_inFlightFence);
 	}
-	void Application::RecordCmdBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+	void Application::RecordCmdBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const
 	{
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
 		VkPipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("ubo;textures;");
@@ -258,10 +282,10 @@ namespace Cravillac
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-		VkBuffer vertexBuffers[] = { m_vertexBuffer };
+		VkBuffer vertexBuffers[] = { models[0].m_vertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(commandBuffer, models[0].m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
@@ -280,7 +304,11 @@ namespace Cravillac
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, descriptorSets[currentFrame].data(), 0, nullptr);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		for (const auto& prim : models[0].m_primitives)
+		{
+			UpdateUniformBuffer(currentFrame, prim);
+			vkCmdDrawIndexed(commandBuffer, prim.indexCount, 1, prim.startIndex, 0, 0);
+		}
 
 		vkCmdEndRendering(commandBuffer);
 
@@ -294,20 +322,109 @@ namespace Cravillac
 	}
 
 
-	void Application::UpdateUniformBuffer(uint32_t currentImage)
+	void Application::UpdateUniformBuffer(uint32_t currentImage, const Primitive& prim) const
 	{
-		static auto startTime = std::chrono::high_resolution_clock::now();
+		DirectX::XMMATRIX viewMatrix = m_camera->GetViewMatrix();
+		DirectX::XMMATRIX projectionMatrix = m_camera->GetProjectionMatrix();
 
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		DirectX::XMMATRIX worldMatrix = prim.transform.Matrix;
+
+		DirectX::XMMATRIX worldViewProjMatrix = worldMatrix * viewMatrix * projectionMatrix;
 
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.f), time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
-		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), renderer->m_swapChainExtent.width / static_cast<float>(renderer->m_swapChainExtent.height), 0.1f, 10.0f);
 
-		ubo.proj[1][1] *= -1;
+		ubo.mvp = worldViewProjMatrix;
 
 		memcpy(m_uboMemMapped[currentImage], &ubo, sizeof(ubo));
+	}
+
+}
+
+namespace 
+{
+	static void HandleCameraMovement(const std::shared_ptr<Cravillac::Camera>& camera, GLFWwindow* window, float deltaTime, float sensitivity)
+	{
+		constexpr float moveSpeed = 1.0f;
+
+		SM::Vector3 forward = camera->GetLookAtTarget();
+		forward.Normalize();
+
+		SM::Vector3 up = camera->GetUp();
+		up.Normalize();
+
+		//might fix this later but I guess this left-right movement is more intuitive. Still will change it if needs be
+		SM::Vector3 right = forward.Cross(up);
+		right.Normalize();
+
+		// Calculate movement in local space
+		SM::Vector3 movement(0.0f, 0.0f, 0.0f);
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		{
+			//Log::Info("W key pressed");
+			movement += forward * moveSpeed * deltaTime;
+		}
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) movement -= forward * moveSpeed * deltaTime;
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) movement -= right * moveSpeed * deltaTime;
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) movement += right * moveSpeed * deltaTime;
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) movement -= up * moveSpeed * deltaTime;
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) movement += up * moveSpeed * deltaTime;
+		//Spar::Log::InfoDebug("movement: ", movement);
+		camera->Translate(movement);
+	}
+
+	void HandleMouseMovement(std::shared_ptr<Cravillac::Camera>& camera, float deltaX, float deltaY, float sensitivity) {
+		deltaX *= sensitivity;
+		deltaY *= -sensitivity;
+
+		float yaw = 0.0f;
+		yaw += deltaX;
+		float pitch = 0.0f;
+		pitch += deltaY;
+
+		bool constrainPitch = true;
+
+		if (constrainPitch) {
+			if (pitch > 89.0f) // Fixed to 89.0f for consistency
+				pitch = 89.0f;
+			if (pitch < -89.0f)
+				pitch = -89.0f;
+		}
+
+		SM::Vector3 up = camera->GetUp();
+		up.Normalize();
+
+		camera->Rotate(up, DirectX::XMConvertToRadians(yaw));
+
+		SM::Vector3 forward = camera->GetLookAtTarget();
+		forward.Normalize();
+
+		SM::Vector3 right = forward.Cross(up);
+		right.Normalize();
+
+		camera->Rotate(right, DirectX::XMConvertToRadians(pitch));
+	}
+
+	void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+		static bool firstMouse = true;
+		static float lastX = 0.0f, lastY = 0.0f;
+		static float sensitivity = 1.f; // Adjust as needed
+
+		// Retrieve Application instance
+		Cravillac::Application* app = reinterpret_cast<Cravillac::Application*>(glfwGetWindowUserPointer(window));
+
+		if (firstMouse) {
+			lastX = static_cast<float>(xpos);
+			lastY = static_cast<float>(ypos);
+			firstMouse = false;
+		}
+
+		float deltaX = static_cast<float>(xpos) - lastX;
+		float deltaY = static_cast<float>(ypos) - lastY;
+
+		lastX = static_cast<float>(xpos);
+		lastY = static_cast<float>(ypos);
+
+		// Pass Application's camera to HandleMouseMovement
+		HandleMouseMovement(app->m_camera, deltaX, deltaY, sensitivity);
 	}
 }

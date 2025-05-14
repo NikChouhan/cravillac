@@ -18,8 +18,11 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+#include <SimpleMath.h>
+
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
+namespace SM = DirectX::SimpleMath;
 
 
 #endif // COMMON_H

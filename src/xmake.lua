@@ -1,9 +1,9 @@
 target("core")
     set_kind("static")
     set_group("VKEngine")
-    add_files("core/*.cpp")
+    add_files("core/*.cpp", "includes/*.cpp")
     add_headerfiles("core/*.h")
-    add_packages("vulkan-memory-allocator","directxmath", "glfw", "glm","cgltf","imgui", {public = true})   
+    add_packages("vulkan-memory-allocator","directxmath", "glfw", "cgltf","imgui", {public = true})   
     if is_os("windows") then
         local vulkan_sdk = os.getenv("VULKAN_SDK")
         if vulkan_sdk then

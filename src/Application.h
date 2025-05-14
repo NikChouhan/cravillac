@@ -13,6 +13,7 @@ namespace Cravillac
 	class Renderer;
 	class ResourceManager;
     class PipelineManager;
+    class Camera;
 }
 
 struct ImGuiIO;
@@ -25,23 +26,7 @@ namespace Cravillac
 
     struct UniformBufferObject
     {
-        glm::mat4 model;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
-
-    const std::vector<Vertex> vertices =
-    {
-        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f}},
-        {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f}}
-    };
-
-    const std::vector<uint16_t> indices =
-    {
-        0, 1, 2, 2, 3, 0
+        DirectX::XMMATRIX mvp;
     };
 
     constexpr uint32_t MAX_TEXTURES = 3;
@@ -55,8 +40,11 @@ namespace Cravillac
         void DrawFrame();
         void SetResources();
 
-        void RecordCmdBuffer(VkCommandBuffer, uint32_t imageIndex);
-        void UpdateUniformBuffer(uint32_t currentImage);
+        void RecordCmdBuffer(VkCommandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
+        void UpdateUniformBuffer(uint32_t currentImage, const Primitive& prim) const;
+
+
+        std::shared_ptr<Cravillac::Camera> m_camera;
 
     private:
         VkSurfaceKHR m_surface;
@@ -86,5 +74,6 @@ namespace Cravillac
         uint32_t currentFrame{ 0 };
 
         std::vector<Model> models;
+
 	};
 }

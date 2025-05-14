@@ -1,4 +1,3 @@
-#include <memory>
 #include "BufferBuilder.h"
 #include "ResourceManager.h"
 #include "Log.h"

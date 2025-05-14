@@ -2,18 +2,14 @@
 #define VERTEX_H
 
 #include "common.h"
-
 #include <array>
-#include <vector>
-
-#include <glm/glm.hpp>
 
 namespace  Cravillac
 {
     struct Vertex
     {
-        glm::vec3 pos;
-        glm::vec2 texCoord;
+        SM::Vector3 pos;
+        SM::Vector2 texCoord;
 
         static VkVertexInputBindingDescription getBindingDescription()
         {

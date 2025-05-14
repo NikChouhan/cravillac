@@ -12,7 +12,7 @@ Cravillac::Model::~Model()
 {
 }
 
-void Cravillac::Model::LoadModel(std::shared_ptr<Renderer> renderer, std::string path)
+void Cravillac::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, std::string path)
 {
     this->renderer = renderer;
 

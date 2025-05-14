@@ -9,7 +9,7 @@ add_rules("mode.debug", "mode.release")
 set_defaultmode("debug")
 add_includedirs("src")
 if is_os("windows") then
-    add_syslinks("user32.lib", "kernel32.lib", "shell32.lib")
+    add_syslinks("user32.lib", "kernel32.lib", "shell32.lib", "comctl32.lib")
 end
 if is_os("linux") then
     add_syslinks("dl", "pthread", "X11", "Xxf86vm", "Xrandr", "Xi")
@@ -17,7 +17,7 @@ end
 
 add_defines("UNICODE", "_UNICODE")
 
-add_includedirs("src", "src/core", "src/renderer", { public = true })
+add_includedirs("src", "src/core", "src/renderer", "src/includes", { public = true })
 
 set_languages("cxx20", "c17")
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#define GL_FORCE_RADIANS
-#include <glm/glm.hpp>
 
 #include <vector>
 #include "Model.h"
