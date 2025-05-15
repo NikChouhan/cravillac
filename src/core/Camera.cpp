@@ -30,7 +30,12 @@ namespace Cravillac
         m_nearPlane = nearPlane;
         m_farPlane = farPlane;
 
-        m_proj = DirectX::XMMatrixPerspectiveFovLH(m_angle, (m_width / m_height), m_nearPlane, m_farPlane);
+        m_proj = DirectX::XMMatrixPerspectiveFovRH(m_angle, (m_width / m_height), m_nearPlane, m_farPlane);
+
+        m_proj._21 = -m_proj._21;
+        m_proj._22 = -m_proj._22;
+        m_proj._23 = -m_proj._23;
+        m_proj._24 = -m_proj._24;
     }
 
     void Camera::InitAsOrthographic(const f32 width, const f32 height, const f32 nearPlane, const f32 farPlane)
@@ -40,7 +45,7 @@ namespace Cravillac
         m_nearPlane = nearPlane;
         m_farPlane = farPlane;
 
-        m_ortho = XMMatrixOrthographicLH(m_width, m_height, m_nearPlane, m_farPlane);
+        m_ortho = XMMatrixOrthographicRH(m_width, m_height, m_nearPlane, m_farPlane);
     }
 
     void Camera::OnResize(u32 width, u32 height)
@@ -100,10 +105,10 @@ namespace Cravillac
         newLookAtTargetNormalized.Normalize();
 
         SM::Vector3 angleVec = XMVector3AngleBetweenNormals(oldLookAtTargetNormalized, newLookAtTargetNormalized);
-        f32 angle = XMConvertToDegrees(angleVec.x);
+        //f32 angle = XMConvertToDegrees(angleVec.x);
 
-        if (angle != 0.0f && angle != 360.0f && angle != 180.0f)
-        {
+        f32 angle = XMConvertToDegrees(XMVectorGetX(angleVec));
+        if (std::abs(angle) > 0.001f && std::abs(angle - 180.0f) > 0.001f && std::abs(angle - 360.0f) > 0.001f) {
             SM::Vector3 axis = oldLookAtTarget.Cross(newLookAtTarget);
             Rotate(axis, angle);
         }
@@ -145,6 +150,6 @@ namespace Cravillac
 
     void Camera::InitViewMatrix()
     {
-        m_view = XMMatrixLookAtLH(m_position, m_target, m_up);
+        m_view = XMMatrixLookAtRH(m_position, m_target, m_up);
     }
 }

@@ -56,6 +56,7 @@ namespace Cravillac
 
 		renderer->InitVulkan();
 
+		glfwMakeContextCurrent(m_window);
 		glfwSetWindowUserPointer(m_window, this);
 
 		glfwSetCursorPosCallback(m_window, mouse_callback);
@@ -384,9 +385,9 @@ namespace
 		bool constrainPitch = true;
 
 		if (constrainPitch) {
-			if (pitch > 89.0f) // Fixed to 89.0f for consistency
+			if (pitch > 89.0f) // Fixed to 89.0f for consistency  // NOLINT(readability-use-std-min-max)
 				pitch = 89.0f;
-			if (pitch < -89.0f)
+			if (pitch < -89.0f)  // NOLINT(readability-use-std-min-max)
 				pitch = -89.0f;
 		}
 
