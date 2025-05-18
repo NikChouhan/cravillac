@@ -216,17 +216,51 @@ namespace Cravillac
 
     void TransitionImage(VkCommandBuffer commandBuffer, VkImage& image, VkImageLayout currentLayout, VkImageLayout newLayout)
     {
+        VkImageAspectFlags aspectMask{0};
+        VkPipelineStageFlags2 srcStageMask{0};
+        VkPipelineStageFlags2 dstStageMask{0};
+        VkAccessFlags2 srcAccessMask{0};
+        VkAccessFlags2 dstAccessMask{0};
+        if (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        {
+            aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            srcAccessMask = 0;
+            srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
+
+        else if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+        {
+            aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; // or with VK_IMAGE_ASPECT_STENCIL_BIT later when want to enable
+            srcAccessMask = 0;
+            srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        }
+        else aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;    // this is for the texture transitions
+
         VkImageMemoryBarrier2 imageBarrier{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
             .pNext = nullptr};
         VkImageSubresourceRange subresourceRange = {};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // change this value for depth and color attachement, rest should remain same ( Note: It shouldnt be same for optimised code but just kindsa work here)
+        subresourceRange.aspectMask = aspectMask;
         subresourceRange.baseMipLevel = 0;
         subresourceRange.levelCount = 1; // not using mipmaps
         subresourceRange.baseArrayLayer = 0;
         subresourceRange.layerCount = 1; // For a standard 2D image
 
-        if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL))
+        {
+            // access mask - how the resource is being used
+            // stage mask - at what stage the ops need to be done
+            imageBarrier.srcAccessMask = 0;                   // no memory access for source (no previous memory operations to sync with)
+            imageBarrier.srcStageMask = srcStageMask;
+            imageBarrier.dstAccessMask = dstAccessMask;  
+            imageBarrier.dstStageMask = dstStageMask;         // after the barrier finishes start the transfer at the transfer stage
+        }
+        // texture transition
+        else if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
         {
             // access mask - how the resource is being used
             // stage mask - at what stage the ops need to be done
@@ -235,12 +269,20 @@ namespace Cravillac
             imageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;          // enable transfer write ops 
             imageBarrier.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // after the barrier finishes start the transfter at the transfer stage
         }
+        // texture transition again
         else if (currentLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         {
             imageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;          // the previous (src) operation is being done, so wait it out
-            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // start at the transfer stage (transfer ops are handled by seperate units in a physical gpu)
+            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // start at the transfer stage (transfer ops are handled by separate units in a physical gpu)
             imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;             // enable access of shader for read
             imageBarrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;  // after the barrier finishes start the ops (transition here) at the fragment stage in pipeline
+        }
+        else if (currentLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        {
+            imageBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        	imageBarrier.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            imageBarrier.dstAccessMask = 0;
+        	imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_NONE;
         }
         else
         {
@@ -424,10 +466,10 @@ namespace Cravillac
     }
 
 
-    VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format)
+    VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags)
     {
         VkImageSubresourceRange range{
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask = aspectFlags,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -456,7 +498,38 @@ namespace Cravillac
         return imageView;
     }
 
-    std::vector<char> ReadShaderFile(const std::string &filename)
+    VkFormat FindSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& candidates, VkImageTiling tiling,
+	    VkFormatFeatureFlags flags)
+    {
+        for (VkFormat format : candidates)
+        {
+            VkFormatProperties props;
+            vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+            if (tiling == VK_IMAGE_TILING_LINEAR && ((props.linearTilingFeatures & flags) == flags))
+                return format;
+            if (tiling == VK_IMAGE_TILING_OPTIMAL && ((props.optimalTilingFeatures & flags) == flags))
+                return format;
+        }
+        throw std::runtime_error("Failed to find supported format");
+    }
+
+
+    VkFormat FindDepthFormat(VkPhysicalDevice physicalDevice)
+	{
+        return FindSupportedFormat(physicalDevice,
+            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+        );
+    }
+
+    bool HasStencilComponent(VkFormat format)
+    {
+        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+    }
+
+    std::vector<char> ReadShaderFile(const std::string& filename)
     {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

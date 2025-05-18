@@ -62,7 +62,7 @@ namespace Cravillac
 
     PipelineManager::Builder& PipelineManager::Builder::setVertexInput(
         const VkVertexInputBindingDescription& binding,
-	    const std::array<VkVertexInputAttributeDescription, 2>& attributes)
+	    const std::array<VkVertexInputAttributeDescription, 3>& attributes)
     {
         m_vertexBinding = binding;
         m_vertexAttributes = attributes;
@@ -178,7 +178,7 @@ namespace Cravillac
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f; // Optional
         rasterizer.depthBiasClamp = 0.0f;          // Optional
@@ -214,13 +214,26 @@ namespace Cravillac
         colorBlending.blendConstants[2] = 0.0f; // Optional
         colorBlending.blendConstants[3] = 0.0f; // Optional
 
+        VkPipelineDepthStencilStateCreateInfo depthInfo{};
+        depthInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depthInfo.depthTestEnable = VK_TRUE;
+        depthInfo.depthWriteEnable = VK_TRUE;
+        depthInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthInfo.depthBoundsTestEnable = VK_FALSE;
+        depthInfo.minDepthBounds = 0.f;
+        depthInfo.maxDepthBounds = 1.f;
+        depthInfo.stencilTestEnable = VK_FALSE;
+        depthInfo.front = {};
+        depthInfo.back = {};
+
+
         auto device = m_resourceManager->getDevice();
 
         VkPipelineRenderingCreateInfo pipelineRenderingInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
             .colorAttachmentCount = 1,
             .pColorAttachmentFormats = &m_renderer->m_swapChainImageFormat,
-            .depthAttachmentFormat = VK_FORMAT_UNDEFINED };
+            .depthAttachmentFormat = m_renderer->m_depthImageFormat };
 
         VkGraphicsPipelineCreateInfo pipelineCreateInfo{
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -232,7 +245,7 @@ namespace Cravillac
             .pViewportState = &viewportState,
             .pRasterizationState = &rasterizer,
             .pMultisampleState = &multisampling,
-            .pDepthStencilState = nullptr,
+            .pDepthStencilState = &depthInfo,
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
             .layout = pipelineLayout,

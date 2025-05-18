@@ -28,6 +28,7 @@ namespace Cravillac
         void PickPhysicalDevice(VkSurfaceKHR surface);
         void CreateLogicalDevice(VkSurfaceKHR surface);
         void CreateCommandPool(VkSurfaceKHR surface);
+        void CreateDepthResources();
 
         // void RecreateSwapChain(); // TODO
 
@@ -52,6 +53,12 @@ namespace Cravillac
         VkExtent2D m_swapChainExtent;
         std::vector<VkImage> m_swapChainImages{};
         std::vector<VkImageView> m_swapChainImageViews{};
+
+        //depth image vars
+        VkImage m_depthImage{};
+        VkDeviceMemory m_depthImageMemory{};
+        VkImageView m_depthImageView{};
+        VkFormat m_depthImageFormat;
 
 
         std::vector<VkBuffer> m_uniformBuffers{};

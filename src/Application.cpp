@@ -74,6 +74,7 @@ namespace Cravillac
 		renderer->PickPhysicalDevice(m_surface);
 		renderer->CreateLogicalDevice(m_surface);
 		renderer->CreateSwapChain(m_surface, m_window);
+		renderer->CreateDepthResources();
 
 		renderer->CreateCommandPool(m_surface);
 
@@ -150,9 +151,9 @@ namespace Cravillac
 	void Application::SetResources()
 	{
 		Model mod1;
-		//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
+		mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
-		mod1.LoadModel(renderer,"../../../../assets/models/sponza/Sponza.gltf");
+		//mod1.LoadModel(renderer,"../../../../assets/models/sponza/Sponza.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 		models.push_back(mod1);
 
@@ -198,7 +199,8 @@ namespace Cravillac
 		tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
 		textures->push_back(tex1);
 		//tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
-		tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
+		//tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
+		tex2.LoadTexture(renderer, "../../../../assets/textures/Suzanne_BaseColor.png");
 		textures->push_back(tex2);
 
 		descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
@@ -223,7 +225,7 @@ namespace Cravillac
 
 		VkVertexInputBindingDescription binding = Vertex::getBindingDescription();
 
-		std::array<VkVertexInputAttributeDescription, 2> attributes = Vertex::getAttributeDescription();
+		std::array<VkVertexInputAttributeDescription, 3> attributes = Vertex::getAttributeDescription();
 
 		PipelineManager::Builder(pipelineManager)
 			.setVertexShader("../../../../shaders/Triangle.vert.spv")
@@ -233,7 +235,7 @@ namespace Cravillac
 			.setVertexInput(binding, attributes)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setDynamicStates({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR })
-			.setDepthTest(false)
+			.setDepthTest(true)
 			.setBlendMode(false)
 			.build("triangle");
 		// cmd buffer and sync objects
@@ -259,7 +261,11 @@ namespace Cravillac
 		}
 		// transition color image from undefined to optimal for rendering
 		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED,
-		                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+		// transition depth image from undefined to optimal for rendering
+		TransitionImage(commandBuffer, renderer->m_depthImage, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 		VkRenderingAttachmentInfo colorAttachmentInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -269,6 +275,17 @@ namespace Cravillac
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE };
 		colorAttachmentInfo.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
+		VkRenderingAttachmentInfo depthAttachmentInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.pNext = nullptr,
+			.imageView = renderer->m_depthImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		};
+
+		depthAttachmentInfo.clearValue.depthStencil = { 1.0f, 0 };
+
 		VkRenderingInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 		};
@@ -277,6 +294,7 @@ namespace Cravillac
 		renderingInfo.layerCount = 1;
 		renderingInfo.colorAttachmentCount = 1;
 		renderingInfo.pColorAttachments = &colorAttachmentInfo;
+		renderingInfo.pDepthAttachment = &depthAttachmentInfo;
 
 		auto graphicsPipeline = pipelineManager->getPipeline("triangle");
 
@@ -312,8 +330,8 @@ namespace Cravillac
 		}
 
 		vkCmdEndRendering(commandBuffer);
-
-		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		// transition color image to present mode. No need for depth image, it is used directly for depth purposes, and we dont need to store or use it elsewhere (at least currently)
+		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		{
@@ -335,6 +353,7 @@ namespace Cravillac
 		UniformBufferObject ubo{};
 
 		ubo.mvp = worldViewProjMatrix;
+		ubo.mWorld = worldMatrix;
 
 		memcpy(m_uboMemMapped[currentImage], &ubo, sizeof(ubo));
 	}

@@ -27,6 +27,7 @@ namespace Cravillac
     struct UniformBufferObject
     {
         DirectX::XMMATRIX mvp;
+        DirectX::XMMATRIX mWorld;
     };
 
     constexpr uint32_t MAX_TEXTURES = 3;

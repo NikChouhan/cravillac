@@ -59,7 +59,7 @@ namespace Cravillac
     }
     void Texture::CreateTextureImageView()
     {
-        m_texImageView = CreateImageView(renderer->m_device, m_texImage, VK_FORMAT_R8G8B8A8_SRGB);
+        m_texImageView = CreateImageView(renderer->m_device, m_texImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     void Texture::CreateTextureSampler()
     {

@@ -270,6 +270,15 @@ namespace Cravillac
             Log::Info("[VULKAN] Command Pool creation Success");
     }
 
+    void Renderer::CreateDepthResources()
+    {
+        m_depthImageFormat = FindDepthFormat(m_physicalDevice);
+        CreateImage(m_physicalDevice, m_device, m_swapChainExtent.width, m_swapChainExtent.height,
+            m_depthImageFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
+        m_depthImageView = CreateImageView(m_device, m_depthImage, m_depthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+
     void Renderer::CreateSwapChain(VkSurfaceKHR surface, GLFWwindow* window)
     {
         assert(m_physicalDevice);
@@ -344,7 +353,7 @@ namespace Cravillac
 
         for (size_t i = 0; i < m_swapChainImages.size(); i++)
         {
-            m_swapChainImageViews[i] = CreateImageView(m_device, m_swapChainImages[i], m_swapChainImageFormat);
+            m_swapChainImageViews[i] = CreateImageView(m_device, m_swapChainImages[i], m_swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
         }
     }
 

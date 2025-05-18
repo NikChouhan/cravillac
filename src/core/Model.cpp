@@ -163,6 +163,10 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
         {
             tex_attribute = &primitive->attributes[i];
         }
+        if (strcmp(primitive->attributes[i].name, "NORMAL") == 0)
+        {
+            norm_attribute = &primitive->attributes[i];
+        }
     }
 
     if (!pos_attribute || !tex_attribute)
@@ -189,7 +193,10 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
         {
             Log::Warn("[CGLTF] Unable to read Texture attributes!");
         }
-
+        if (cgltf_accessor_read_float(norm_attribute->data, i, &vertex.normal.x, 3) == 0)
+        {
+            Log::Warn("[CGLTF] Unable to read Normal attributes!");
+        }
         vertices.push_back(vertex);
     }
 

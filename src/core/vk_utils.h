@@ -65,7 +65,12 @@ namespace Cravillac
 	// Image handling
 	void CreateImage(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
 	void CopyBufferToImage(VkCommandBuffer commandBuffer, VkImage& image, VkBuffer& buffer, uint32_t width, uint32_t height);
-    VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format);
+    VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags);
+
+	//depth and stencil image ops
+	VkFormat FindSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags flags);
+	VkFormat FindDepthFormat(VkPhysicalDevice physicalDevice);
+	bool HasStencilComponent(VkFormat format);
 
 	// read file idk shdader
 	std::vector<char> ReadShaderFile(const std::string &filename);
