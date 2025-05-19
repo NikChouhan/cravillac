@@ -151,9 +151,9 @@ namespace Cravillac
 	void Application::SetResources()
 	{
 		Model mod1;
-		mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
+		//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
-		//mod1.LoadModel(renderer,"../../../../assets/models/sponza/Sponza.gltf");
+		mod1.LoadModel(renderer,"../../../../assets/models/sponza/Sponza.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 		models.push_back(mod1);
 
@@ -173,7 +173,6 @@ namespace Cravillac
 			                                       .build(m_uniformBufferMem[i]);
 			vkMapMemory(renderer->m_device, m_uniformBufferMem[i], 0, bufferSize, 0, &m_uboMemMapped[i]);
 		}
-
 		// pipeline
 		// TODO
 
@@ -199,8 +198,8 @@ namespace Cravillac
 		tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
 		textures->push_back(tex1);
 		//tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
-		//tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
-		tex2.LoadTexture(renderer, "../../../../assets/textures/Suzanne_BaseColor.png");
+		tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
+		//tex2.LoadTexture(renderer, "../../../../assets/textures/Suzanne_BaseColor.png");
 		textures->push_back(tex2);
 
 		descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
@@ -267,6 +266,18 @@ namespace Cravillac
 		TransitionImage(commandBuffer, renderer->m_depthImage, VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
+		for (const auto& prim : models[0].m_primitives)
+		{
+			UpdateUniformBuffer(currentFrame, prim);
+
+			VkMemoryBarrier memoryBarrier = {};
+			memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+			memoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+			memoryBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
+			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+
+		}
+
 		VkRenderingAttachmentInfo colorAttachmentInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			.imageView = renderer->m_swapChainImageViews[imageIndex],
@@ -325,8 +336,7 @@ namespace Cravillac
 
 		for (const auto& prim : models[0].m_primitives)
 		{
-			UpdateUniformBuffer(currentFrame, prim);
-			vkCmdDrawIndexed(commandBuffer, prim.indexCount, 1, prim.startIndex, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, prim.indexCount, 1, prim.startIndex, prim.startVertex, 0);
 		}
 
 		vkCmdEndRendering(commandBuffer);

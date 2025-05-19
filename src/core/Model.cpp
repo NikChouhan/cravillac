@@ -1,4 +1,7 @@
 #include "Model.h"
+
+#include <complex.h>
+
 #include "Log.h"
 #include "Texture.h"
 #include "renderer.h"
@@ -169,7 +172,7 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
         }
     }
 
-    if (!pos_attribute || !tex_attribute)
+    if (!pos_attribute || !tex_attribute || !norm_attribute)
     {
         Log::Warn("[CGLTF] Missing attributes in primitive");
         return;
