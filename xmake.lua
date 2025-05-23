@@ -19,7 +19,7 @@ add_defines("UNICODE", "_UNICODE")
 
 add_includedirs("src", "src/core", "src/renderer", "src/includes", { public = true })
 
-set_languages("cxx20", "c17")
+set_languages("cxx23", "c20")
 
 if (is_mode("debug")) then
     set_symbols("debug")

@@ -88,7 +88,7 @@ namespace Cravillac
 		return CreateDescriptorBuilder()
 			.allocateDescriptorSet(layout);
 	}
-	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::vector<Cravillac::Texture>* textures)
+	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::optional<std::vector<Cravillac::Texture>> textures)
 	{
 		return CreateDescriptorBuilder()
 			.updateDescriptorSet(set, binding, type, buffer, size, textures);
@@ -149,7 +149,8 @@ namespace Cravillac
 		VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCI{};
 		std::vector<VkDescriptorBindingFlags> bindingFlags;
 
-		if (layoutKey == "ubo") {
+		if (layoutKey == "ubo") 
+		{
 			VkDescriptorSetLayoutBinding uboBinding{};
 			uboBinding.binding = 0;
 			uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -158,11 +159,12 @@ namespace Cravillac
 			uboBinding.pImmutableSamplers = nullptr;
 			bindings.push_back(uboBinding);
 		}
-		else if (layoutKey == "textures") {
+		else if (layoutKey == "textures") 
+		{
 			VkDescriptorSetLayoutBinding textureBinding{};
 			textureBinding.binding = 0;
 			textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			textureBinding.descriptorCount = 4;
+			textureBinding.descriptorCount = 2;
 			textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			textureBinding.pImmutableSamplers = nullptr;
 			bindings.push_back(textureBinding);
@@ -173,6 +175,16 @@ namespace Cravillac
 				.bindingCount = 1,
 				.pBindingFlags = bindingFlags.data()
 			};
+		}
+		else if (layoutKey == "ssbo")
+		{
+			VkDescriptorSetLayoutBinding ssboBinding{};
+			ssboBinding.binding = 0;
+			ssboBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			ssboBinding.descriptorCount = 1;
+			ssboBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			ssboBinding.pImmutableSamplers = nullptr;
+			bindings.push_back(ssboBinding);
 		}
 		// Add more layoutKey cases or make it configurable via a vector input
 

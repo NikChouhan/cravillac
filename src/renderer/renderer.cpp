@@ -205,13 +205,13 @@ namespace Cravillac
             queueCreateInfos.push_back(queueCreateInfo);
         }
         // vk dynamic rendering local read
-        VkPhysicalDeviceDynamicRenderingLocalReadFeatures drLocalRead{};
+       /* VkPhysicalDeviceDynamicRenderingLocalReadFeatures drLocalRead{};
         drLocalRead.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES;
-        drLocalRead.dynamicRenderingLocalRead = VK_TRUE;
+        drLocalRead.dynamicRenderingLocalRead = VK_TRUE;*/
 
         // bindless
         VkPhysicalDeviceDescriptorIndexingFeatures bindless{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
-        bindless.pNext = &drLocalRead;
+        //bindless.pNext = &drLocalRead;
         bindless.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
         bindless.descriptorBindingPartiallyBound = VK_TRUE;
         bindless.runtimeDescriptorArray = VK_TRUE;
@@ -226,6 +226,7 @@ namespace Cravillac
         };
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
+        deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
 
         VkDeviceCreateInfo createInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

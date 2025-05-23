@@ -30,8 +30,6 @@ namespace Cravillac
         DirectX::XMMATRIX mWorld;
     };
 
-    constexpr uint32_t MAX_TEXTURES = 3;
-
     class Application
     {
     public:
@@ -61,7 +59,7 @@ namespace Cravillac
         std::vector<VkDeviceMemory> m_uniformBufferMem{ VK_NULL_HANDLE };
         std::vector<void*> m_uboMemMapped{ VK_NULL_HANDLE };
 
-        std::vector<std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>> descriptorSets;
+        std::array<std::vector<VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> descriptorSets;
 
         std::vector<VkCommandBuffer> m_cmdBuffers{ VK_NULL_HANDLE };
 
@@ -70,7 +68,11 @@ namespace Cravillac
         std::vector<VkSemaphore> m_renderFinishedSemaphore{ VK_NULL_HANDLE };
         std::vector<VkFence> m_inFlightFence{ VK_NULL_HANDLE };
 
-        std::vector<Texture>* textures;
+        std::vector<Texture> textures;
+
+        // material index storage buffer
+        std::vector<VkBuffer> m_matIndexSSBO;
+        std::vector<VkDeviceMemory> m_matIndexSSBOMemory;
 
         uint32_t currentFrame{ 0 };
 

@@ -23,7 +23,7 @@ namespace Cravillac
 	Application::Application(const char* title) : m_resourceManager(nullptr), m_window(nullptr), m_surface(VK_NULL_HANDLE)
 	{
 		renderer = std::make_shared<Renderer>();
-		textures = new std::vector<Texture>();
+		textures = std::vector<Texture>();
 		m_camera = std::make_unique<Camera>();
 	}
 	void Application::Init()
@@ -153,9 +153,17 @@ namespace Cravillac
 		Model mod1;
 		//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
-		mod1.LoadModel(renderer,"../../../../assets/models/sponza/Sponza.gltf");
+		mod1.LoadModel(renderer, "../../../../assets/models/sponza/Sponza.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 		models.push_back(mod1);
+
+		MAX_TEXTURES = models[0].m_primitives.size();
+
+		std::vector<uint32_t> matIndexArray;
+		for (const auto& prim : models[0].m_primitives)
+		{
+			matIndexArray.push_back(prim.materialIndex);
+		}
 
 		// ubo for camera
 
@@ -163,60 +171,98 @@ namespace Cravillac
 		m_uniformBufferMem.resize(MAX_FRAMES_IN_FLIGHT);
 		m_uboMemMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
+		m_matIndexSSBO.resize(MAX_FRAMES_IN_FLIGHT);
+		m_matIndexSSBOMemory.resize(MAX_FRAMES_IN_FLIGHT);
+
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 			m_uniformBuffers[i] = m_resourceManager->CreateBufferBuilder()
 			                                       .setSize(bufferSize)
 			                                       .setUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
-			                                       .setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+			                                       .setMemoryProperties(
+				                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+				                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
 			                                       .build(m_uniformBufferMem[i]);
 			vkMapMemory(renderer->m_device, m_uniformBufferMem[i], 0, bufferSize, 0, &m_uboMemMapped[i]);
+
+			// material index storage buffer
+
+			bufferSize = matIndexArray.size() * sizeof(uint32_t);
+			m_matIndexSSBO[i] = m_resourceManager->CreateBufferBuilder()
+			                                     .setSize(bufferSize)
+			                                     .setUsage(VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT)
+			                                     .setMemoryProperties(
+				                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+				                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+			                                     .build(m_matIndexSSBOMemory[i]);
+			void* data{};
+
+			vkMapMemory(renderer->m_device, m_matIndexSSBOMemory[i], 0, bufferSize, 0, &data);
+			memcpy(data, matIndexArray.data(), bufferSize);
+			vkUnmapMemory(renderer->m_device, m_matIndexSSBOMemory[i]);
 		}
-		// pipeline
-		// TODO
 
 		// descriptor pool/sets
 		std::vector<VkDescriptorPoolSize> poolSizes;
 
-		poolSizes.resize(2);
+		poolSizes.resize(3);
+
+		MAX_TEXTURES = 32;
+
 
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * 32);
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES);
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-		m_resourceManager->ConfigureDescriptorPoolSizes(poolSizes, MAX_FRAMES_IN_FLIGHT*2);
+		m_resourceManager->ConfigureDescriptorPoolSizes(poolSizes, MAX_FRAMES_IN_FLIGHT * 3);
 
 		VkDescriptorPool descPool = m_resourceManager->getDescriptorPool();
 		std::vector<VkDescriptorSetLayout> descLayout;
 
-		descLayout.resize(2);
-		descriptorSets.resize(2);
+		descLayout.resize(3);
 
-		Texture tex1, tex2;
-		tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
-		textures->push_back(tex1);
+		Texture tex2;
+		//tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
+		//textures.push_back(tex1);
 		//tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
 		tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
 		//tex2.LoadTexture(renderer, "../../../../assets/textures/Suzanne_BaseColor.png");
-		textures->push_back(tex2);
+		textures.push_back(tex2);
 
 		descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
 		descLayout[1] = m_resourceManager->getDescriptorSetLayout("textures");
+		descLayout[2] = m_resourceManager->getDescriptorSetLayout("ssbo");
+
 
 
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
+			descriptorSets[i].resize(3);
 			descriptorSets[i][0] = m_resourceManager->CreateDescriptorSet(descLayout[0]);
 			descriptorSets[i][1] = m_resourceManager->CreateDescriptorSet(descLayout[1]);
+			descriptorSets[i][2] = m_resourceManager->CreateDescriptorSet(descLayout[2]);
 			// create two descriptor sets and update them
 			// first ubo buffer
-			descriptorSets[i][0] = m_resourceManager->UpdateDescriptorSet(descriptorSets[i][0], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_uniformBuffers[i], sizeof(UniformBufferObject), nullptr);
-			// the texture descriptor
+			descriptorSets[i][0] = m_resourceManager->UpdateDescriptorSet(
+				descriptorSets[i][0], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_uniformBuffers[i],
+				sizeof(UniformBufferObject), std::nullopt);
+			// texture descriptor
 			VkBuffer buffer = VK_NULL_HANDLE;
-			descriptorSets[i][1] = m_resourceManager->UpdateDescriptorSet(descriptorSets[i][1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, static_cast<uint64_t>(0), textures);
+			descriptorSets[i][1] = m_resourceManager->UpdateDescriptorSet(
+				descriptorSets[i][1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, static_cast<uint64_t>(0),
+				textures);
+			// ssbo for material index descriptor
+			descriptorSets[i][2] = m_resourceManager->UpdateDescriptorSet(
+				descriptorSets[i][2], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_matIndexSSBO[i],
+				sizeof(uint32_t) * matIndexArray.size(),std::nullopt );
 		}
+
+		// push the ssbo once to be accessed indefinitely
+
 
 		// manage pipelines
 
@@ -224,16 +270,17 @@ namespace Cravillac
 
 		VkVertexInputBindingDescription binding = Vertex::getBindingDescription();
 
-		std::array<VkVertexInputAttributeDescription, 3> attributes = Vertex::getAttributeDescription();
+		std::array<VkVertexInputAttributeDescription, 4> attributes = Vertex::getAttributeDescription();
 
 		PipelineManager::Builder(pipelineManager)
 			.setVertexShader("../../../../shaders/Triangle.vert.spv")
 			.setFragmentShader("../../../../shaders/Triangle.frag.spv")
 			.addDescriptorSetLayout("ubo")
 			.addDescriptorSetLayout("textures")
+			.addDescriptorSetLayout("ssbo")
 			.setVertexInput(binding, attributes)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-			.setDynamicStates({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR })
+			.setDynamicStates({VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR})
 			.setDepthTest(true)
 			.setBlendMode(false)
 			.build("triangle");
@@ -241,10 +288,11 @@ namespace Cravillac
 		renderer->CreateCommandBuffer(m_cmdBuffers);
 		renderer->CreateSynObjects(m_imageAvailableSemaphore, m_renderFinishedSemaphore, m_inFlightFence);
 	}
+
 	void Application::RecordCmdBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const
 	{
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
-		VkPipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("ubo;textures;");
+		VkPipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("ubo;textures;ssbo;");
 
 		VkCommandBufferBeginInfo beginInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -275,7 +323,6 @@ namespace Cravillac
 			memoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
 			memoryBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
 			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
 		}
 
 		VkRenderingAttachmentInfo colorAttachmentInfo{
@@ -332,7 +379,7 @@ namespace Cravillac
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, descriptorSets[currentFrame].data(), 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 3, descriptorSets[currentFrame].data(), 0, nullptr);
 
 		for (const auto& prim : models[0].m_primitives)
 		{

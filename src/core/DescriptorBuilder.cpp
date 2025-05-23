@@ -1,4 +1,5 @@
 #include "DescriptorBuilder.h"
+
 #include "ResourceManager.h"
 #include "Log.h"
 #include "Texture.h"
@@ -32,7 +33,7 @@ namespace Cravillac
 		return descriptorSet;
 	}
 
-	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::vector<Cravillac::Texture>* textures)
+	VkDescriptorSet DescriptorBuilder::updateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::optional<std::vector<Cravillac::Texture>> texturesOpt)
 	{
 
 		// here the binding is for the descriptor in the descriptor set.
@@ -40,8 +41,9 @@ namespace Cravillac
 		// refer to YouTube Brendan Galea's descriptor to get an image of what's going on.
 		// same set, different bindings for fast access
 
+
 		auto device = m_resourceManager.getDevice();
-		if (buffer != VK_NULL_HANDLE && (textures == nullptr))
+		if (buffer != VK_NULL_HANDLE && (!texturesOpt.has_value()))
 		{
 			VkDescriptorBufferInfo descBI{};
 			descBI.buffer = buffer;
@@ -62,12 +64,12 @@ namespace Cravillac
 			vkUpdateDescriptorSets(device, 1, &uboSet, 0, nullptr);
 		}
 
-		if (buffer == VK_NULL_HANDLE && (textures != nullptr && !textures->empty()))
+		if (buffer == VK_NULL_HANDLE && texturesOpt.has_value())
 		{
 			// bindless
 			std::vector<VkDescriptorImageInfo> imageInfos{};
-
-			for (auto tex : *textures)
+			std::vector<Texture>& textures = texturesOpt.value();
+			for (auto& tex : textures)
 			{
 				VkDescriptorImageInfo info{};
 				assert(tex.m_texImage);
@@ -91,7 +93,7 @@ namespace Cravillac
 				.dstSet = set,
 				.dstBinding = binding,
 				.dstArrayElement = 0,
-				.descriptorCount = static_cast<uint32_t>(textures->size()),
+				.descriptorCount = static_cast<uint32_t>(textures.size()),
 				.descriptorType = type,
 				.pImageInfo = imageInfos.data() 
 			};

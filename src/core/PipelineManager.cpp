@@ -62,7 +62,7 @@ namespace Cravillac
 
     PipelineManager::Builder& PipelineManager::Builder::setVertexInput(
         const VkVertexInputBindingDescription& binding,
-	    const std::array<VkVertexInputAttributeDescription, 3>& attributes)
+	    const std::array<VkVertexInputAttributeDescription, 4>& attributes)
     {
         m_vertexBinding = binding;
         m_vertexAttributes = attributes;
@@ -288,7 +288,7 @@ namespace Cravillac
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 2;
+        pipelineLayoutInfo.setLayoutCount = layouts.size();
         pipelineLayoutInfo.pSetLayouts = layouts.data();
     	pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
