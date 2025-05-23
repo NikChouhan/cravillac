@@ -208,7 +208,7 @@ namespace Cravillac
 
 		poolSizes.resize(3);
 
-		MAX_TEXTURES = 32;
+		MAX_TEXTURES = mod1.modelTextures.size() * 2;
 
 
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -225,13 +225,13 @@ namespace Cravillac
 
 		descLayout.resize(3);
 
-		Texture tex2;
-		//tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
-		//textures.push_back(tex1);
-		//tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
-		tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
-		//tex2.LoadTexture(renderer, "../../../../assets/textures/Suzanne_BaseColor.png");
-		textures.push_back(tex2);
+		//Texture tex2;
+		////tex1.LoadTexture(renderer, "../../../../assets/textures/cat.jpg");
+		////textures.push_back(tex1);
+		////tex2.LoadTexture(renderer, "../../../../assets/textures/texture.jpg");
+		//tex2.LoadTexture(renderer, "../../../../assets/textures/pink.jpg");
+		////tex2.LoadTexture(renderer, "../../../../assets/textures/Suzanne_BaseColor.png");
+		//textures.push_back(tex2);
 
 		descLayout[0] = m_resourceManager->getDescriptorSetLayout("ubo");
 		descLayout[1] = m_resourceManager->getDescriptorSetLayout("textures");
@@ -254,7 +254,7 @@ namespace Cravillac
 			VkBuffer buffer = VK_NULL_HANDLE;
 			descriptorSets[i][1] = m_resourceManager->UpdateDescriptorSet(
 				descriptorSets[i][1], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, static_cast<uint64_t>(0),
-				textures);
+				mod1.modelTextures);
 			// ssbo for material index descriptor
 			descriptorSets[i][2] = m_resourceManager->UpdateDescriptorSet(
 				descriptorSets[i][2], 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_matIndexSSBO[i],

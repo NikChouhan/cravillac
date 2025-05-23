@@ -16,6 +16,7 @@ namespace Cravillac
 {
     class Renderer;
     struct Vertex;
+    class Texture;
 }
 
 enum class TextureType
@@ -110,7 +111,7 @@ namespace Cravillac
     private:
         void ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
         void ProcessPrimitive(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
-        HRESULT LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type) const;
+        HRESULT LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type);
 
         void ValidateResources() const;
 
@@ -133,6 +134,8 @@ namespace Cravillac
 
         VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
         VkBuffer m_indexBuffer = VK_NULL_HANDLE;
+
+        std::vector<Texture> modelTextures;
     private:
 
 

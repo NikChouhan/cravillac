@@ -1,7 +1,5 @@
 #include "Model.h"
 
-#include <complex.h>
-
 #include "Log.h"
 #include "Texture.h"
 #include "renderer.h"
@@ -307,27 +305,28 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
     m_primitives.push_back(prim);
 }
 
-HRESULT Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *textureView, const TextureType type) const
+HRESULT Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *textureView, const TextureType type)
 {
     if (textureView && textureView->texture && textureView->texture->image)
     {
         cgltf_image *image = textureView->texture->image;
         std::string path = m_dirPath + "/" + std::string(image->uri);
 
-        Cravillac::Texture tex;
+        Texture tex;
         tex.LoadTexture(renderer, path.c_str());
-
         switch (type)
         {
         case TextureType::ALBEDO:
             mat.AlbedoView = tex.m_texImageView;
             mat.HasAlbedo = true;
             mat.AlbedoPath = path;
+            modelTextures.push_back(tex);
             return S_OK;
         case TextureType::NORMAL:
             mat.NormalView = tex.m_texImageView;
             mat.HasNormal = true;
             mat.NormalPath = path;
+            modelTextures.push_back(tex);
             return S_OK;
         case TextureType::METALLIC_ROUGHNESS:
             mat.MetallicRoughnessView = tex.m_texImageView;
@@ -338,11 +337,13 @@ HRESULT Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture
             mat.EmissiveView = tex.m_texImageView;
             mat.HasEmissive = true;
             mat.EmissivePath = path;
+            modelTextures.push_back(tex);
             return S_OK;
         case TextureType::AO:
             mat.AOView = tex.m_texImageView;
             mat.HasAO = true;
             mat.AOPath = path;
+            modelTextures.push_back(tex);
             return S_OK;
         default:
             Log::Warn("[Texture] Unknown texture type.");
