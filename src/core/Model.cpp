@@ -68,6 +68,14 @@ void Cravillac::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, std:
     cgltf_free(data);
 }
 
+DirectX::XMFLOAT3X3 Cravillac::Model::ComputeNormalMatrix(const DirectX::XMMATRIX& worldMatrix)
+{
+    DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, worldMatrix));
+    DirectX::XMFLOAT3X3 result;
+    DirectX::XMStoreFloat3x3(&result, normalMatrix);
+    return result;
+}
+
 void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
 {
     Transformation localTransform;
@@ -85,7 +93,7 @@ void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std
     {
         localTransform.Matrix *= DirectX::XMMatrixTranslation(node->translation[0], node->translation[1], node->translation[2]);
     }
-        
+
     //if (node->camera)
     //{
     //    const cgltf_camera_perspective& perspective = node->camera->data.perspective;
@@ -148,6 +156,7 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
     Primitive prim;
 
     prim.transform = parentTransform;
+    prim.normalMatrix = ComputeNormalMatrix(parentTransform.Matrix);
 
     // Get attributes
     cgltf_attribute *pos_attribute = nullptr;

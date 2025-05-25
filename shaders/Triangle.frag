@@ -3,19 +3,16 @@
 
 layout(location = 0) in vec2 fragTexcoord;
 layout(location = 1) in vec3 fragNormal;
-layout(location = 2) in flat uint fragMaterialIndex;
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 1, binding = 0) uniform sampler2D textures[];
+layout(set = 0, binding = 0) uniform sampler2D textures[];
 
-layout(set = 2, binding = 0) buffer SSBO
+layout(push_constant) uniform PushConstants
 {
-    uint matIndexArray[];
-} ssbo;
-
-layout(push_constant) uniform PushConstants {
-    int materialIndex;
+    mat4 mvp;   // not used here, but in vertex shader
+    mat3 normalMatrix;  // not used here, but in vertex shader
+    uint materialIndex;
 } pushConstants;
 
 void main() 
@@ -33,8 +30,6 @@ void main()
     float diffuseIntensity = max(dot(normal, lightDir), 0.0f);
 
     // Use material index to select the correct texture
-    //uint materialIndex = ssbo.matIndexArray[fragMaterialIndex];
-
     outColor = texture(textures[pushConstants.materialIndex], fragTexcoord);
 
     outColor.rgb *= (ambientColor + diffuseColor*diffuseIntensity); // Apply diffuse lighting

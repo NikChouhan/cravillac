@@ -6,13 +6,20 @@
 
 namespace  Cravillac
 {
+    struct PushConstants
+    {
+        DirectX::XMMATRIX mvp;
+        DirectX::XMFLOAT3X3 normalMatrix;
+        float padding[3];   
+        uint32_t materialIndex;
+    };
+
     struct Vertex
     {
         SM::Vector3 pos;
         SM::Vector2 texCoord;
         SM::Vector3 normal;
-        uint32_t matIndex;
-
+        
         static VkVertexInputBindingDescription getBindingDescription()
         {
             VkVertexInputBindingDescription bindingDesc{
@@ -23,9 +30,9 @@ namespace  Cravillac
             return bindingDesc;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescription()
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription()
         {
-            std::array<VkVertexInputAttributeDescription, 4> attrDescs{};
+            std::array<VkVertexInputAttributeDescription, 3> attrDescs{};
 
             // here binding is for the vertex position for a particular vertex buffer
             // means all the binding is for the same vertex buffer, with different locations for pos, texcoord, normal
@@ -43,11 +50,6 @@ namespace  Cravillac
             attrDescs[2].location = 2;
             attrDescs[2].format = VK_FORMAT_R32G32B32_SFLOAT;
             attrDescs[2].offset = offsetof(Vertex, normal);
-
-            attrDescs[3].binding = 0;
-            attrDescs[3].location = 3;
-            attrDescs[3].format = VK_FORMAT_R32_UINT;
-            attrDescs[3].offset = offsetof(Vertex, matIndex);
 
             return attrDescs;
         }

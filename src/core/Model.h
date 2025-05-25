@@ -41,15 +41,15 @@ struct Transformation
     Transformation()
     {
         Matrix = DirectX::XMMatrixIdentity();
-        DirectX::XMVECTOR Position = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
-        DirectX::XMVECTOR Rotation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-        DirectX::XMVECTOR Scale = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+        Position = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+        Rotation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+        Scale = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    DirectX::XMMATRIX Matrix = DirectX::XMMatrixIdentity();
-    DirectX::XMVECTOR Position = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
-    DirectX::XMVECTOR Rotation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-    DirectX::XMVECTOR Scale = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+    DirectX::XMMATRIX Matrix{};
+    DirectX::XMVECTOR Position {};
+    DirectX::XMVECTOR Rotation{};
+    DirectX::XMVECTOR Scale = {};
 };
 
 
@@ -92,6 +92,7 @@ struct Primitive
     uint32_t startIndex = 0;
     uint32_t startVertex = 0;
     Transformation transform;
+    DirectX::XMFLOAT3X3 normalMatrix;
 };
 
 namespace Cravillac
@@ -102,6 +103,7 @@ namespace Cravillac
         Model();
         ~Model();
         void LoadModel(const std::shared_ptr<Renderer>& renderer, std::string path);
+        DirectX::XMFLOAT3X3 ComputeNormalMatrix(const DirectX::XMMATRIX &worldMatrix);
         void SetBuffers();
         bool SetTexResources(uint32_t materialIndex);
         void UpdateCB(Primitive prim);

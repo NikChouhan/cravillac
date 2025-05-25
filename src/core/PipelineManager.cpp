@@ -62,7 +62,7 @@ namespace Cravillac
 
     PipelineManager::Builder& PipelineManager::Builder::setVertexInput(
         const VkVertexInputBindingDescription& binding,
-	    const std::array<VkVertexInputAttributeDescription, 4>& attributes)
+	    const std::array<VkVertexInputAttributeDescription, 3>& attributes)
     {
         m_vertexBinding = binding;
         m_vertexAttributes = attributes;
@@ -286,9 +286,9 @@ namespace Cravillac
             layouts.push_back(m_resourceManager->getDescriptorSetLayout(key));
         }
         VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(int);  // Size for material index
+        pushConstantRange.size = sizeof(PushConstants);  // Size for material index
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

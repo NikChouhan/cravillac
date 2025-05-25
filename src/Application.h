@@ -27,7 +27,7 @@ namespace Cravillac
     struct UniformBufferObject
     {
         DirectX::XMMATRIX mvp;
-        DirectX::XMMATRIX mWorld;
+        DirectX::XMFLOAT3X3 normalMatrix;
     };
 
     class Application
@@ -40,12 +40,13 @@ namespace Cravillac
         void SetResources();
 
         void RecordCmdBuffer(VkCommandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
-        void UpdateUniformBuffer(uint32_t currentImage, const Primitive& prim) const;
+        UniformBufferObject UpdateUniformBuffer(uint32_t currentImage, const Primitive& prim) const;
 
 
         std::shared_ptr<Cravillac::Camera> m_camera;
 
     private:
+        const char* title;
         VkSurfaceKHR m_surface;
         std::shared_ptr<Renderer> renderer;
         GLFWwindow* m_window = nullptr;
