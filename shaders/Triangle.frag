@@ -1,5 +1,4 @@
 #version 450
-
 #extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in vec2 fragTexcoord;
@@ -12,7 +11,7 @@ layout(set = 1, binding = 0) uniform sampler2D textures[];
 
 layout(set = 2, binding = 0) buffer SSBO
 {
-    int matIndexArray[];
+    uint matIndexArray[];
 } ssbo;
 
 void main() 
@@ -30,7 +29,9 @@ void main()
     float diffuseIntensity = max(dot(normal, lightDir), 0.0f);
 
     // Use material index to select the correct texture
-    int materialIndex = ssbo.matIndexArray[fragMaterialIndex];
+    //uint materialIndex = ssbo.matIndexArray[fragMaterialIndex];
+
+    uint materialIndex = 4;
 
     outColor = texture(textures[materialIndex], fragTexcoord);
 
