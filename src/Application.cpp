@@ -83,71 +83,8 @@ namespace Cravillac
 		// init imgui
 
 		SetResources();
-
 	}
-	void Application::Run()
-	{
-		DrawFrame();
-	}
-	void Application::DrawFrame()
-	{
-		static float lastFrameTime = 0.f;
-		while (!glfwWindowShouldClose(m_window))
-		{
-			glfwPollEvents();
 
-			float currentFrameTime = static_cast<float>(glfwGetTime());
-			float deltaTime = currentFrameTime - lastFrameTime;
-			lastFrameTime = currentFrameTime;
-
-			HandleCameraMovement(m_camera, m_window, deltaTime, 2.f);
-
-			vkWaitForFences(renderer->m_device, 1, &m_inFlightFence[currentFrame], VK_TRUE, UINT64_MAX);
-			vkResetFences(renderer->m_device, 1, &m_inFlightFence[currentFrame]);
-
-			uint32_t imageIndex{};
-			vkAcquireNextImageKHR(renderer->m_device, renderer->m_swapChain, UINT64_MAX, m_imageAvailableSemaphore[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
-			vkResetCommandBuffer(m_cmdBuffers[currentFrame], 0);
-
-			RecordCmdBuffer(m_cmdBuffers[currentFrame], imageIndex, currentFrame);
-
-			VkSubmitInfo submitInfo{
-				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
-			VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[currentFrame] };
-			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };        // after the fragment stage cuz the actual shading occurs after. fragemnt stage only computes the color, doesnt actually render to the frame
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pWaitSemaphores = waitSemaphores;
-			submitInfo.pWaitDstStageMask = waitStages;
-
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &m_cmdBuffers[currentFrame];
-
-			VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphore[currentFrame] };
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = signalSemaphore;
-
-			if (vkQueueSubmit(renderer->m_graphicsQueue, 1, &submitInfo, m_inFlightFence[currentFrame]) != VK_SUCCESS)
-			{
-				Log::Error("[DRAW] Submit Draw Command buffer Failed");
-			}
-			// else Log::Info("[DRAW] Submit Draw Command buffer Success");
-
-			VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[currentFrame];
-			presentInfo.swapchainCount = 1;
-			presentInfo.pSwapchains = &renderer->m_swapChain;
-			presentInfo.pImageIndices = &imageIndex;
-			presentInfo.pResults = nullptr;
-
-			vkQueuePresentKHR(renderer->m_presentQueue, &presentInfo);
-
-			currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-		}
-
-		vkDeviceWaitIdle(renderer->m_device);
-	}
 	void Application::SetResources()
 	{
 		Model mod1;
@@ -287,6 +224,71 @@ namespace Cravillac
 		// cmd buffer and sync objects
 		renderer->CreateCommandBuffer(m_cmdBuffers);
 		renderer->CreateSynObjects(m_imageAvailableSemaphore, m_renderFinishedSemaphore, m_inFlightFence);
+	}
+
+	void Application::Run()
+	{
+		DrawFrame();
+	}
+	
+	void Application::DrawFrame()
+	{
+		static float lastFrameTime = 0.f;
+		while (!glfwWindowShouldClose(m_window))
+		{
+			glfwPollEvents();
+
+			float currentFrameTime = static_cast<float>(glfwGetTime());
+			float deltaTime = currentFrameTime - lastFrameTime;
+			lastFrameTime = currentFrameTime;
+
+			HandleCameraMovement(m_camera, m_window, deltaTime, 2.f);
+
+			vkWaitForFences(renderer->m_device, 1, &m_inFlightFence[currentFrame], VK_TRUE, UINT64_MAX);
+			vkResetFences(renderer->m_device, 1, &m_inFlightFence[currentFrame]);
+
+			uint32_t imageIndex{};
+			vkAcquireNextImageKHR(renderer->m_device, renderer->m_swapChain, UINT64_MAX, m_imageAvailableSemaphore[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+			vkResetCommandBuffer(m_cmdBuffers[currentFrame], 0);
+
+			RecordCmdBuffer(m_cmdBuffers[currentFrame], imageIndex, currentFrame);
+
+			VkSubmitInfo submitInfo{
+				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
+			VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[currentFrame] };
+			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };        // after the fragment stage cuz the actual shading occurs after. fragemnt stage only computes the color, doesnt actually render to the frame
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = waitSemaphores;
+			submitInfo.pWaitDstStageMask = waitStages;
+
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &m_cmdBuffers[currentFrame];
+
+			VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphore[currentFrame] };
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = signalSemaphore;
+
+			if (vkQueueSubmit(renderer->m_graphicsQueue, 1, &submitInfo, m_inFlightFence[currentFrame]) != VK_SUCCESS)
+			{
+				Log::Error("[DRAW] Submit Draw Command buffer Failed");
+			}
+			// else Log::Info("[DRAW] Submit Draw Command buffer Success");
+
+			VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+			presentInfo.waitSemaphoreCount = 1;
+			presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[currentFrame];
+			presentInfo.swapchainCount = 1;
+			presentInfo.pSwapchains = &renderer->m_swapChain;
+			presentInfo.pImageIndices = &imageIndex;
+			presentInfo.pResults = nullptr;
+
+			vkQueuePresentKHR(renderer->m_presentQueue, &presentInfo);
+
+			currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+		}
+
+		vkDeviceWaitIdle(renderer->m_device);
 	}
 
 	void Application::RecordCmdBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const
