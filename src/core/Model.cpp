@@ -322,29 +322,29 @@ HRESULT Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture
             mat.AlbedoPath = path;
             modelTextures.push_back(tex);
             return S_OK;
-        case TextureType::NORMAL:
-            mat.NormalView = tex.m_texImageView;
-            mat.HasNormal = true;
-            mat.NormalPath = path;
-            modelTextures.push_back(tex);
-            return S_OK;
-        case TextureType::METALLIC_ROUGHNESS:
-            mat.MetallicRoughnessView = tex.m_texImageView;
-            mat.HasMetallicRoughness = true;
-            mat.MetallicRoughnessPath = path;
-            return S_OK;
-        case TextureType::EMISSIVE:
-            mat.EmissiveView = tex.m_texImageView;
-            mat.HasEmissive = true;
-            mat.EmissivePath = path;
-            modelTextures.push_back(tex);
-            return S_OK;
-        case TextureType::AO:
-            mat.AOView = tex.m_texImageView;
-            mat.HasAO = true;
-            mat.AOPath = path;
-            modelTextures.push_back(tex);
-            return S_OK;
+        // case TextureType::NORMAL:
+        //     mat.NormalView = tex.m_texImageView;
+        //     mat.HasNormal = true;
+        //     mat.NormalPath = path;
+        //     modelTextures.push_back(tex);
+        //     return S_OK;
+        // case TextureType::METALLIC_ROUGHNESS:
+        //     mat.MetallicRoughnessView = tex.m_texImageView;
+        //     mat.HasMetallicRoughness = true;
+        //     mat.MetallicRoughnessPath = path;
+        //     return S_OK;
+        // case TextureType::EMISSIVE:
+        //     mat.EmissiveView = tex.m_texImageView;
+        //     mat.HasEmissive = true;
+        //     mat.EmissivePath = path;
+        //     modelTextures.push_back(tex);
+        //     return S_OK;
+        // case TextureType::AO:
+        //     mat.AOView = tex.m_texImageView;
+        //     mat.HasAO = true;
+        //     mat.AOPath = path;
+        //     modelTextures.push_back(tex);
+        //     return S_OK;
         default:
             Log::Warn("[Texture] Unknown texture type.");
             return E_FAIL;

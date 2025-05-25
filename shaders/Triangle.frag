@@ -14,6 +14,10 @@ layout(set = 2, binding = 0) buffer SSBO
     uint matIndexArray[];
 } ssbo;
 
+layout(push_constant) uniform PushConstants {
+    int materialIndex;
+} pushConstants;
+
 void main() 
 {
 
@@ -31,9 +35,7 @@ void main()
     // Use material index to select the correct texture
     //uint materialIndex = ssbo.matIndexArray[fragMaterialIndex];
 
-    uint materialIndex = 4;
-
-    outColor = texture(textures[materialIndex], fragTexcoord);
+    outColor = texture(textures[pushConstants.materialIndex], fragTexcoord);
 
     outColor.rgb *= (ambientColor + diffuseColor*diffuseIntensity); // Apply diffuse lighting
     outColor.a = 1.0f; // Set alpha to 1.0 for opaque

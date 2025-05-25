@@ -174,8 +174,6 @@ namespace Cravillac
 		descLayout[1] = m_resourceManager->getDescriptorSetLayout("textures");
 		descLayout[2] = m_resourceManager->getDescriptorSetLayout("ssbo");
 
-
-
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			descriptorSets[i].resize(3);
@@ -199,7 +197,6 @@ namespace Cravillac
 		}
 
 		// push the ssbo once to be accessed indefinitely
-
 
 		// manage pipelines
 
@@ -230,7 +227,7 @@ namespace Cravillac
 	{
 		DrawFrame();
 	}
-	
+
 	void Application::DrawFrame()
 	{
 		static float lastFrameTime = 0.f;
@@ -385,6 +382,8 @@ namespace Cravillac
 
 		for (const auto& prim : models[0].m_primitives)
 		{
+			int materialIndex = prim.materialIndex;
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(int), &materialIndex);
 			vkCmdDrawIndexed(commandBuffer, prim.indexCount, 1, prim.startIndex, prim.startVertex, 0);
 		}
 

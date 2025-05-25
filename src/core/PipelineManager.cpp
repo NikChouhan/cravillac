@@ -285,13 +285,17 @@ namespace Cravillac
         {
             layouts.push_back(m_resourceManager->getDescriptorSetLayout(key));
         }
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(int);  // Size for material index
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = layouts.size();
         pipelineLayoutInfo.pSetLayouts = layouts.data();
-    	pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
-        pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
         VkPipelineLayout pipelineLayout;
         if (vkCreatePipelineLayout(m_renderer->m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
