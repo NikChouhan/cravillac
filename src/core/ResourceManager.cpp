@@ -164,7 +164,7 @@ namespace Cravillac
 			VkDescriptorSetLayoutBinding textureBinding{};
 			textureBinding.binding = 0;
 			textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			textureBinding.descriptorCount = 98;
+			textureBinding.descriptorCount = MAX_TEXTURES;
 			textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			textureBinding.pImmutableSamplers = nullptr;
 			bindings.push_back(textureBinding);
