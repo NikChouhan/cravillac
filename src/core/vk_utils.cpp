@@ -13,7 +13,6 @@
 #undef max;
 #endif
 
-
 namespace Cravillac
 {
     bool CheckValidationLayerSupport()
@@ -27,7 +26,7 @@ namespace Cravillac
         for (auto &layer : validationLayers)
         {
             bool layerFound = false;
-            for (auto &available : availableLayers)
+            for (const auto &available : availableLayers)
             {
                 if (strcmp(available.layerName, layer) == 0)
                 {
@@ -60,19 +59,19 @@ namespace Cravillac
 
     bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
     {
-        QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
+        const QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
 
-        bool extensionsSupported = CheckDeviceExtensionSupport(physicalDevice);
+        const bool extensionsSupported = CheckDeviceExtensionSupport(physicalDevice);
 
         bool swapChainAdequate = false;
         if (extensionsSupported)
         {
             Log::Info("[VULKAN] Required Extensions supported!");
-            SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, surface);
+            const SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, surface);
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
-        return indices._IsComplete() && extensionsSupported && swapChainAdequate;
+        return indices.IsComplete() && extensionsSupported && swapChainAdequate;
     }
 
     bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice)
@@ -121,7 +120,7 @@ namespace Cravillac
             {
                 indices._graphicsFamily = i;
 
-                if (indices._IsComplete())
+                if (indices.IsComplete())
                     break;
             }
             i++;
@@ -171,7 +170,7 @@ namespace Cravillac
     {
         for (const auto &availablePresentMode : availablePresentModes)
         {
-            if (availablePresentMode == VK_PRESENT_MODE_FIFO_KHR)
+            if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
             {
                 return availablePresentMode;
             }
@@ -311,10 +310,10 @@ namespace Cravillac
     // redundant
     void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propertyFlags, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
     {
-        // whats happening here is simple af. Create a bufferCI with appropriate size , then create a buffer
+        // what's happening here is simple af. Create a bufferCI with appropriate size , then create a buffer.
         // Then make memrequirements struct, to store the memrequirements, supplied with the buffer.
-        // Thenallocate memory using the memrequirements, and store it in memory.
-        // Then bind the memory, map it to
+        // Then allocate memory using the memrequirements, and store it in memory.
+        // Then bind the memory, map it to cpu accessible buffer
         //
         VkBufferCreateInfo bufferCI{
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -333,7 +332,7 @@ namespace Cravillac
         VkMemoryRequirements memRequirements;
         vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 
-        VkMemoryAllocateInfo allocInfo{
+        const VkMemoryAllocateInfo allocInfo{
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
             .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, propertyFlags)};
@@ -347,9 +346,9 @@ namespace Cravillac
         vkBindBufferMemory(device, buffer, bufferMemory, 0);
     }
 
-    void CopyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize size)
+    void CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize size)
     {
-        VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
+        const VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
         VkBufferCopy copyRegion{
             .srcOffset = 0,
@@ -489,7 +488,7 @@ namespace Cravillac
         if(vkCreateImageView(device, &imageViewCI, nullptr, &imageView) != VK_SUCCESS)
         {
             Log::Error("[TEXTURE] Failed to create Image View");
-            imageView == VK_NULL_HANDLE;
+            imageView = VK_NULL_HANDLE;
         }
         else 
         {

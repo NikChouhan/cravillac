@@ -1,6 +1,7 @@
 #include "BufferBuilder.h"
 #include "ResourceManager.h"
 #include "Log.h"
+#include "vk_utils.h"
 
 namespace Cravillac
 {
@@ -24,9 +25,9 @@ namespace Cravillac
 		return *this;
 	}
 
-	VkBuffer BufferBuilder::build(VkDeviceMemory& outMemory)
-	{
-		auto device = m_resourceManager.getDevice();
+	VkBuffer BufferBuilder::build(VkDeviceMemory& outMemory) const {
+		const auto device = m_resourceManager.getDevice();
+		const auto physicalDevice = m_resourceManager.getPhysicalDevice();
 		VkBufferCreateInfo bufferCI{};
 		bufferCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCI.size = m_size;
@@ -45,7 +46,7 @@ namespace Cravillac
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = m_resourceManager.FindMemoryType(memRequirements.memoryTypeBits, m_memProps);
+		allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, m_memProps);
 
 		result = vkAllocateMemory(device, &allocInfo, nullptr, &outMemory);
 		if (result != VK_SUCCESS) {

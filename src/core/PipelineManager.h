@@ -19,16 +19,15 @@ namespace Cravillac
 	{
 	public:
 		PipelineManager(ResourceManager* resourceManager, std::shared_ptr<Renderer> renderer);
-		~PipelineManager();
+		~PipelineManager();	// TODO
 
 		VkPipeline getPipeline(const std::string& pipelineKey);
 		VkPipelineLayout getPipelineLayout(std::string pipelineLayoutKey);
-
-
+		
 		class Builder
 		{
 		public:
-			Builder(PipelineManager* manager);
+			explicit Builder(PipelineManager* manager);
 			Builder& setVertexShader(const std::string& path);
 			Builder& setFragmentShader(const std::string& path);
 			Builder& setPipelineLayout(VkPipelineLayout pipelineLayout);

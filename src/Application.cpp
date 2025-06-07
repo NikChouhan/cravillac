@@ -95,8 +95,6 @@ namespace Cravillac
 		//mod1.LoadModel(renderer, "../../../../assets/models/bistrogodot/bistrogodot.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 		models.push_back(mod1);
-
-		MAX_TEXTURES = models[0].m_primitives.size();
 		// descriptor pool/sets
 		std::vector<VkDescriptorPoolSize> poolSizes;
 
@@ -125,11 +123,7 @@ namespace Cravillac
 				descriptorSets[i][0], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, static_cast<uint64_t>(0),
 				mod1.modelTextures);
 		}
-
-		// push the ssbo once to be accessed indefinitely
-
 		// manage pipelines
-
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
 
 		VkVertexInputBindingDescription binding = Vertex::getBindingDescription();
@@ -182,7 +176,7 @@ namespace Cravillac
 			VkSubmitInfo submitInfo{
 				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
 			VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[currentFrame] };
-			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };        // after the fragment stage cuz the actual shading occurs after. fragemnt stage only computes the color, doesnt actually render to the frame
+			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };        // after the fragment stage cuz the actual shading occurs after. fragment stage only computes the color, doesn't actually render to the frame
 			submitInfo.waitSemaphoreCount = 1;
 			submitInfo.pWaitSemaphores = waitSemaphores;
 			submitInfo.pWaitDstStageMask = waitStages;
@@ -212,7 +206,6 @@ namespace Cravillac
 
 			currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 		}
-
 		vkDeviceWaitIdle(renderer->m_device);
 	}
 
@@ -310,12 +303,12 @@ namespace Cravillac
 
 		for (const auto& prim : models[0].m_primitives)
 		{
-			UniformBufferObject ubo = UpdateUniformBuffer(currentFrame, prim);
+			auto [mvp, normalMatrix] = UpdateUniformBuffer(currentFrame, prim);
 			uint32_t materialIndex = prim.materialIndex;
 
 			PushConstants pushConstants{};
-			pushConstants.mvp = ubo.mvp;
-			pushConstants.normalMatrix = ubo.normalMatrix;
+			pushConstants.mvp = mvp;
+			pushConstants.normalMatrix = normalMatrix;
 			pushConstants.materialIndex = materialIndex;
 
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);

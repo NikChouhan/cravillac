@@ -1,5 +1,6 @@
-#include "Model.h"
+#include <meshoptimizer.h>
 
+#include "Model.h"
 #include "Log.h"
 #include "Texture.h"
 #include "renderer.h"
@@ -119,7 +120,7 @@ void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std
             Log::InfoDebug("[CGLTF] parentTransform Rotation: {}", localTransform.Rotation);
             Log::InfoDebug("[CGLTF] parentTransform Scale: {}", localTransform.Scale);*/
 
-            ProcessPrimitive(&node->mesh->primitives[i], data, vertices, indices, localTransform);
+            ProcessMesh(&node->mesh->primitives[i], data, vertices, indices, localTransform);   // remember that the indices and the vertices passed here are m_indices and m_vertices refs
         }
     }
 
@@ -130,10 +131,13 @@ void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std
     }
 }
 
-void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
+void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
 {
     u32 vertexOffset = vertices.size();
     u32 indexOffset = indices.size();
+
+    std::vector<Vertex> tempVertices;
+    std::vector<u32> tempIndices;
 
     if (primitive->type != cgltf_primitive_type_triangles)
     {
@@ -207,11 +211,13 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
         {
             Log::Warn("[CGLTF] Unable to read Normal attributes!");
         }
+        //tempVertices.push_back(vertex);
         vertices.push_back(vertex);
     }
 
     for (int i = 0; i < indexCount; i++)
     {
+        //tempIndices.push_back(cgltf_accessor_read_index(primitive->indices, i));
         indices.push_back(cgltf_accessor_read_index(primitive->indices, i));
     }
 
@@ -311,7 +317,50 @@ void Cravillac::Model::ProcessPrimitive(cgltf_primitive *primitive, const cgltf_
     prim.vertexCount = vertexCount;
     prim.indexCount = indexCount;
 
+    //OptimiseMesh(prim, tempVertices, tempIndices);
     m_primitives.push_back(prim);
+}
+
+void Cravillac::Model::OptimiseMesh(Primitive& prim, std::vector<Vertex>& vertices, std::vector<u32>& indices)
+{
+    size_t indexCount = prim.indexCount;
+    size_t vertexCount = prim.vertexCount;
+
+    std::vector<unsigned int> remap(indexCount);
+    size_t optVertexCount = meshopt_generateVertexRemap(remap.data(), indices.data(), indexCount, vertices.data(), vertexCount, sizeof(Vertex));
+
+    std::vector<u32> optIndices;
+    std::vector<Vertex> optVertices;
+    optIndices.resize(indexCount);
+    optVertices.resize(vertexCount);
+
+    // Optimisation 1 - Remove duplicate vertices
+    meshopt_remapIndexBuffer(optIndices.data(), indices.data(), indexCount, remap.data());
+    meshopt_remapVertexBuffer(optVertices.data(), vertices.data(), vertexCount, sizeof(Vertex), remap.data());
+
+    // Optimisation 2 - improve the locality of the vertices
+    meshopt_optimizeVertexCache(optIndices.data(), optIndices.data(), indexCount, optVertexCount);
+
+    // Optimization 3 - reduce pixel overdraw
+    meshopt_optimizeOverdraw(optIndices.data(), optIndices.data(), indexCount, &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), 1.05);
+
+    // Optimization 4 - optimize access to the vertex buffer
+    meshopt_optimizeVertexFetch(optVertices.data(), optIndices.data(), indexCount, optVertices.data(), optVertexCount, sizeof(Vertex));
+
+    // Optimization 5 - create simplified version of the model
+    float threshold = 0.5f;
+    size_t targetIndexCount = (size_t)(indexCount * threshold);
+    float targetError = 0.3f;
+
+    std::vector<u32> simplifiedIndices(optIndices.size());
+    size_t optIndexCount = meshopt_simplify(simplifiedIndices.data(), optIndices.data(), indexCount,
+                                            &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), targetIndexCount,
+                                            targetError);
+    m_indices.insert(m_indices.end(), simplifiedIndices.begin(), simplifiedIndices.end());
+    m_vertices.insert(m_vertices.end(), optVertices.begin(), optVertices.end());
+
+    prim.indexCount = optIndexCount;
+    prim.vertexCount = optVertexCount;
 }
 
 HRESULT Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *textureView, const TextureType type)

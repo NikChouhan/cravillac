@@ -22,7 +22,7 @@ namespace  Cravillac
         
         static VkVertexInputBindingDescription getBindingDescription()
         {
-            VkVertexInputBindingDescription bindingDesc{
+            const VkVertexInputBindingDescription bindingDesc{
                 .binding = 0,
                 .stride = sizeof(Vertex),
                 .inputRate = VK_VERTEX_INPUT_RATE_VERTEX };

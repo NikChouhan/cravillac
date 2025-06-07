@@ -16,12 +16,11 @@ namespace Cravillac
 	class ResourceManager
 	{
 	public:
-		ResourceManager(std::shared_ptr<Renderer> renderer);
+		explicit ResourceManager(std::shared_ptr<Renderer> renderer);
 		~ResourceManager();
 		VkDevice getDevice();
 		VkPhysicalDevice getPhysicalDevice();
-		VkDescriptorPool getDescriptorPool() { return m_descriptorPool; }
-		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+		[[nodiscard]] VkDescriptorPool getDescriptorPool() const { return m_descriptorPool; }
 		// buffer
 		BufferBuilder CreateBufferBuilder();
 		// image
@@ -37,7 +36,7 @@ namespace Cravillac
 		VkShaderModule	getShaderModule(const std::string& shaderPath);
 		VkDescriptorSetLayout getDescriptorSetLayout(const std::string& layoutKey);
 
-		PipelineManager* getPipelineManager() { return pipelineManager; }
+		[[nodiscard]] PipelineManager* getPipelineManager() const { return pipelineManager; }
 
 
 	private:

@@ -40,4 +40,6 @@ add_requires("imgui docking",
 })
 add_requires("vulkan-memory-allocator")
 
---add_requires("directxtk")
+add_requires("meshoptimizer")
+
+add_requires("Elos b0d0c87470d791bd04c535b57d863caefa169e22")

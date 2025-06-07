@@ -12,14 +12,14 @@ namespace Cravillac
 	class BufferBuilder
 	{
 	public:
-		BufferBuilder(ResourceManager& resourceManager);
-		~BufferBuilder() {}
+		explicit BufferBuilder(ResourceManager& resourceManager);
+		~BufferBuilder() = default;
 
 		BufferBuilder& setSize(VkDeviceSize size);
 		BufferBuilder& setUsage(VkBufferUsageFlags usage);
 		BufferBuilder& setMemoryProperties(VkMemoryPropertyFlags properties);
 
-		VkBuffer build(VkDeviceMemory& outMemory);
+		VkBuffer build(VkDeviceMemory& outMemory) const;
 
 	private:
 		ResourceManager& m_resourceManager;

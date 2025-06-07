@@ -86,8 +86,8 @@ struct Material
 
 struct Primitive
 {
-    uint32_t vertexCount = 0;
-    uint32_t indexCount = 0;
+    size_t vertexCount = 0;
+    size_t indexCount = 0;
     uint32_t materialIndex = 0;
     uint32_t startIndex = 0;
     uint32_t startVertex = 0;
@@ -112,7 +112,8 @@ namespace Cravillac
 
     private:
         void ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
-        void ProcessPrimitive(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
+        void ProcessMesh(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
+        void OptimiseMesh(Primitive& prim, std::vector<Vertex>& vertices, std::vector<u32>& indices);
         HRESULT LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type);
 
         void ValidateResources() const;
@@ -121,11 +122,7 @@ namespace Cravillac
         MaterialConstants matColor;
 
     public:
-        u32 vertexOffset = 0;
-        u32 indexOffset = 0;
-        //wrl::ComPtr<ID3D11ShaderResourceView> m_textureView = nullptr;
         std::string m_dirPath;
-        std::string name;
         std::vector<Vertex> m_vertices;
         std::vector<u32> m_indices;
         std::vector<Primitive> m_primitives;
