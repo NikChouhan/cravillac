@@ -30,40 +30,31 @@ namespace Cravillac
 	void Application::Init()
 	{
 		Log::Init();
-
+		if (volkInitialize() == VK_SUCCESS)
+		{
+			Log::Info("[VULKAN] Volk works");
+		}
+		else {
+			Log::Error("[VULKAN] Volk fails!");
+			return;
+		}
 		// camera setup
 		m_camera->InitAsPerspective(45.0f, WIDTH, HEIGHT);
 		//m_camera->InitAsOrthographic(m_renderer->m_width, m_renderer->m_height);
 		m_camera->SetPosition({ 0.0f, 0.0f, 6.f });
-
-		// commented out cuz this is meant to be cross-platform, and the hinstance and hwnd part only works for windows
-		/*
-		VkWin32SurfaceCreateInfoKHR createInfo {
-		.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-		.hinstance = GetModuleHandle(nullptr),
-		.hwnd = glfwGetWin32Window(m_window),
-		};
-
-		if (vkCreateWin32SurfaceKHR(m_instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
-		{
-			Log::Error("[VULKAN] Surface Creation Failure");
-		}
-		else Log::Info("[VULKAN] Surface Creation Success");*/
-
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 		m_window = glfwCreateWindow(WIDTH, HEIGHT, this->title, nullptr, nullptr);
 
 		renderer->InitVulkan();
+		volkLoadInstance(renderer->m_instance);
 
 		glfwMakeContextCurrent(m_window);
 		glfwSetWindowUserPointer(m_window, this);
 
 		glfwSetCursorPosCallback(m_window, mouse_callback);
-
 		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
 
 		if (glfwCreateWindowSurface(renderer->m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
 		{
@@ -74,13 +65,14 @@ namespace Cravillac
 		// post surface stuff
 		renderer->PickPhysicalDevice(m_surface);
 		renderer->CreateLogicalDevice(m_surface);
+		// load all entrypoints directly from driver
+		volkLoadDevice(renderer->m_device);
+
 		renderer->CreateSwapChain(m_surface, m_window);
 		renderer->CreateDepthResources();
-
 		renderer->CreateCommandPool(m_surface);
 
 		m_resourceManager = new ResourceManager(renderer);
-
 		// init imgui
 
 		SetResources();
@@ -95,6 +87,11 @@ namespace Cravillac
 		//mod1.LoadModel(renderer, "../../../../assets/models/bistrogodot/bistrogodot.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 		models.push_back(mod1);
+		// bda + pvp get vertex buffer address
+		VkBufferDeviceAddressInfo bufferAddressInfo {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+		bufferAddressInfo.buffer = models[0].m_vertexBuffer;
+
+		m_vertexBufferAddress = vkGetBufferDeviceAddress(renderer->m_device, &bufferAddressInfo);
 		// descriptor pool/sets
 		std::vector<VkDescriptorPoolSize> poolSizes;
 
@@ -126,20 +123,15 @@ namespace Cravillac
 		// manage pipelines
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
 
-		VkVertexInputBindingDescription binding = Vertex::getBindingDescription();
-
-		std::array<VkVertexInputAttributeDescription, 3> attributes = Vertex::getAttributeDescription();
-
 		PipelineManager::Builder(pipelineManager)
-			.setVertexShader("../../../../shaders/Triangle.vert.spv")
-			.setFragmentShader("../../../../shaders/Triangle.frag.spv")
+			.setVertexShader("../../../../shaders/mesh.vert.spv")
+			.setFragmentShader("../../../../shaders/mesh.frag.spv")
 			.addDescriptorSetLayout("textures")
-			.setVertexInput(binding, attributes)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setDynamicStates({VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR})
 			.setDepthTest(true)
 			.setBlendMode(false)
-			.build("triangle");
+			.build("mesh_raster");
 		// cmd buffer and sync objects
 		renderer->CreateCommandBuffer(m_cmdBuffers);
 		renderer->CreateSynObjects(m_imageAvailableSemaphore, m_renderFinishedSemaphore, m_inFlightFence);
@@ -176,7 +168,8 @@ namespace Cravillac
 			VkSubmitInfo submitInfo{
 				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
 			VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[currentFrame] };
-			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };        // after the fragment stage cuz the actual shading occurs after. fragment stage only computes the color, doesn't actually render to the frame
+			VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+			// after the fragment stage cuz the actual shading occurs after. fragment stage only computes the color, doesn't actually render to the frame
 			submitInfo.waitSemaphoreCount = 1;
 			submitInfo.pWaitSemaphores = waitSemaphores;
 			submitInfo.pWaitDstStageMask = waitStages;
@@ -242,7 +235,8 @@ namespace Cravillac
 			memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 			memoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
 			memoryBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
-			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 1,
+			                     &memoryBarrier, 0, nullptr, 0, nullptr);
 		}
 
 		VkRenderingAttachmentInfo colorAttachmentInfo{
@@ -274,7 +268,7 @@ namespace Cravillac
 		renderingInfo.pColorAttachments = &colorAttachmentInfo;
 		renderingInfo.pDepthAttachment = &depthAttachmentInfo;
 
-		auto graphicsPipeline = pipelineManager->getPipeline("triangle");
+		auto graphicsPipeline = pipelineManager->getPipeline("mesh_raster");
 
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
@@ -299,7 +293,8 @@ namespace Cravillac
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, descriptorSets[currentFrame].data(), 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+		                        descriptorSets[currentFrame].data(), 0, nullptr);
 
 		for (const auto& prim : models[0].m_primitives)
 		{
@@ -310,14 +305,17 @@ namespace Cravillac
 			pushConstants.mvp = mvp;
 			pushConstants.normalMatrix = normalMatrix;
 			pushConstants.materialIndex = materialIndex;
+			pushConstants.vertexBufferAddress = m_vertexBufferAddress;
 
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);
 			vkCmdDrawIndexed(commandBuffer, prim.indexCount, 1, prim.startIndex, prim.startVertex, 0);
 		}
 
 		vkCmdEndRendering(commandBuffer);
-		// transition color image to present mode. No need for depth image, it is used directly for depth purposes, and we dont need to store or use it elsewhere (at least currently)
-		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		// transition color image to present mode. No need for depth image, it is used directly for depth purposes,
+		// and we dont need to store or use it elsewhere (at least currently)
+		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex],
+		                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		{

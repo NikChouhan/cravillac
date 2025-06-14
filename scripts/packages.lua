@@ -1,15 +1,5 @@
 add_requires("stb")
 
-add_requires("vulkan-headers",
-{
-    debug =	is_mode("debug"),
-    configs =
-    {
-        shared = false,
-        runtimes = "MTd",
-    }
-})
-
 add_requires("directxmath",
 {
     debug = is_mode("debug"),
@@ -22,24 +12,21 @@ add_requires("directxmath",
 
 add_requires("glfw",
 {
-    -- configs =
-    -- {
-    --     glfw_include = "vulkan",
-    -- }
 })
 
 add_requires("cgltf")
 
-add_requires("imgui docking", 
-{ 
-    configs = 
-    {
-        glfw = true,
-        vulkan = true
-    }
-})
-add_requires("vulkan-memory-allocator")
+--add_requires("imgui docking",
+--{
+--    configs =
+--    {
+--        glfw = true,
+--        vulkan = true
+--    }
+--})
+
+--add_requires("vulkan-memory-allocator")
 
 add_requires("meshoptimizer")
 
-add_requires("Elos b0d0c87470d791bd04c535b57d863caefa169e22")
+add_requires("volk")

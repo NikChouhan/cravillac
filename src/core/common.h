@@ -14,7 +14,8 @@
 #endif
 #endif
 
-#define GLFW_INCLUDE_VULKAN
+#define VK_NO_PROTOTYPES
+#include <volk.h>
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
@@ -24,6 +25,9 @@ constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 inline uint32_t MAX_TEXTURES = 256;
 
 namespace SM = DirectX::SimpleMath;
+
+// mesh shading pipeline
+#define MESH_SHADING 1
 
 // error check
 

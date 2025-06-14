@@ -60,16 +60,6 @@ namespace Cravillac
         return *this;
     }
 
-    PipelineManager::Builder& PipelineManager::Builder::setVertexInput(
-        const VkVertexInputBindingDescription& binding,
-	    const std::array<VkVertexInputAttributeDescription, 3>& attributes)
-    {
-        m_vertexBinding = binding;
-        m_vertexAttributes = attributes;
-
-        return *this;
-    }
-
     PipelineManager::Builder& PipelineManager::Builder::setDynamicStates(const std::vector<VkDynamicState>& dynamicStates)
     {
         m_dynamicStates.resize(dynamicStates.size());
@@ -135,10 +125,10 @@ namespace Cravillac
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.pVertexBindingDescriptions = &builder.m_vertexBinding;
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(builder.m_vertexAttributes.size());
-        vertexInputInfo.pVertexAttributeDescriptions = builder.m_vertexAttributes.data();
+        vertexInputInfo.vertexBindingDescriptionCount = 0;
+        vertexInputInfo.pVertexBindingDescriptions = nullptr;
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

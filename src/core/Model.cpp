@@ -422,7 +422,7 @@ void Cravillac::Model::SetBuffers()
 
     stagingBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
-        .setUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+        .setUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
         .setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
         .build(stagingBufferMemory);
 
@@ -433,7 +433,7 @@ void Cravillac::Model::SetBuffers()
 
     m_vertexBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
-        .setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+        .setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
         .setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         .build(m_vertexMemory);
 

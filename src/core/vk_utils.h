@@ -14,7 +14,11 @@ namespace Cravillac
 	};
 	const std::vector<const char*> deviceExtensions =
 	{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME,
+#if MESH_SHADING
+		VK_EXT_MESH_SHADER_EXTENSION_NAME
+#endif
 	};
 
 #ifdef NDEBUG

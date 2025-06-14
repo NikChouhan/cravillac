@@ -3,7 +3,6 @@
 #include <fstream>
 #include <set>
 #include <algorithm>
-#include <cstring>
 
 #include "vk_utils.h"
 
@@ -191,8 +190,10 @@ namespace Cravillac
 
             VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
-            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.height);
-            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
+                                            capabilities.maxImageExtent.height);
+            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
+                                             capabilities.maxImageExtent.height);
 
             return actualExtent;
         }
@@ -213,7 +214,8 @@ namespace Cravillac
         Log::Error("[MEMORY] Failed to find suitable memory type");
     }
 
-    void TransitionImage(VkCommandBuffer commandBuffer, VkImage& image, VkImageLayout currentLayout, VkImageLayout newLayout)
+    void TransitionImage(VkCommandBuffer commandBuffer, VkImage &image, VkImageLayout currentLayout,
+                         VkImageLayout newLayout)
     {
         VkImageAspectFlags aspectMask{0};
         VkPipelineStageFlags2 srcStageMask{0};
@@ -249,7 +251,9 @@ namespace Cravillac
         subresourceRange.baseArrayLayer = 0;
         subresourceRange.layerCount = 1; // For a standard 2D image
 
-        if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL))
+        if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && (
+                newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ||
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL))
         {
             // access mask - how the resource is being used
             // stage mask - at what stage the ops need to be done
@@ -269,7 +273,8 @@ namespace Cravillac
             imageBarrier.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // after the barrier finishes start the transfter at the transfer stage
         }
         // texture transition again
-        else if (currentLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        else if (currentLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout ==
+                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         {
             imageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;          // the previous (src) operation is being done, so wait it out
             imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // start at the transfer stage (transfer ops are handled by separate units in a physical gpu)
@@ -308,7 +313,8 @@ namespace Cravillac
         vkCmdPipelineBarrier2(commandBuffer, &depInfo);
     }
     // redundant
-    void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propertyFlags, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+    void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage,
+                      VkMemoryPropertyFlags propertyFlags, VkBuffer &buffer, VkDeviceMemory &bufferMemory)
     {
         // what's happening here is simple af. Create a bufferCI with appropriate size , then create a buffer.
         // Then make memrequirements struct, to store the memrequirements, supplied with the buffer.

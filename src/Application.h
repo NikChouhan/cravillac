@@ -51,14 +51,8 @@ namespace Cravillac
         std::shared_ptr<Renderer> renderer;
         GLFWwindow* m_window = nullptr;
         ResourceManager* m_resourceManager;
-
-        VkBuffer m_vertexBuffer {VK_NULL_HANDLE};
-        VkBuffer m_indexBuffer{ VK_NULL_HANDLE };
-        VkDeviceMemory m_vertexMemory{ VK_NULL_HANDLE };
-        VkDeviceMemory m_indexMemory{ VK_NULL_HANDLE };
-        std::vector<VkBuffer> m_uniformBuffers{ VK_NULL_HANDLE };
-        std::vector<VkDeviceMemory> m_uniformBufferMem{ VK_NULL_HANDLE };
-        std::vector<void*> m_uboMemMapped{ VK_NULL_HANDLE };
+        // bda handle
+        VkDeviceAddress m_vertexBufferAddress;
 
         std::array<std::vector<VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> descriptorSets;
 
@@ -76,7 +70,6 @@ namespace Cravillac
         std::vector<VkDeviceMemory> m_matIndexSSBOMemory;
 
         uint32_t currentFrame{ 0 };
-
         std::vector<Model> models;
 
 	};

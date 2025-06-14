@@ -7,8 +7,6 @@
 #include "Log.h"
 #include "vk_utils.h"
 
-#define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
 
 namespace Cravillac
 {
@@ -209,14 +207,31 @@ namespace Cravillac
         drLocalRead.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES;
         drLocalRead.dynamicRenderingLocalRead = VK_TRUE;*/
 
+        // mesh shading (optional)
+        VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
+        meshShaderFeatures.meshShader = true;
+
+        // BDA
+        VkPhysicalDeviceScalarBlockLayoutFeatures scalarFeatures = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+        scalarFeatures.scalarBlockLayout = true;
+#if MESH_SHADING
+        scalarFeatures.pNext = &meshShaderFeatures;
+#endif
+
+        VkPhysicalDeviceBufferDeviceAddressFeatures bdaFeatures = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
+        bdaFeatures.bufferDeviceAddress = true;
+        bdaFeatures.pNext = &scalarFeatures;
+
         // bindless
         VkPhysicalDeviceDescriptorIndexingFeatures bindless{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
         //bindless.pNext = &drLocalRead;
+        bindless.pNext = &bdaFeatures;
         bindless.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
         bindless.descriptorBindingPartiallyBound = VK_TRUE;
         bindless.runtimeDescriptorArray = VK_TRUE;
         bindless.descriptorBindingVariableDescriptorCount = VK_TRUE;
         bindless.descriptorBindingSampledImageUpdateAfterBind = true;
+
         // dynamic rendering
         VkPhysicalDeviceVulkan13Features enabledFeatures{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
