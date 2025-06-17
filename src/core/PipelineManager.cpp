@@ -11,7 +11,7 @@
 namespace Cravillac
 {
 
-    PipelineManager::PipelineManager(ResourceManager* resourceManager, std::shared_ptr<Renderer> renderer) : m_resourceManager(resourceManager), m_renderer(renderer)  {}
+    PipelineManager::PipelineManager(ResourceManager* resourceManager, const std::shared_ptr<Renderer>& renderer) : m_resourceManager(resourceManager), m_renderer(renderer)  {}
 
     VkPipeline PipelineManager::getPipeline(const std::string& pipelineKey)
 	{
@@ -23,7 +23,7 @@ namespace Cravillac
         throw std::runtime_error("Pipeline not found");
     }
 
-    VkPipelineLayout PipelineManager::getPipelineLayout(std::string pipelineLayoutKey)
+    VkPipelineLayout PipelineManager::getPipelineLayout(const std::string& pipelineLayoutKey)
     {
         if (m_pipelineLayoutCache.contains(pipelineLayoutKey))
         {
@@ -41,7 +41,11 @@ namespace Cravillac
         m_vertShaderPath = path;
         return *this;
     }
-
+    PipelineManager::Builder& PipelineManager::Builder::setMeshShader(const std::string& path)
+    {
+        m_meshShaderPath = path;
+        return *this;
+    }
     PipelineManager::Builder& PipelineManager::Builder::setFragmentShader(const std::string& path)
     {
         m_fragShaderPath = path;
@@ -97,31 +101,37 @@ namespace Cravillac
             return m_pipelineCache[pipelineKey];
         }
 
-
         VkPipelineLayout pipelineLayout = createPipelineLayout(builder.m_descriptorSetLayoutKeys);
 
         /*Log::InfoDebug("[SHADER] Vert buffer Size: ", vertShaderCode.size());
         Log::InfoDebug("[SHADER] Frag buffer Size: ", fragShaderCode.size());*/
-
+#if MESH_SHADING
+        VkShaderModule meshShaderModule = m_resourceManager->getShaderModule(builder.m_meshShaderPath);
+#else
         VkShaderModule vertShaderModule = m_resourceManager->getShaderModule(builder.m_vertShaderPath);
+#endif
         VkShaderModule fragShaderModule = m_resourceManager->getShaderModule(builder.m_fragShaderPath);
 
         // do stuff
-
-        VkPipelineShaderStageCreateInfo vertexShaderStageInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vertShaderModule,
-            .pName = "main" };
-
         VkPipelineShaderStageCreateInfo fragShaderStageInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
             .module = fragShaderModule,
             .pName = "main" };
-
+#if MESH_SHADING
+        VkPipelineShaderStageCreateInfo meshShaderStageInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_MESH_BIT_NV,
+            .module = meshShaderModule,
+            .pName = "main" };
+        VkPipelineShaderStageCreateInfo shaderStages[] = { meshShaderStageInfo, fragShaderStageInfo };
+#else
+        VkPipelineShaderStageCreateInfo vertexShaderStageInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .module = vertShaderModule,
+            .pName = "main" };
         VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShaderStageInfo, fragShaderStageInfo };
-
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -134,6 +144,7 @@ namespace Cravillac
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
+#endif
 
         VkViewport viewport{};
         viewport.x = 0.0f;
@@ -230,8 +241,11 @@ namespace Cravillac
             .pNext = &pipelineRenderingInfo,
             .stageCount = 2,
             .pStages = shaderStages,
+            //remember its !MESH_SHADING
+#if !MESH_SHADING
             .pVertexInputState = &vertexInputInfo,
             .pInputAssemblyState = &inputAssembly,
+#endif
             .pViewportState = &viewportState,
             .pRasterizationState = &rasterizer,
             .pMultisampleState = &multisampling,
@@ -252,6 +266,7 @@ namespace Cravillac
         {
             Log::InfoDebug("[PIPELINE] Pipeline created with key: ", pipelineKey);
         }
+        assert(graphicsPipeline);
         m_pipelineCache[pipelineKey] = graphicsPipeline;
         return graphicsPipeline;
     }
@@ -276,7 +291,11 @@ namespace Cravillac
             layouts.push_back(m_resourceManager->getDescriptorSetLayout(key));
         }
         VkPushConstantRange pushConstantRange{};
+#if MESH_SHADING
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT;
+#else
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+#endif
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(PushConstants);  // Size for material index
 

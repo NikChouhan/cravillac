@@ -3,7 +3,7 @@ set_xmakever("2.9.4")
 -- includes("scripts/compile.lua")
 includes("scripts/packages.lua")
 includes("src/xmake.lua")
--- includes("shaders/xmake.lua")
+includes("shaders/xmake.lua")
 
 add_rules("mode.debug", "mode.release")
 set_defaultmode("debug")
@@ -26,12 +26,14 @@ if (is_mode("debug")) then
     add_defines("DEBUG")
     set_optimize("none")
     set_warnings("all", "extra")
+    set_runtimes("MDd")
 elseif (is_mode("release")) then
     set_symbols("release")
     add_defines("NDEBUG")
     set_optimize("fastest")
     set_warnings("none")
-    --set_policy("build.optimization.lto", true)
+    set_policy("build.optimization.lto", true)
+    set_runtimes("MD")
 end
 
 target("VulkanTest")

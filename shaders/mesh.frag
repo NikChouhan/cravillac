@@ -2,6 +2,8 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_scalar_block_layout : require
 
+#define MESH_SHADING 1
+
 layout(location = 0) in vec2 fragTexcoord;
 layout(location = 1) in vec3 fragNormal;
 
@@ -14,13 +16,16 @@ layout(push_constant, scalar) uniform PushConstants
     mat4 mvp;   // not used here, but in vertex shader
     uint unused1;
     uint unused2;
+#if MESH_SHADING
+    uint unused3;
+    uint unused4;
+#endif
     mat3 normalMatrix;  // not used here, but in vertex shader
     uint materialIndex;
 } pushConstants;
 
 void main() 
 {
-
     vec3 ambientColor = vec3(0.2f, 0.2f, 0.2f);
     vec3 diffuseColor = vec3(0.8f, 0.8f, 0.8f);
 

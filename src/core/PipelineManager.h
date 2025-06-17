@@ -18,17 +18,18 @@ namespace Cravillac
 	class PipelineManager
 	{
 	public:
-		PipelineManager(ResourceManager* resourceManager, std::shared_ptr<Renderer> renderer);
+		PipelineManager(ResourceManager* resourceManager, const std::shared_ptr<Renderer>& renderer);
 		~PipelineManager();	// TODO
 
 		VkPipeline getPipeline(const std::string& pipelineKey);
-		VkPipelineLayout getPipelineLayout(std::string pipelineLayoutKey);
+		VkPipelineLayout getPipelineLayout(const std::string& pipelineLayoutKey);
 		
 		class Builder
 		{
 		public:
 			explicit Builder(PipelineManager* manager);
 			Builder& setVertexShader(const std::string& path);
+			Builder& setMeshShader(const std::string& path);
 			Builder& setFragmentShader(const std::string& path);
 			Builder& setPipelineLayout(VkPipelineLayout pipelineLayout);
 			Builder& addDescriptorSetLayout(const std::string& key);
@@ -42,6 +43,7 @@ namespace Cravillac
 		private:
 			PipelineManager* m_manager;
 			std::string m_vertShaderPath;
+			std::string m_meshShaderPath;
 			std::string m_fragShaderPath;
 			std::vector<VkDynamicState> m_dynamicStates;
 			std::vector<std::string> m_descriptorSetLayoutKeys;

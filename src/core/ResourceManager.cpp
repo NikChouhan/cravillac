@@ -10,7 +10,7 @@
 
 namespace Cravillac
 {
-	ResourceManager::ResourceManager(std::shared_ptr<Renderer> renderer) : m_renderer(renderer), m_descriptorPool(VK_NULL_HANDLE)
+	ResourceManager::ResourceManager(const std::shared_ptr<Renderer>& renderer) : m_renderer(renderer), m_descriptorPool(VK_NULL_HANDLE)
 	{
 		pipelineManager = new PipelineManager(this, m_renderer);
 	}
@@ -73,7 +73,7 @@ namespace Cravillac
 		return CreateDescriptorBuilder()
 			.allocateDescriptorSet(layout);
 	}
-	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::optional<std::vector<Cravillac::Texture>> textures)
+	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, const std::optional<std::vector<Cravillac::Texture>>& textures)
 	{
 		return CreateDescriptorBuilder()
 			.updateDescriptorSet(set, binding, type, buffer, size, textures);

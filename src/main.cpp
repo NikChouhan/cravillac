@@ -2,7 +2,7 @@
 
 int main() 
 {
-    Cravillac::Application app("Hello Vulkan");
+    Cravillac::Application app;
     app.Init();
     app.Run();
 }

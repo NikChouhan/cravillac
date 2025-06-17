@@ -16,7 +16,7 @@ namespace Cravillac
 	class ResourceManager
 	{
 	public:
-		explicit ResourceManager(std::shared_ptr<Renderer> renderer);
+		explicit ResourceManager(const std::shared_ptr<Renderer>& renderer);
 		~ResourceManager();
 		VkDevice getDevice();
 		VkPhysicalDevice getPhysicalDevice();
@@ -31,7 +31,7 @@ namespace Cravillac
 		void ConfigureDescriptorPoolSizes(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets);
 		DescriptorBuilder CreateDescriptorBuilder();
 		VkDescriptorSet CreateDescriptorSet(VkDescriptorSetLayout layout);
-		VkDescriptorSet UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, std::optional<std::vector<Cravillac::Texture>> textures);
+		VkDescriptorSet UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, const std::optional<std::vector<Cravillac::Texture>>& textures);
 
 		VkShaderModule	getShaderModule(const std::string& shaderPath);
 		VkDescriptorSetLayout getDescriptorSetLayout(const std::string& layoutKey);

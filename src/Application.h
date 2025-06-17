@@ -20,8 +20,8 @@ struct ImGuiIO;
 
 namespace Cravillac
 {
-	constexpr uint32_t WIDTH = 1920;
-	constexpr uint32_t HEIGHT = 1080;
+	constexpr uint32_t WIDTH = 1280;
+	constexpr uint32_t HEIGHT = 720;
 
 
     struct UniformBufferObject
@@ -33,26 +33,27 @@ namespace Cravillac
     class Application
     {
     public:
-        Application(const char* title);
+        explicit Application();
         void Init();
         void Run();
         void DrawFrame();
         void SetResources();
 
         void RecordCmdBuffer(VkCommandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
-        UniformBufferObject UpdateUniformBuffer(uint32_t currentImage, const Primitive& prim) const;
+        [[nodiscard]] UniformBufferObject UpdateUniformBuffer(uint32_t currentImage, const MeshInfo& prim) const;
 
 
         std::shared_ptr<Cravillac::Camera> m_camera;
 
     private:
-        const char* title;
+        const char *title;
         VkSurfaceKHR m_surface;
         std::shared_ptr<Renderer> renderer;
         GLFWwindow* m_window = nullptr;
         ResourceManager* m_resourceManager;
         // bda handle
         VkDeviceAddress m_vertexBufferAddress;
+        VkDeviceAddress m_meshletBufferAddress;
 
         std::array<std::vector<VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> descriptorSets;
 
@@ -64,11 +65,6 @@ namespace Cravillac
         std::vector<VkFence> m_inFlightFence{ VK_NULL_HANDLE };
 
         std::vector<Texture> textures;
-
-        // material index storage buffer
-        std::vector<VkBuffer> m_matIndexSSBO;
-        std::vector<VkDeviceMemory> m_matIndexSSBOMemory;
-
         uint32_t currentFrame{ 0 };
         std::vector<Model> models;
 

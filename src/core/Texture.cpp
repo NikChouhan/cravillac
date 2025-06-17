@@ -12,7 +12,7 @@
 
 namespace Cravillac
 {
-    void Texture::LoadTexture(std::shared_ptr<Renderer> renderer, const char *filename)
+    void Texture::LoadTexture(const std::shared_ptr<Renderer>& renderer, const char *filename)
     {
         this->renderer = renderer;
         // Load the image using stb_image

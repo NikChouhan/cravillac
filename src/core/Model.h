@@ -17,6 +17,7 @@ namespace Cravillac
     class Renderer;
     struct Vertex;
     class Texture;
+    struct Meshlet;
 }
 
 enum class TextureType
@@ -84,7 +85,15 @@ struct Material
     DirectX::XMFLOAT3 FlatColor;
 };
 
-struct Primitive
+struct Mesh
+{
+    std::vector<Cravillac::Vertex> vertices;
+    std::vector<u32> indices;
+    u32 vertexCount;
+    u32 indexCount;
+};
+
+struct MeshInfo
 {
     size_t vertexCount = 0;
     size_t indexCount = 0;
@@ -102,19 +111,15 @@ namespace Cravillac
     public:
         Model();
         ~Model();
-        void LoadModel(const std::shared_ptr<Renderer>& renderer, std::string path);
+        void LoadModel(const std::shared_ptr<Renderer>& renderer, const std::string& path);
         DirectX::XMFLOAT3X3 ComputeNormalMatrix(const DirectX::XMMATRIX &worldMatrix);
         void SetBuffers();
-        bool SetTexResources(uint32_t materialIndex);
-        void UpdateCB(Primitive prim);
-
-        void Render();
-
     private:
         void ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
         void ProcessMesh(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
-        void OptimiseMesh(Primitive& prim, std::vector<Vertex>& vertices, std::vector<u32>& indices);
-        HRESULT LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type);
+        void OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh);
+        void ProcessMeshlets(Mesh& mesh);
+        bool LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type);
 
         void ValidateResources() const;
 
@@ -125,7 +130,8 @@ namespace Cravillac
         std::string m_dirPath;
         std::vector<Vertex> m_vertices;
         std::vector<u32> m_indices;
-        std::vector<Primitive> m_primitives;
+        std::vector<MeshInfo> m_meshes;
+        std::vector<Meshlet> m_meshlets;
         std::vector<Material> m_materials;
 
         std::shared_ptr<Renderer> renderer;
@@ -133,6 +139,7 @@ namespace Cravillac
 
         VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
         VkBuffer m_indexBuffer = VK_NULL_HANDLE;
+        VkBuffer m_meshletBuffer = VK_NULL_HANDLE;
 
         std::vector<Texture> modelTextures;
     private:
@@ -140,15 +147,7 @@ namespace Cravillac
 
         VkDeviceMemory m_vertexMemory = VK_NULL_HANDLE;
         VkDeviceMemory m_indexMemory = VK_NULL_HANDLE;
-
-        //wrl::ComPtr<ID3D11Buffer> m_vertexBuffer;
-        //wrl::ComPtr<ID3D11Buffer> m_indexBuffer;
-        //wrl::ComPtr<ID3D11Buffer> m_constantBuffer;
-        //UINT m_vertexCount;
-        //UINT m_indexCount;
-
-        //wrl::ComPtr<ID3D11Buffer> m_materialBuffer;
-        //wrl::ComPtr<ID3D11SamplerState> m_samplerState = nullptr;
+        VkDeviceMemory m_meshletMemory = VK_NULL_HANDLE;
 
         std::unordered_set<std::string> loadedTextures; // To track loaded textures
         std::unordered_map<cgltf_material*, int> materialLookup;

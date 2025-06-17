@@ -207,8 +207,8 @@ namespace Cravillac
         drLocalRead.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES;
         drLocalRead.dynamicRenderingLocalRead = VK_TRUE;*/
 
-        // mesh shading (optional)
-        VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
+        // meshInfo shading (optional)
+        VkPhysicalDeviceMeshShaderFeaturesNV meshShaderFeatures {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV};
         meshShaderFeatures.meshShader = true;
 
         // BDA
