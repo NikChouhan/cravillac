@@ -121,7 +121,7 @@ namespace Cravillac
 #if MESH_SHADING
         VkPipelineShaderStageCreateInfo meshShaderStageInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_MESH_BIT_NV,
+            .stage = VK_SHADER_STAGE_MESH_BIT_EXT,
             .module = meshShaderModule,
             .pName = "main" };
         VkPipelineShaderStageCreateInfo shaderStages[] = { meshShaderStageInfo, fragShaderStageInfo };
@@ -292,7 +292,7 @@ namespace Cravillac
         }
         VkPushConstantRange pushConstantRange{};
 #if MESH_SHADING
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT;
 #else
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 #endif
@@ -301,7 +301,7 @@ namespace Cravillac
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = layouts.size();
+        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.size());
         pipelineLayoutInfo.pSetLayouts = layouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;

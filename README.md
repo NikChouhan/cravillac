@@ -1,35 +1,23 @@
 # Cravillac
-A simple cross platform renderer built to showcase various rendering techniques.
-# Dependancis
+A simple vulkan renderer built to showcase various rendering techniques.
+# Dependencies
 ```
-vulkan-headers
-glm
-stb
+volk
 glfw
+meshoptimizer
+stb
+cgltf
 ```
 # Build and run
 ## Windows
 ```
-xmake project -k vsxmake
+xmake project -k vsxmake -y
 xmake run 
 ```
 ## Linux
 ### Vscode
 ```
 xmake project -k compile_commands
-```
-Create `c_cpp_properties.json` in `.vscode` folder and add a configuration something of this sort:
-```
-{
-    "configurations": [
-        {
-            "compileCommands": "compile_commands.json"
-        }
-    ],
-    "version": 4
-}
-```
-```
 xmake build
 xmake run
 ```
@@ -38,5 +26,3 @@ xmake run
 xmake project -k cmake
 ```
 All the projects and files are created and can be opened with CLion.
-
-

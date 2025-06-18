@@ -208,7 +208,7 @@ namespace Cravillac
         drLocalRead.dynamicRenderingLocalRead = VK_TRUE;*/
 
         // meshInfo shading (optional)
-        VkPhysicalDeviceMeshShaderFeaturesNV meshShaderFeatures {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV};
+        VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
         meshShaderFeatures.meshShader = true;
 
         // BDA
@@ -221,6 +221,16 @@ namespace Cravillac
         VkPhysicalDeviceBufferDeviceAddressFeatures bdaFeatures = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
         bdaFeatures.bufferDeviceAddress = true;
         bdaFeatures.pNext = &scalarFeatures;
+#if MESH_SHADING
+
+        VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT };
+
+        VkPhysicalDeviceProperties2 props = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+        props.pNext = &meshShaderProperties;
+
+        vkGetPhysicalDeviceProperties2(m_physicalDevice, &props);
+#endif
+
 
         // bindless
         VkPhysicalDeviceDescriptorIndexingFeatures bindless{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};

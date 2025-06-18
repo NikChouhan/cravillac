@@ -1,8 +1,8 @@
 #version 450
-#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_nonuniform_qualifier : require
 #extension GL_EXT_scalar_block_layout : require
 
-#define MESH_SHADING 1
+#define MESH_SHADING 0
 
 layout(location = 0) in vec2 fragTexcoord;
 layout(location = 1) in vec3 fragNormal;

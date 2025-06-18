@@ -25,7 +25,7 @@ namespace Cravillac
         VkDeviceMemory m_texImageMemory = VK_NULL_HANDLE;
         VkImageView m_texImageView = VK_NULL_HANDLE;
         VkSampler m_texSampler = VK_NULL_HANDLE;
-        std::shared_ptr<Cravillac::Renderer> renderer;
+        std::shared_ptr<Cravillac::Renderer> m_renderer;
     };
 }
 

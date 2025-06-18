@@ -116,7 +116,7 @@ namespace Cravillac
         void SetBuffers();
     private:
         void ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
-        void ProcessMesh(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
+        void ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
         void OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh);
         void ProcessMeshlets(Mesh& mesh);
         bool LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type);
@@ -134,7 +134,7 @@ namespace Cravillac
         std::vector<Meshlet> m_meshlets;
         std::vector<Material> m_materials;
 
-        std::shared_ptr<Renderer> renderer;
+        std::shared_ptr<Renderer> m_renderer;
 
 
         VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
@@ -150,7 +150,7 @@ namespace Cravillac
         VkDeviceMemory m_meshletMemory = VK_NULL_HANDLE;
 
         std::unordered_set<std::string> loadedTextures; // To track loaded textures
-        std::unordered_map<cgltf_material*, int> materialLookup;
+        std::unordered_map<cgltf_material*, size_t> materialLookup;
 
         ResourceManager* m_resourceManager;
 

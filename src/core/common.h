@@ -27,7 +27,7 @@ inline uint32_t MAX_TEXTURES = 256;
 namespace SM = DirectX::SimpleMath;
 
 // meshInfo shading pipeline
-#define MESH_SHADING 1  // NOLINT(modernize-macro-to-enum)
+#define MESH_SHADING 0  // NOLINT(modernize-macro-to-enum)
 
 // error check
 

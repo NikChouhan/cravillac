@@ -6,6 +6,8 @@
 #include <optional>
 #include <string>
 
+#include "StandardTypes.h"
+
 namespace Cravillac
 {
 	const std::vector<const char*> validationLayers =
@@ -17,7 +19,7 @@ namespace Cravillac
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 		VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME,
 #if MESH_SHADING
-		VK_NV_MESH_SHADER_EXTENSION_NAME
+		VK_EXT_MESH_SHADER_EXTENSION_NAME
 #endif
 	};
 
@@ -55,7 +57,7 @@ namespace Cravillac
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D ChooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities);
 	void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propertyFlags, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    std::optional<u32> FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	// transition image layout for rendering/presenting, etc
 	void TransitionImage(VkCommandBuffer commandBuffer, VkImage& image, VkImageLayout currentLayout, VkImageLayout newLayout);
 	void CopyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, VkDeviceSize size);

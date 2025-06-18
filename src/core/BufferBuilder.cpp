@@ -47,11 +47,15 @@ namespace Cravillac
 		VkMemoryAllocateFlagsInfo allocFlagsInfo {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO};
 		allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
 
+		auto memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, m_memProps);
+
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.pNext = &allocFlagsInfo;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, m_memProps);
+		if (memoryTypeIndex.has_value())
+			allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, m_memProps).value();
+		else Log::Error("[VULKAN] No memory type found");
 
 		result = vkAllocateMemory(device, &allocInfo, nullptr, &outMemory);
 		if (result != VK_SUCCESS) {

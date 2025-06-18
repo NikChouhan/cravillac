@@ -40,7 +40,7 @@ namespace Cravillac
         void SetResources();
 
         void RecordCmdBuffer(VkCommandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
-        [[nodiscard]] UniformBufferObject UpdateUniformBuffer(uint32_t currentImage, const MeshInfo& prim) const;
+        [[nodiscard]] UniformBufferObject UpdateUniformBuffer(const MeshInfo& meshInfo) const;
 
 
         std::shared_ptr<Cravillac::Camera> m_camera;
@@ -65,7 +65,7 @@ namespace Cravillac
         std::vector<VkFence> m_inFlightFence{ VK_NULL_HANDLE };
 
         std::vector<Texture> textures;
-        uint32_t currentFrame{ 0 };
+        uint32_t m_currentFrame{ 0 };
         std::vector<Model> models;
 
 	};

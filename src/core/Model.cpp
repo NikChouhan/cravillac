@@ -16,9 +16,9 @@ Cravillac::Model::~Model()
 
 void Cravillac::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, const std::string& path)
 {
-    this->renderer = renderer;
+    this->m_renderer = renderer;
 
-    m_resourceManager = new ResourceManager(renderer);
+    m_resourceManager = new ResourceManager(m_renderer);
     cgltf_options options = {};
     cgltf_data *data = nullptr;
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
@@ -104,7 +104,7 @@ void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std
     //    float znear = static_cast<float>(perspective.znear);
     //    float zfar = (perspective.has_zfar) ? static_cast<float>(perspective.zfar) : FLT_MAX;
 
-    //    camera->InitAsPerspective(yfov, renderer->m_width, renderer->m_width/aspectRatio, znear, zfar);    
+    //    camera->InitAsPerspective(yfov, m_renderer->m_width, m_renderer->m_width/aspectRatio, znear, zfar);    
     //}
 
     //localTransform.Matrix = scaleMatrix * rotationMatrix * translationMatrix;
@@ -120,7 +120,7 @@ void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std
             Log::InfoDebug("[CGLTF] parentTransform Rotation: {}", localTransform.Rotation);
             Log::InfoDebug("[CGLTF] parentTransform Scale: {}", localTransform.Scale);*/
 
-            ProcessMesh(&node->mesh->primitives[i], data, vertices, indices, localTransform);   // remember that the indices and the vertices passed here are m_indices and m_vertices refs
+            ProcessMesh(&node->mesh->primitives[i], vertices, indices, localTransform);   // remember that the indices and the vertices passed here are m_indices and m_vertices refs
         }
     }
 
@@ -131,10 +131,10 @@ void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std
     }
 }
 
-void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
+void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
 {
-    u32 vertexOffset = vertices.size();
-    u32 indexOffset = indices.size();
+    u32 vertexOffset = static_cast<u32>(vertices.size());
+    u32 indexOffset = static_cast<u32>(indices.size());
 
     std::vector<Vertex> tempVertices;
     std::vector<u32> tempIndices;
@@ -189,12 +189,12 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, const cgltf_data 
         return;
     }
 
-    int vertexCount;
+    size_t vertexCount;
     vertexCount = pos_attribute->data->count;
-    int indexCount;
+    size_t indexCount;
     indexCount = primitive->indices->count;
 
-    for (int i = 0; i < vertexCount; i++)
+    for (size_t i = 0; i < vertexCount; i++)
     {
         Vertex vertex = {};
 
@@ -215,7 +215,7 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, const cgltf_data 
         //vertices.push_back(vertex);
     }
 
-    for (int i = 0; i < indexCount; i++)
+    for (size_t i = 0; i < indexCount; i++)
     {
         tempIndices.push_back(cgltf_accessor_read_index(primitive->indices, i));
         //indices.push_back(cgltf_accessor_read_index(primitive->indices, i));
@@ -307,10 +307,10 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, const cgltf_data 
         }
         m_materials.push_back(mat);
         materialLookup[material] = m_materials.size() - 1;
-        meshInfo.materialIndex = materialLookup[material];
+        meshInfo.materialIndex = static_cast<u32>(materialLookup[material]);
     }
 
-    meshInfo.materialIndex = materialLookup[material];
+    meshInfo.materialIndex = static_cast<u32>(materialLookup[material]);
     meshInfo.transform = parentTransform;
     meshInfo.startIndex = indexOffset;
     meshInfo.startVertex = vertexOffset;
@@ -320,8 +320,8 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, const cgltf_data 
     Mesh mesh;
     mesh.vertices = tempVertices;
     mesh.indices = tempIndices;
-    mesh.vertexCount = vertexCount;
-    mesh.indexCount = indexCount;
+    mesh.vertexCount = static_cast<u32>(vertexCount);
+    mesh.indexCount = static_cast<u32>(indexCount);
 
     OptimiseMesh(meshInfo, mesh);
     ProcessMeshlets(mesh);
@@ -349,7 +349,7 @@ void Cravillac::Model::OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh)
     meshopt_optimizeVertexCache(optIndices.data(), optIndices.data(), indexCount, optVertexCount);
 
     // Optimization 3 - reduce pixel overdraw
-    meshopt_optimizeOverdraw(optIndices.data(), optIndices.data(), indexCount, &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), 1.05);
+    meshopt_optimizeOverdraw(optIndices.data(), optIndices.data(), indexCount, &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), static_cast<float>(1.05));
 
     // Optimization 4 - optimize access to the vertex buffer
     meshopt_optimizeVertexFetch(optVertices.data(), optIndices.data(), indexCount, optVertices.data(), optVertexCount, sizeof(Vertex));
@@ -373,8 +373,8 @@ void Cravillac::Model::OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh)
 
     mesh.vertices = optVertices;
     mesh.indices = optIndices;
-    mesh.vertexCount = optVertexCount;
-    mesh.indexCount = optIndexCount;
+    mesh.vertexCount = static_cast<u32>(optVertexCount);
+    mesh.indexCount = static_cast<u32>(optIndexCount);
 }
 
 void Cravillac::Model::ProcessMeshlets(Mesh& mesh)
@@ -433,7 +433,7 @@ bool Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_vi
         std::string path = m_dirPath + "/" + std::string(image->uri);
 
         Texture tex;
-        tex.LoadTexture(renderer, path.c_str());
+        tex.LoadTexture(m_renderer, path.c_str());
         switch (type)
         {
         case TextureType::ALBEDO:
@@ -441,7 +441,7 @@ bool Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_vi
             mat.HasAlbedo = true;
             mat.AlbedoPath = path;
             modelTextures.push_back(tex);
-            return S_OK;
+            return true;
         // case TextureType::NORMAL:
         //     mat.NormalView = tex.m_texImageView;
         //     mat.HasNormal = true;
@@ -467,12 +467,12 @@ bool Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_vi
         //     return S_OK;
         default:
             Log::Warn("[Texture] Unknown texture type.");
-            return E_FAIL;
+            return false;
         }
     }
     // Handle missing texture or image
     Log::Warn("[Texture] Texture or image not found for this material.");
-    return E_FAIL;
+    return false;
 }
 
 void Cravillac::Model::SetBuffers()
@@ -492,9 +492,9 @@ void Cravillac::Model::SetBuffers()
         .build(stagingBufferMemory);
 
     data = nullptr;
-    vkMapMemory(renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(m_renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, m_meshlets.data(), bufferSize);
-    vkUnmapMemory(renderer->m_device, stagingBufferMemory);
+    vkUnmapMemory(m_renderer->m_device, stagingBufferMemory);
 
     m_meshletBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
@@ -502,10 +502,10 @@ void Cravillac::Model::SetBuffers()
         .setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         .build(m_meshletMemory);
 
-    CopyBuffer(renderer->m_device, renderer->m_commandPool, renderer->m_graphicsQueue, stagingBuffer, m_meshletBuffer,
+    CopyBuffer(m_renderer->m_device, m_renderer->m_commandPool, m_renderer->m_graphicsQueue, stagingBuffer, m_meshletBuffer,
                bufferSize);
-    vkDestroyBuffer(renderer->m_device, stagingBuffer, nullptr);
-    vkFreeMemory(renderer->m_device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(m_renderer->m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_renderer->m_device, stagingBufferMemory, nullptr);
 #else
     // vertex buffer
     bufferSize = sizeof(Vertex) * m_vertices.size();
@@ -516,9 +516,9 @@ void Cravillac::Model::SetBuffers()
         .setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
         .build(stagingBufferMemory);
 
-    vkMapMemory(this->renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(m_renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, m_vertices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(renderer->m_device, stagingBufferMemory);
+    vkUnmapMemory(m_renderer->m_device, stagingBufferMemory);
 
     m_vertexBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
@@ -526,7 +526,7 @@ void Cravillac::Model::SetBuffers()
         .setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         .build(m_vertexMemory);
 
-    CopyBuffer(renderer->m_device, renderer->m_commandPool, renderer->m_graphicsQueue, stagingBuffer, m_vertexBuffer,
+    CopyBuffer(m_renderer->m_device, m_renderer->m_commandPool, m_renderer->m_graphicsQueue, stagingBuffer, m_vertexBuffer,
                bufferSize);
 #endif
 
@@ -540,9 +540,9 @@ void Cravillac::Model::SetBuffers()
         .build(stagingBufferMemory);
 
     data = nullptr;
-    vkMapMemory(renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(m_renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, m_indices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(renderer->m_device, stagingBufferMemory);
+    vkUnmapMemory(m_renderer->m_device, stagingBufferMemory);
 
     m_indexBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
@@ -550,10 +550,10 @@ void Cravillac::Model::SetBuffers()
         .setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
         .build(m_indexMemory);
 
-    CopyBuffer(renderer->m_device, renderer->m_commandPool, renderer->m_graphicsQueue, stagingBuffer, m_indexBuffer,
+    CopyBuffer(m_renderer->m_device, m_renderer->m_commandPool, m_renderer->m_graphicsQueue, stagingBuffer, m_indexBuffer,
                bufferSize);
-    vkDestroyBuffer(renderer->m_device, stagingBuffer, nullptr);
-    vkFreeMemory(renderer->m_device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(m_renderer->m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_renderer->m_device, stagingBufferMemory, nullptr);
 
     // unlike DX11, samplers handled independent of pipeline, so they are handled by the texture class.
     // will be handled during the desc layout stuff. Creating a large texture array,
@@ -568,7 +568,7 @@ void Cravillac::Model::ValidateResources() const
     Log::Info("[CGLTF] Materials: " + std::to_string(m_materials.size()));
     Log::Info("[CGLTF] Meshes: " + std::to_string(m_meshes.size()));
     // Check camera position
-    DirectX::XMFLOAT3 pos;
+    //DirectX::XMFLOAT3 pos;
     /*XMStoreFloat3(&pos, camera->GetPosition());
     Log::Info("[D3D] Camera Position: " + std::to_string(pos.x) + ", " +
               std::to_string(pos.y) + ", " + std::to_string(pos.z));*/

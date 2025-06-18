@@ -9,7 +9,7 @@
 #include "Log.h"
 
 #ifdef _WIN32
-#undef max;
+#undef max
 #endif
 
 namespace Cravillac
@@ -60,7 +60,7 @@ namespace Cravillac
     {
         const QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
 
-        const bool extensionsSupported = CheckDeviceExtensionSupport(physicalDevice);
+	        const bool extensionsSupported = CheckDeviceExtensionSupport(physicalDevice);
 
         bool swapChainAdequate = false;
         if (extensionsSupported)
@@ -199,7 +199,7 @@ namespace Cravillac
         }
     }
 
-    uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+    std::optional<u32> FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
     {
         VkPhysicalDeviceMemoryProperties memProperties{};
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -212,6 +212,8 @@ namespace Cravillac
             }
         }
         Log::Error("[MEMORY] Failed to find suitable memory type");
+        return std::nullopt;
+
     }
 
     void TransitionImage(VkCommandBuffer commandBuffer, VkImage &image, VkImageLayout currentLayout,
@@ -337,11 +339,14 @@ namespace Cravillac
 
         VkMemoryRequirements memRequirements;
         vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+        auto memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, propertyFlags);
 
-        const VkMemoryAllocateInfo allocInfo{
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = memRequirements.size,
-            .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, propertyFlags)};
+        VkMemoryAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+        allocInfo.allocationSize = memRequirements.size;
+        if (memoryTypeIndex.has_value())
+            allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, propertyFlags).value();
+        else Log::Error("[VULKAN] No memory type found");
+
 
         if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
         {
@@ -430,11 +435,13 @@ namespace Cravillac
 
         VkMemoryRequirements memRequirements{};
         vkGetImageMemoryRequirements(device, image, &memRequirements);
+        auto memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
-        VkMemoryAllocateInfo allocInfo{
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = memRequirements.size,
-            .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties)};
+        VkMemoryAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+        allocInfo.allocationSize = memRequirements.size;
+        if (memoryTypeIndex.has_value())
+            allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties).value();
+        else Log::Error("[VULKAN] No memory type found");
 
         if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
         {

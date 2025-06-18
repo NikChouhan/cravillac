@@ -174,28 +174,28 @@ namespace Cravillac
 			double frameDelta = glfwGetTime() - frameTimestamp;
 			frameTimestamp = glfwGetTime();
 
-			double frameCpuBegin = glfwGetTime() * 1000;
 			glfwPollEvents();
 
 			float currentFrameTime = static_cast<float>(glfwGetTime());
 			float deltaTime = currentFrameTime - lastFrameTime;
 			lastFrameTime = currentFrameTime;
 
-			HandleCameraMovement(m_camera, m_window, deltaTime, 2.f);
+			float sensitivity = 0.2f;
+			HandleCameraMovement(m_camera, m_window, deltaTime, sensitivity);
 
-			vkWaitForFences(renderer->m_device, 1, &m_inFlightFence[currentFrame], VK_TRUE, UINT64_MAX);
-			vkResetFences(renderer->m_device, 1, &m_inFlightFence[currentFrame]);
+			vkWaitForFences(renderer->m_device, 1, &m_inFlightFence[m_currentFrame], VK_TRUE, UINT64_MAX);
+			vkResetFences(renderer->m_device, 1, &m_inFlightFence[m_currentFrame]);
 
 			uint32_t imageIndex{};
-			vkAcquireNextImageKHR(renderer->m_device, renderer->m_swapChain, UINT64_MAX, m_imageAvailableSemaphore[currentFrame], VK_NULL_HANDLE, &imageIndex);
+			vkAcquireNextImageKHR(renderer->m_device, renderer->m_swapChain, UINT64_MAX, m_imageAvailableSemaphore[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-			vkResetCommandBuffer(m_cmdBuffers[currentFrame], 0);
+			vkResetCommandBuffer(m_cmdBuffers[m_currentFrame], 0);
 
-			RecordCmdBuffer(m_cmdBuffers[currentFrame], imageIndex, currentFrame);
+			RecordCmdBuffer(m_cmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
 
 			VkSubmitInfo submitInfo{
 				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
-			VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[currentFrame] };
+			VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[m_currentFrame] };
 			VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 			// after the fragment stage cuz the actual shading occurs after. fragment stage only computes the color, doesn't actually render to the frame
 			submitInfo.waitSemaphoreCount = 1;
@@ -203,13 +203,13 @@ namespace Cravillac
 			submitInfo.pWaitDstStageMask = waitStages;
 
 			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &m_cmdBuffers[currentFrame];
+			submitInfo.pCommandBuffers = &m_cmdBuffers[m_currentFrame];
 
-			VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphore[currentFrame] };
+			VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphore[m_currentFrame] };
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = signalSemaphore;
 
-			if (vkQueueSubmit(renderer->m_graphicsQueue, 1, &submitInfo, m_inFlightFence[currentFrame]) != VK_SUCCESS)
+			if (vkQueueSubmit(renderer->m_graphicsQueue, 1, &submitInfo, m_inFlightFence[m_currentFrame]) != VK_SUCCESS)
 			{
 				Log::Error("[DRAW] Submit Draw Command buffer Failed");
 			}
@@ -217,7 +217,7 @@ namespace Cravillac
 
 			VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[currentFrame];
+			presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[m_currentFrame];
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = &renderer->m_swapChain;
 			presentInfo.pImageIndices = &imageIndex;
@@ -225,8 +225,7 @@ namespace Cravillac
 
 			vkQueuePresentKHR(renderer->m_presentQueue, &presentInfo);
 
-			currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-			double frameCpuEnd = glfwGetTime() * 1000;
+			m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 			char newTitle[256];
 
 			snprintf(newTitle,sizeof(newTitle), "Cravillac --- CPU time: %.2fms", frameDelta*1000);
@@ -341,7 +340,7 @@ namespace Cravillac
 #endif
 
 		for (const auto& meshInfo : models[0].m_meshes) {
-			auto [mvp, normalMatrix] = UpdateUniformBuffer(currentFrame, meshInfo);
+			auto [mvp, normalMatrix] = UpdateUniformBuffer(meshInfo);
 			uint32_t materialIndex = meshInfo.materialIndex;
 
 			pushConstants.mvp = mvp;
@@ -350,12 +349,12 @@ namespace Cravillac
 #if MESH_SHADING
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT,
 				0, sizeof(PushConstants), &pushConstants);
-			vkCmdDrawMeshTasksNV(commandBuffer, models[0].m_meshlets.size(), 0);
+			vkCmdDrawMeshTasksEXT(commandBuffer, 32, 1, 1);
 #else
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 			                   0, sizeof(PushConstants), &pushConstants);
 
-			vkCmdDrawIndexed(commandBuffer, meshInfo.indexCount, 1, meshInfo.startIndex, meshInfo.startVertex, 0);
+			vkCmdDrawIndexed(commandBuffer, meshInfo.indexCount, 1, meshInfo.startIndex, static_cast<int32_t>(meshInfo.startVertex), 0);
 #endif
 		}
 
@@ -373,7 +372,7 @@ namespace Cravillac
 	}
 
 
-	UniformBufferObject Application::UpdateUniformBuffer(uint32_t currentImage, const MeshInfo& meshInfo) const
+	UniformBufferObject Application::UpdateUniformBuffer(const MeshInfo& meshInfo) const
 	{
 		DirectX::XMMATRIX viewMatrix = m_camera->GetViewMatrix();
 		DirectX::XMMATRIX projectionMatrix = m_camera->GetProjectionMatrix();
@@ -398,7 +397,7 @@ namespace
 {
 	static void HandleCameraMovement(const std::shared_ptr<Cravillac::Camera>& camera, GLFWwindow* window, float deltaTime, float sensitivity)
 	{
-		constexpr float moveSpeed = 1.0f;
+		float moveSpeed = sensitivity * 5;
 
 		SM::Vector3 forward = camera->GetLookAtTarget();
 		forward.Normalize();

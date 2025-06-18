@@ -14,7 +14,7 @@ namespace Cravillac
 {
     void Texture::LoadTexture(const std::shared_ptr<Renderer>& renderer, const char *filename)
     {
-        this->renderer = renderer;
+        m_renderer = renderer;
         // Load the image using stb_image
         int width, height, channels;
         stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
@@ -59,7 +59,7 @@ namespace Cravillac
     }
     void Texture::CreateTextureImageView()
     {
-        m_texImageView = CreateImageView(renderer->m_device, m_texImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        m_texImageView = CreateImageView(m_renderer->m_device, m_texImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     void Texture::CreateTextureSampler()
     {
@@ -70,7 +70,7 @@ namespace Cravillac
         };
 
         VkPhysicalDeviceProperties2 properties{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-        vkGetPhysicalDeviceProperties2(renderer->m_physicalDevice, &properties);
+        vkGetPhysicalDeviceProperties2(m_renderer->m_physicalDevice, &properties);
 
         samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
         samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
@@ -86,7 +86,7 @@ namespace Cravillac
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
 
-        if (vkCreateSampler(renderer->m_device, &samplerInfo, nullptr, &m_texSampler) != VK_SUCCESS)
+        if (vkCreateSampler(m_renderer->m_device, &samplerInfo, nullptr, &m_texSampler) != VK_SUCCESS)
         {
             Log::Error("[TEXTURE] Failure to create Texture Sampler");
             m_texSampler = VK_NULL_HANDLE;
