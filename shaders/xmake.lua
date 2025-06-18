@@ -33,21 +33,48 @@ rule("shader_compile")
         -- Ensure output directory exists
         batchcmds:mkdir(outputdir)
 
-        -- Execute glslangValidator command
-        batchcmds:execv("C:/VulkanSDK/1.4.304.0/Bin/glslangValidator.exe", {
-            "-S", stage,
-            "-gVS",
-            "-Od", 
-            "-V",
-            "-e", "main",
-            "--target-env", "spirv1.4",
-            "-o", outputfile,
-            sourcefile
-        })
-        -- Execute command
-        batchcmds:execv(cmd)
-        
-        -- Add dependency
-        batchcmds:add_depfiles(sourcefile)
-        batchcmds:set_depmtime(os.mtime(outputfile))
+        if is_host("windows") then
+            local vulkan_sdk = os.getenv("VULKAN_SDK")
+            if vulkan_sdk then
+                -- Construct the full path to glslangValidator
+                local glslang_path = path.join(vulkan_sdk, "Bin", "glslangValidator.exe")
+                
+                -- Execute glslangValidator command
+                batchcmds:execv(glslang_path, {
+                    "-S", stage,
+                    "-gVS",
+                    "-Od", 
+                    "-V",
+                    "-e", "main",
+                    "--target-env", "spirv1.4",
+                    "-o", outputfile,
+                    sourcefile
+                })
+                
+                -- Add dependency
+                batchcmds:add_depfiles(sourcefile)
+                batchcmds:set_depmtime(os.mtime(outputfile))
+            else
+                -- Handle case where VULKAN_SDK is not set
+                print("Warning: VULKAN_SDK environment variable not found")
+            end
+        else
+            -- Handle non-Windows platforms
+            -- Try to find glslangValidator in PATH first
+            local glslang_cmd = "glslangValidator"
+            
+            batchcmds:execv(glslang_cmd, {
+                "-S", stage,
+                "-gVS",
+                "-Od",
+                "-V", 
+                "-e", "main",
+                "--target-env", "spirv1.4",
+                "-o", outputfile,
+                sourcefile
+            })
+            
+            batchcmds:add_depfiles(sourcefile)
+            batchcmds:set_depmtime(os.mtime(outputfile))
+        end
     end)

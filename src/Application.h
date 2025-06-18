@@ -34,6 +34,8 @@ namespace Cravillac
     {
     public:
         explicit Application();
+        void InitFrame();
+        void EndFrame();
         void Init();
         void Run();
         void DrawFrame();

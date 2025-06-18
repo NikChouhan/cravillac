@@ -61,7 +61,7 @@ namespace Cravillac
     {
         SM::Matrix translation = SM::Matrix::CreateTranslation(direction);
 
-        m_up = SM::Vector3::Transform(m_up, translation);
+        //m_up = SM::Vector3::Transform(m_up, translation);
         m_target = SM::Vector3::Transform(m_target, translation);
         m_position = SM::Vector3::Transform(m_position, translation);
 

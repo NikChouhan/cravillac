@@ -399,47 +399,40 @@ namespace
 	{
 		float moveSpeed = sensitivity * 5;
 
-		SM::Vector3 forward = camera->GetLookAtTarget();
+
+		SM::Vector3 forward = camera->GetLookAtTarget() - camera->GetPosition();
+		forward.y = 0.0f;
 		forward.Normalize();
 
-		SM::Vector3 up = camera->GetUp();
-		up.Normalize();
-
-		//might fix this later but I guess this left-right movement is more intuitive. Still will change it if needs be
-		SM::Vector3 right = forward.Cross(up);
+		SM::Vector3 worldUp(0.0f, 1.0f, 0.0f);
+		SM::Vector3 right = worldUp.Cross(forward);
 		right.Normalize();
 
 		// Calculate movement in local space
 		SM::Vector3 movement(0.0f, 0.0f, 0.0f);
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		{
-			//Log::Info("W key pressed");
-			movement += forward * moveSpeed * deltaTime;
-		}
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) movement += forward * moveSpeed * deltaTime;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) movement -= forward * moveSpeed * deltaTime;
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) movement -= right * moveSpeed * deltaTime;
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) movement += right * moveSpeed * deltaTime;
-		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) movement -= up * moveSpeed * deltaTime;
-		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) movement += up * moveSpeed * deltaTime;
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) movement -= worldUp * moveSpeed * deltaTime;
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) movement += worldUp * moveSpeed * deltaTime;
 		//Spar::Log::InfoDebug("movement: ", movement);
 		camera->Translate(movement);
 	}
 
 	void HandleMouseMovement(const std::shared_ptr<Cravillac::Camera>& camera, float deltaX, float deltaY, float sensitivity) {
-		deltaX *= sensitivity;
+		deltaX *= -sensitivity;
 		deltaY *= -sensitivity;
 
 		float yaw = 0.0f;
 		yaw += deltaX;
-		float pitch = 0.0f;
+		float pitch = 0.0f;	
 		pitch += deltaY;
 
 		bool constrainPitch = true;
 
 		if (constrainPitch) {
-			if (pitch > 89.0f) // Fixed to 89.0f for consistency  // NOLINT(readability-use-std-min-max)
-				pitch = 89.0f;
-			if (pitch < -89.0f)  // NOLINT(readability-use-std-min-max)
+			if (pitch > 89.0f && pitch < -89.0f) // Fixed to 89.0f for consistency
 				pitch = -89.0f;
 		}
 

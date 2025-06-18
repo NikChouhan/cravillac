@@ -41,10 +41,8 @@ namespace Cravillac
 		void SetNearPlane(const f32 nearPlane);
 		void SetFarPlane(const f32 farPlane);
 
-	private:
 		void InitViewMatrix();
 
-	private:
 		SM::Vector3 m_position;
 		SM::Vector3 m_target;
 		SM::Vector3 m_up;
@@ -56,7 +54,7 @@ namespace Cravillac
 		SM::Matrix  m_view;
 		SM::Matrix  m_proj;
 		SM::Matrix  m_ortho;
-		float m_yaw = 0.0f;
+		float m_yaw = -90.0f;
 		float m_pitch = 0.0f;
 	};
 }
