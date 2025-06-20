@@ -1,14 +1,10 @@
 #ifndef PIPELINE_MANAGER_H
 #define PIPELINE_MANAGER_H
-
-#include <string>
-#include <unordered_map>
-#include <array>
 #include <memory>
-
-#include "common.h"
+#include <string>
 #include <vector>
-
+#include <unordered_map>
+#include <vulkan/vulkan.hpp>
 
 namespace Cravillac
 {
@@ -21,9 +17,9 @@ namespace Cravillac
 		PipelineManager(ResourceManager* resourceManager, const std::shared_ptr<Renderer>& renderer);
 		~PipelineManager();	// TODO
 
-		VkPipeline getPipeline(const std::string& pipelineKey);
-		VkPipelineLayout getPipelineLayout(const std::string& pipelineLayoutKey);
-		
+		vk::Pipeline getPipeline(const std::string& pipelineKey);
+		vk::PipelineLayout getPipelineLayout(const std::string& pipelineLayoutKey);
+
 		class Builder
 		{
 		public:
@@ -31,13 +27,14 @@ namespace Cravillac
 			Builder& setVertexShader(const std::string& path);
 			Builder& setMeshShader(const std::string& path);
 			Builder& setFragmentShader(const std::string& path);
-			Builder& setPipelineLayout(VkPipelineLayout pipelineLayout);
+			Builder& setPipelineLayout(vk::PipelineLayout pipelineLayout);
 			Builder& addDescriptorSetLayout(const std::string& key);
-			Builder& setDynamicStates(const std::vector<VkDynamicState>& dynamicStates);
-			Builder& setTopology(VkPrimitiveTopology topology);
+			Builder& setDynamicStates(const std::vector<vk::DynamicState>& dynamicStates);
+			Builder& setTopology(vk::PrimitiveTopology topology);
 			Builder& setDepthTest(bool enable);
 			Builder& setBlendMode(bool enable);
-			VkPipeline build(const std::string& pipelineKey);
+			vk::Pipeline build(const std::string& pipelineKey);
+
 			friend class PipelineManager;
 
 		private:
@@ -45,22 +42,22 @@ namespace Cravillac
 			std::string m_vertShaderPath;
 			std::string m_meshShaderPath;
 			std::string m_fragShaderPath;
-			std::vector<VkDynamicState> m_dynamicStates;
+			std::vector<vk::DynamicState> m_dynamicStates;
 			std::vector<std::string> m_descriptorSetLayoutKeys;
-			VkPipelineLayout m_pipelineLayout;
-			VkPrimitiveTopology m_topology;
+			vk::PipelineLayout m_pipelineLayout;
+			vk::PrimitiveTopology m_topology;
 			bool m_depthTest;
 			bool m_blendMode;
 		};
-		
+
 	private:
 		ResourceManager* m_resourceManager;
 		std::shared_ptr<Renderer> m_renderer;
-		std::unordered_map<std::string, VkPipeline> m_pipelineCache;
-		std::unordered_map<std::string, VkPipelineLayout> m_pipelineLayoutCache;
+		std::unordered_map<std::string, vk::Pipeline> m_pipelineCache;
+		std::unordered_map<std::string, vk::PipelineLayout> m_pipelineLayoutCache;
 
-		VkPipeline createPipeline(const std::string& pipelineKey, const Builder& builder);
-		VkPipelineLayout createPipelineLayout(const std::vector<std::string>& descLayoutKeys);
+		vk::Pipeline createPipeline(const std::string& pipelineKey, const Builder& builder);
+		vk::PipelineLayout createPipelineLayout(const std::vector<std::string>& descLayoutKeys);
 	};
 }
 

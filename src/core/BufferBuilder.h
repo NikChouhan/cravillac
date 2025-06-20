@@ -1,7 +1,7 @@
 #ifndef BUFFER_BUILDER_H
 #define BUFFER_BUILDER_H
 
-#include <common.h>
+#include <vulkan/vulkan.hpp>
 
 // have the staging buffers here so no staging buffer copying or such is not visible in the application side
 
@@ -15,17 +15,17 @@ namespace Cravillac
 		explicit BufferBuilder(ResourceManager& resourceManager);
 		~BufferBuilder() = default;
 
-		BufferBuilder& setSize(VkDeviceSize size);
-		BufferBuilder& setUsage(VkBufferUsageFlags usage);
-		BufferBuilder& setMemoryProperties(VkMemoryPropertyFlags properties);
+		BufferBuilder& setSize(vk::DeviceSize size);
+		BufferBuilder& setUsage(vk::BufferUsageFlags usage);
+		BufferBuilder& setMemoryProperties(vk::MemoryPropertyFlags properties);
 
-		VkBuffer build(VkDeviceMemory& outMemory) const;
+		vk::Buffer build(vk::DeviceMemory& outMemory) const;
 
 	private:
 		ResourceManager& m_resourceManager;
-		VkDeviceSize m_size{};
-		VkBufferUsageFlags m_usage{};
-		VkMemoryPropertyFlags m_memProps{};
+		vk::DeviceSize m_size{};
+		vk::BufferUsageFlags m_usage{};
+		vk::MemoryPropertyFlags m_memProps{};
 	};
 }
 

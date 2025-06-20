@@ -1,3 +1,5 @@
+#include <pch.h>
+
 #include "Application.h"
 
 #include <chrono>
@@ -32,16 +34,6 @@ namespace Cravillac
 
 	void Application::Init()
 	{
-		Log::Init();
-		if (volkInitialize() == VK_SUCCESS)
-		{
-			Log::Info("[VULKAN] Volk works");
-		}
-		else 
-		{
-			Log::Error("[VULKAN] Volk fails!");
-			return;
-		}
 		title = "Cravillac";
 		// camera setup
 		m_camera->InitAsPerspective(45.0f, WIDTH, HEIGHT);
@@ -53,7 +45,6 @@ namespace Cravillac
 		m_window = glfwCreateWindow(WIDTH, HEIGHT, this->title, nullptr, nullptr);
 
 		renderer->InitVulkan();
-		volkLoadInstance(renderer->m_instance);
 
 		glfwMakeContextCurrent(m_window);
 		glfwSetWindowUserPointer(m_window, this);
@@ -61,18 +52,16 @@ namespace Cravillac
 		glfwSetCursorPosCallback(m_window, mouse_callback);
 		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-		if (glfwCreateWindowSurface(renderer->m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
-		{
-			Log::Error("[VULKAN] Surface Creation Failure");
-		}
-		else
-			Log::Info("[VULKAN] Surface Creation Success");
+		VkSurfaceKHR ret{};
+
+		auto result = (glfwCreateWindowSurface(renderer->m_instance, m_window, nullptr, &ret));
+		if (result != VK_SUCCESS)
+			Log::Error("[VULKAN] Failed to initialise GLFW window surface");
+		else Log::Info("[VULKAN] Initialised GLFW window surface");
+		m_surface = vk::SurfaceKHR{ ret };
 		// post surface stuff
 		renderer->PickPhysicalDevice(m_surface);
 		renderer->CreateLogicalDevice(m_surface);
-		// load all entrypoints directly from driver
-		volkLoadDevice(renderer->m_device);
-
 		renderer->CreateSwapChain(m_surface, m_window);
 		renderer->CreateDepthResources();
 		renderer->CreateCommandPool(m_surface);
@@ -95,28 +84,28 @@ namespace Cravillac
 
 #if MESH_SHADING
 		// bda + pvp for meshlet buffer address
-		VkBufferDeviceAddressInfo meshletBufferAddressInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+		vk::BufferDeviceAddressInfo meshletBufferAddressInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
 		meshletBufferAddressInfo.buffer = models[0].m_meshletBuffer;
 		m_meshletBufferAddress = vkGetBufferDeviceAddress(renderer->m_device, &meshletBufferAddressInfo);
 #else
 		// bda + pvp get vertex buffer address
-		VkBufferDeviceAddressInfo vertexBufferAddressInfo {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+		vk::BufferDeviceAddressInfo vertexBufferAddressInfo{};
 		vertexBufferAddressInfo.buffer = models[0].m_vertexBuffer;
-		m_vertexBufferAddress = vkGetBufferDeviceAddress(renderer->m_device, &vertexBufferAddressInfo);
+		m_vertexBufferAddress = renderer->m_device.getBufferAddress(&vertexBufferAddressInfo);
 #endif
 		// descriptor pool/sets
-		std::vector<VkDescriptorPoolSize> poolSizes;
+		std::vector<vk::DescriptorPoolSize> poolSizes;
 
 		poolSizes.resize(1);
 
 		MAX_TEXTURES = static_cast<uint32_t>(mod1.modelTextures.size()) * MAX_FRAMES_IN_FLIGHT * 2;	// kept it as large as possible cuz lazy
 
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[0].type = vk::DescriptorType::eCombinedImageSampler;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES);
 
 		m_resourceManager->ConfigureDescriptorPoolSizes(poolSizes, MAX_FRAMES_IN_FLIGHT * poolSizes.size() *4);
 
-		std::vector<VkDescriptorSetLayout> descLayout;
+		std::vector<vk::DescriptorSetLayout> descLayout;
 
 		descLayout.resize(1);
 
@@ -127,9 +116,9 @@ namespace Cravillac
 			descriptorSets[i].resize(1);
 			descriptorSets[i][0] = m_resourceManager->CreateDescriptorSet(descLayout[0]);
 			// texture descriptor
-			VkBuffer buffer = VK_NULL_HANDLE;
+			vk::Buffer buffer{};
 			descriptorSets[i][0] = m_resourceManager->UpdateDescriptorSet(
-				descriptorSets[i][0], 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, buffer, static_cast<uint64_t>(0),
+				descriptorSets[i][0], 0, vk::DescriptorType::eCombinedImageSampler, buffer, static_cast<uint64_t>(0),
 				mod1.modelTextures);
 		}
 		// manage pipelines
@@ -150,8 +139,8 @@ namespace Cravillac
 			.setVertexShader("shaders/mesh.vert.spv")
 			.setFragmentShader("shaders/mesh.frag.spv")
 			.addDescriptorSetLayout("textures")
-			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-			.setDynamicStates({VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR})
+			.setTopology(vk::PrimitiveTopology::eTriangleList)
+			.setDynamicStates({vk::DynamicState::eViewport, vk::DynamicState::eScissor})
 			.setDepthTest(true)
 			.setBlendMode(false)
 			.build("mesh_raster");
@@ -183,20 +172,19 @@ namespace Cravillac
 			float sensitivity = 0.2f;
 			HandleCameraMovement(m_camera, m_window, deltaTime, sensitivity);
 
-			vkWaitForFences(renderer->m_device, 1, &m_inFlightFence[m_currentFrame], VK_TRUE, UINT64_MAX);
-			vkResetFences(renderer->m_device, 1, &m_inFlightFence[m_currentFrame]);
+		 	VK_ASSERT(renderer->m_device.waitForFences(1u, &m_inFlightFence[m_currentFrame], VK_TRUE, UINT64_MAX));
+			VK_ASSERT(renderer->m_device.resetFences(1u, &m_inFlightFence[m_currentFrame]));
 
 			uint32_t imageIndex{};
-			vkAcquireNextImageKHR(renderer->m_device, renderer->m_swapChain, UINT64_MAX, m_imageAvailableSemaphore[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+			VK_ASSERT(renderer->m_device.acquireNextImageKHR(renderer->m_swapChain, UINT64_MAX, m_imageAvailableSemaphore[m_currentFrame], VK_NULL_HANDLE, &imageIndex));
 
-			vkResetCommandBuffer(m_cmdBuffers[m_currentFrame], 0);
+			m_cmdBuffers[m_currentFrame].reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 
 			RecordCmdBuffer(m_cmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
 
-			VkSubmitInfo submitInfo{
-				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
-			VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore[m_currentFrame] };
-			VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+			vk::SubmitInfo submitInfo{};
+			vk::Semaphore waitSemaphores[] = { m_imageAvailableSemaphore[m_currentFrame] };
+			vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 			// after the fragment stage cuz the actual shading occurs after. fragment stage only computes the color, doesn't actually render to the frame
 			submitInfo.waitSemaphoreCount = 1;
 			submitInfo.pWaitSemaphores = waitSemaphores;
@@ -205,17 +193,13 @@ namespace Cravillac
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &m_cmdBuffers[m_currentFrame];
 
-			VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphore[m_currentFrame] };
+			vk::Semaphore signalSemaphore[] = { m_renderFinishedSemaphore[m_currentFrame] };
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = signalSemaphore;
 
-			if (vkQueueSubmit(renderer->m_graphicsQueue, 1, &submitInfo, m_inFlightFence[m_currentFrame]) != VK_SUCCESS)
-			{
-				Log::Error("[DRAW] Submit Draw Command buffer Failed");
-			}
-			// else Log::Info("[DRAW] Submit Draw Command buffer Success");
+			VK_ASSERT(renderer->m_graphicsQueue.submit(1, &submitInfo, m_inFlightFence[m_currentFrame]));
 
-			VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+			vk::PresentInfoKHR presentInfo{};
 			presentInfo.waitSemaphoreCount = 1;
 			presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[m_currentFrame];
 			presentInfo.swapchainCount = 1;
@@ -223,7 +207,7 @@ namespace Cravillac
 			presentInfo.pImageIndices = &imageIndex;
 			presentInfo.pResults = nullptr;
 
-			vkQueuePresentKHR(renderer->m_presentQueue, &presentInfo);
+			VK_ASSERT(renderer->m_presentQueue.presentKHR(&presentInfo));
 
 			m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 			char newTitle[256];
@@ -235,36 +219,32 @@ namespace Cravillac
 		vkDeviceWaitIdle(renderer->m_device);
 	}
 
-	void Application::RecordCmdBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const
+	void Application::RecordCmdBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const
 	{
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
-		VkPipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("textures;");
+		vk::PipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("textures;");
 
-		VkCommandBufferBeginInfo beginInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			.flags = 0,
-			.pInheritanceInfo = nullptr };
+		vk::CommandBufferBeginInfo beginInfo{};
+		beginInfo.flags = {};
+		beginInfo.pInheritanceInfo = nullptr;
 
 		// begin cmd buffer -> do the transition stuff, fill rendering struct -> begin rendering ->bind pipeline
 		// -> bind vert/idx buffers -> bind desc sets -> draw -> end rendering -> do the remaining stuff like transition -> end command buffer
 
-		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-		{
-			Log::Error("[DRAW] Recording Command buffer Failure");
-		}
+		VK_ASSERT((commandBuffer.begin(&beginInfo)));
 		// transition color image from undefined to optimal for rendering
-		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED,
-		                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex],  vk::ImageLayout::eUndefined,
+		               vk::ImageLayout::eColorAttachmentOptimal);
 
 		// transition depth image from undefined to optimal for rendering
-		TransitionImage(commandBuffer, renderer->m_depthImage, VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		TransitionImage(commandBuffer, renderer->m_depthImage, vk::ImageLayout::eUndefined,
+			vk::ImageLayout::eDepthAttachmentOptimal);
 		// likely redundant cuz ubo sent to the ends
 		// for (const auto& meshInfo : models[0].m_meshitives)
 		// {
 		// 	UpdateUniformBuffer(currentFrame, meshInfo);
 		//
-		// 	VkMemoryBarrier memoryBarrier = {};
+		// 	vk::MemoryBarrier memoryBarrier = {};
 		// 	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 		// 	memoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
 		// 	memoryBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
@@ -272,27 +252,20 @@ namespace Cravillac
 		// 	                     &memoryBarrier, 0, nullptr, 0, nullptr);
 		// }
 
-		VkRenderingAttachmentInfo colorAttachmentInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			.imageView = renderer->m_swapChainImageViews[imageIndex],
-			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE };
-		colorAttachmentInfo.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-
-		VkRenderingAttachmentInfo depthAttachmentInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			.pNext = nullptr,
-			.imageView = renderer->m_depthImageView,
-			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		};
-		depthAttachmentInfo.clearValue.depthStencil = { 1.0f, 0 };
-		VkRenderingInfo renderingInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-		};
-		renderingInfo.renderArea.offset = { .x= 0, .y= 0};
+		vk::RenderingAttachmentInfo colorAttachmentInfo{};
+		colorAttachmentInfo.imageView = renderer->m_swapChainImageViews[imageIndex];
+		colorAttachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+		colorAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
+		colorAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+		colorAttachmentInfo.clearValue.color = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+		vk::RenderingAttachmentInfo depthAttachmentInfo{};
+		depthAttachmentInfo.imageView = renderer->m_depthImageView;
+		depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
+		depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+		depthAttachmentInfo.clearValue.depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
+		vk::RenderingInfo renderingInfo{};
+		renderingInfo.renderArea.offset = vk::Offset2D{ 0, 0};
 		renderingInfo.renderArea.extent = renderer->m_swapChainExtent;
 		renderingInfo.layerCount = 1;
 		renderingInfo.colorAttachmentCount = 1;
@@ -300,37 +273,36 @@ namespace Cravillac
 		renderingInfo.pDepthAttachment = &depthAttachmentInfo;
 #if MESH_SHADING
 		auto meshPipeline = pipelineManager->getPipeline("meshlet_raster");
-		vkCmdBeginRendering(commandBuffer, &renderingInfo);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, meshPipeline);
+		commandBuffer.beginRendering(&renderingInfo);
+		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, meshPipeline);
 #else
 		auto graphicsPipeline = pipelineManager->getPipeline("mesh_raster");
 
-		vkCmdBeginRendering(commandBuffer, &renderingInfo);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+		commandBuffer.beginRendering(&renderingInfo);
+	 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
 
-		VkBuffer vertexBuffers[] = { models[0].m_vertexBuffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, models[0].m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vk::Buffer vertexBuffers[] = { models[0].m_vertexBuffer };
+		vk::DeviceSize offsets[] = { 0 };
+		commandBuffer.bindVertexBuffers(0u, 1u, vertexBuffers, offsets);
+		commandBuffer.bindIndexBuffer(models[0].m_indexBuffer, 0u, vk::IndexType::eUint32);
 #endif
 
-		VkViewport viewport{};
+		vk::Viewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
 		viewport.width = static_cast<float>(renderer->m_swapChainExtent.width);
 		viewport.height = static_cast<float>(renderer->m_swapChainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		commandBuffer.setViewport(0u, 1u, &viewport);
 
-		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
+		vk::Rect2D scissor{};
+		scissor.offset = vk::Offset2D{ 0, 0 };
 		scissor.extent = renderer->m_swapChainExtent;
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		commandBuffer.setScissor(0u, 1u, &scissor);
 
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0u, 1u, descriptorSets[currentFrame].data(), 0u, nullptr);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-		                        descriptorSets[currentFrame].data(), 0, nullptr);
 
 		PushConstants pushConstants{};
 
@@ -351,10 +323,10 @@ namespace Cravillac
 				0, sizeof(PushConstants), &pushConstants);
 			vkCmdDrawMeshTasksEXT(commandBuffer, 32, 1, 1);
 #else
-			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+			commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 			                   0, sizeof(PushConstants), &pushConstants);
 
-			vkCmdDrawIndexed(commandBuffer, meshInfo.indexCount, 1, meshInfo.startIndex, static_cast<int32_t>(meshInfo.startVertex), 0);
+			commandBuffer.drawIndexed(meshInfo.indexCount, 1u, meshInfo.startIndex, static_cast<int32_t>(meshInfo.startVertex), 0u);
 #endif
 		}
 
@@ -362,15 +334,10 @@ namespace Cravillac
 		// transition color image to present mode. No need for depth image, it is used directly for depth purposes,
 		// and we don't need to store or use it elsewhere (at least currently)
 		TransitionImage(commandBuffer, renderer->m_swapChainImages[imageIndex],
-		                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		               vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-		{
-			Log::Error("[DRAW] Recording Command buffer Failure");
-		}
-		// else Log::Info("[DRAW] Recording Command buffer Success");
+		commandBuffer.end();
 	}
-
 
 	UniformBufferObject Application::UpdateUniformBuffer(const MeshInfo& meshInfo) const
 	{
@@ -391,6 +358,10 @@ namespace Cravillac
 		return ubo;
 	}
 
+	vk::Device Application::GetDevice()
+	{
+		return renderer->m_device;
+	}
 }
 
 namespace 

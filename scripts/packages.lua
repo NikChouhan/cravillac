@@ -28,5 +28,3 @@ add_requires("cgltf")
 --add_requires("vulkan-memory-allocator")
 
 add_requires("meshoptimizer")
-
-add_requires("volk")

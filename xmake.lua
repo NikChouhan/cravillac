@@ -19,7 +19,17 @@ add_defines("UNICODE", "_UNICODE")
 
 add_includedirs("src", "src/core", "src/renderer", "src/includes", { public = true })
 
+if is_host("windows") then
+    local vulkan_sdk = os.getenv("VULKAN_SDK")
+    if vulkan_sdk then
+        add_includedirs(path.join(vulkan_sdk, "Include"), {public = true})
+        add_linkdirs(path.join(vulkan_sdk, "Lib"), {public = true})
+        add_links("vulkan-1", {public = true})
+    end
+end
+
 set_languages("cxx23", "c17")
+set_policy("check.auto_ignore_flags", false)
 
 if (is_mode("debug")) then
     set_symbols("debug")

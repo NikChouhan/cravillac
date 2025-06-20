@@ -1,7 +1,7 @@
+#include <pch.h>
+
 #include "PipelineManager.h"
-
 #include <stdexcept>
-
 #include "Log.h"
 #include "ResourceManager.h"
 #include "Vertex.h"
@@ -10,11 +10,10 @@
 
 namespace Cravillac
 {
+    PipelineManager::PipelineManager(ResourceManager* resourceManager, const std::shared_ptr<Renderer>& renderer) : m_resourceManager(resourceManager), m_renderer(renderer) {}
 
-    PipelineManager::PipelineManager(ResourceManager* resourceManager, const std::shared_ptr<Renderer>& renderer) : m_resourceManager(resourceManager), m_renderer(renderer)  {}
-
-    VkPipeline PipelineManager::getPipeline(const std::string& pipelineKey)
-	{
+    vk::Pipeline PipelineManager::getPipeline(const std::string& pipelineKey)
+    {
         auto it = m_pipelineCache.find(pipelineKey);
         if (it != m_pipelineCache.end()) {
             return it->second;
@@ -23,13 +22,13 @@ namespace Cravillac
         throw std::runtime_error("Pipeline not found");
     }
 
-    VkPipelineLayout PipelineManager::getPipelineLayout(const std::string& pipelineLayoutKey)
+    vk::PipelineLayout PipelineManager::getPipelineLayout(const std::string& pipelineLayoutKey)
     {
         if (m_pipelineLayoutCache.contains(pipelineLayoutKey))
         {
             return m_pipelineLayoutCache[pipelineLayoutKey];
         }
-        return VK_NULL_HANDLE;
+        return nullptr;
     }
 
     PipelineManager::Builder::Builder(PipelineManager* manager) : m_manager(manager)
@@ -41,18 +40,20 @@ namespace Cravillac
         m_vertShaderPath = path;
         return *this;
     }
+
     PipelineManager::Builder& PipelineManager::Builder::setMeshShader(const std::string& path)
     {
         m_meshShaderPath = path;
         return *this;
     }
+
     PipelineManager::Builder& PipelineManager::Builder::setFragmentShader(const std::string& path)
     {
         m_fragShaderPath = path;
         return *this;
     }
 
-    PipelineManager::Builder& PipelineManager::Builder::setPipelineLayout(VkPipelineLayout pipelineLayout)
+    PipelineManager::Builder& PipelineManager::Builder::setPipelineLayout(vk::PipelineLayout pipelineLayout)
     {
         m_pipelineLayout = pipelineLayout;
         return *this;
@@ -64,14 +65,13 @@ namespace Cravillac
         return *this;
     }
 
-    PipelineManager::Builder& PipelineManager::Builder::setDynamicStates(const std::vector<VkDynamicState>& dynamicStates)
+    PipelineManager::Builder& PipelineManager::Builder::setDynamicStates(const std::vector<vk::DynamicState>& dynamicStates)
     {
-        m_dynamicStates.resize(dynamicStates.size());
         m_dynamicStates = dynamicStates;
         return *this;
     }
 
-    PipelineManager::Builder& PipelineManager::Builder::setTopology(VkPrimitiveTopology topology)
+    PipelineManager::Builder& PipelineManager::Builder::setTopology(vk::PrimitiveTopology topology)
     {
         m_topology = topology;
         return *this;
@@ -89,64 +89,58 @@ namespace Cravillac
         return *this;
     }
 
-    VkPipeline PipelineManager::Builder::build(const std::string& pipelineKey)
+    vk::Pipeline PipelineManager::Builder::build(const std::string& pipelineKey)
     {
         return m_manager->createPipeline(pipelineKey, *this);
     }
 
-    VkPipeline PipelineManager::createPipeline(const std::string& pipelineKey, const Builder& builder)
+    vk::Pipeline PipelineManager::createPipeline(const std::string& pipelineKey, const Builder& builder)
     {
         if (m_pipelineCache.contains(pipelineKey))
         {
             return m_pipelineCache[pipelineKey];
         }
 
-        VkPipelineLayout pipelineLayout = createPipelineLayout(builder.m_descriptorSetLayoutKeys);
+        vk::PipelineLayout pipelineLayout = createPipelineLayout(builder.m_descriptorSetLayoutKeys);
 
-        /*Log::InfoDebug("[SHADER] Vert buffer Size: ", vertShaderCode.size());
-        Log::InfoDebug("[SHADER] Frag buffer Size: ", fragShaderCode.size());*/
 #if MESH_SHADING
-        VkShaderModule meshShaderModule = m_resourceManager->getShaderModule(builder.m_meshShaderPath);
+        vk::ShaderModule meshShaderModule = m_resourceManager->getShaderModule(builder.m_meshShaderPath);
 #else
-        VkShaderModule vertShaderModule = m_resourceManager->getShaderModule(builder.m_vertShaderPath);
+        vk::ShaderModule vertShaderModule = m_resourceManager->getShaderModule(builder.m_vertShaderPath);
 #endif
-        VkShaderModule fragShaderModule = m_resourceManager->getShaderModule(builder.m_fragShaderPath);
+        vk::ShaderModule fragShaderModule = m_resourceManager->getShaderModule(builder.m_fragShaderPath);
 
-        // do stuff
-        VkPipelineShaderStageCreateInfo fragShaderStageInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = fragShaderModule,
-            .pName = "main" };
+        // Shader stages
+        vk::PipelineShaderStageCreateInfo fragShaderStageInfo;
+        fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+
 #if MESH_SHADING
-        VkPipelineShaderStageCreateInfo meshShaderStageInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_MESH_BIT_EXT,
-            .module = meshShaderModule,
-            .pName = "main" };
-        VkPipelineShaderStageCreateInfo shaderStages[] = { meshShaderStageInfo, fragShaderStageInfo };
+        vk::PipelineShaderStageCreateInfo meshShaderStageInfo;
+        meshShaderStageInfo.stage = vk::ShaderStageFlagBits::eMeshEXT;
+        meshShaderStageInfo.module = meshShaderModule;
+        meshShaderStageInfo.pName = "main";
+        std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = { meshShaderStageInfo, fragShaderStageInfo };
 #else
-        VkPipelineShaderStageCreateInfo vertexShaderStageInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vertShaderModule,
-            .pName = "main" };
-        VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShaderStageInfo, fragShaderStageInfo };
+        vk::PipelineShaderStageCreateInfo vertexShaderStageInfo;
+        vertexShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
+        vertexShaderStageInfo.module = vertShaderModule;
+        vertexShaderStageInfo.pName = "main";
+        std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = { vertexShaderStageInfo, fragShaderStageInfo };
 
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
         vertexInputInfo.vertexBindingDescriptionCount = 0;
         vertexInputInfo.pVertexBindingDescriptions = nullptr;
         vertexInputInfo.vertexAttributeDescriptionCount = 0;
         vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
+        inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 #endif
 
-        VkViewport viewport{};
+        vk::Viewport viewport;
         viewport.x = 0.0f;
         viewport.y = 0.0f;
         viewport.width = static_cast<float>(m_renderer->m_swapChainExtent.width);
@@ -154,168 +148,155 @@ namespace Cravillac
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
-        VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
+        vk::Rect2D scissor;
+        scissor.offset = vk::Offset2D{ 0, 0 };
         scissor.extent = m_renderer->m_swapChainExtent;
 
-        std::vector<VkDynamicState> dynamicStates = builder.m_dynamicStates;
+        vk::PipelineDynamicStateCreateInfo dynamicState;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(builder.m_dynamicStates.size());
+        dynamicState.pDynamicStates = builder.m_dynamicStates.data();
 
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-        dynamicState.pDynamicStates = dynamicStates.data();
-
-        VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        vk::PipelineViewportStateCreateInfo viewportState;
         viewportState.viewportCount = 1;
         viewportState.pViewports = nullptr;  // Null for dynamic
         viewportState.scissorCount = 1;
         viewportState.pScissors = nullptr;   // Null for dynamic
 
-        VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        vk::PipelineRasterizationStateCreateInfo rasterizer;
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.polygonMode = vk::PolygonMode::eFill;
+        rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+        rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
         rasterizer.depthBiasEnable = VK_FALSE;
-        rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-        rasterizer.depthBiasClamp = 0.0f;          // Optional
-        rasterizer.depthBiasSlopeFactor = 0.0f;    // Optional
+        rasterizer.depthBiasConstantFactor = 0.0f;
+        rasterizer.depthBiasClamp = 0.0f;
+        rasterizer.depthBiasSlopeFactor = 0.0f;
+        rasterizer.lineWidth = 1.0f;
 
-        VkPipelineMultisampleStateCreateInfo multisampling{};
-        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        vk::PipelineMultisampleStateCreateInfo multisampling;
+        multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
         multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        multisampling.minSampleShading = 1.0f;          // Optional
-        multisampling.pSampleMask = nullptr;            // Optional
-        multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-        multisampling.alphaToOneEnable = VK_FALSE;      // Optional
+        multisampling.minSampleShading = 1.0f;
+        multisampling.pSampleMask = nullptr;
+        multisampling.alphaToCoverageEnable = VK_FALSE;
+        multisampling.alphaToOneEnable = VK_FALSE;
 
-        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        vk::PipelineColorBlendAttachmentState colorBlendAttachment;
         colorBlendAttachment.blendEnable = builder.m_blendMode;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;             // Optional
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;             // Optional
+        colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eOne;
+        colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eZero;
+        colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
+        colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+        colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+        colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
+        colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+            vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
 
-        VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        vk::PipelineColorBlendStateCreateInfo colorBlending;
         colorBlending.logicOpEnable = VK_FALSE;
-        colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
+        colorBlending.logicOp = vk::LogicOp::eCopy;
         colorBlending.attachmentCount = 1;
         colorBlending.pAttachments = &colorBlendAttachment;
-        colorBlending.blendConstants[0] = 0.0f; // Optional
-        colorBlending.blendConstants[1] = 0.0f; // Optional
-        colorBlending.blendConstants[2] = 0.0f; // Optional
-        colorBlending.blendConstants[3] = 0.0f; // Optional
+        colorBlending.blendConstants = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 
-        VkPipelineDepthStencilStateCreateInfo depthInfo{};
-        depthInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        vk::PipelineDepthStencilStateCreateInfo depthInfo;
         depthInfo.depthTestEnable = VK_TRUE;
         depthInfo.depthWriteEnable = VK_TRUE;
-        depthInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthInfo.depthCompareOp = vk::CompareOp::eLess;
         depthInfo.depthBoundsTestEnable = VK_FALSE;
-        depthInfo.minDepthBounds = 0.f;
-        depthInfo.maxDepthBounds = 1.f;
         depthInfo.stencilTestEnable = VK_FALSE;
-        depthInfo.front = {};
-        depthInfo.back = {};
-
+        depthInfo.front = vk::StencilOpState{};
+        depthInfo.back = vk::StencilOpState{};
+        depthInfo.minDepthBounds = 0.0f;
+        depthInfo.maxDepthBounds = 1.0f;
 
         auto device = m_resourceManager->getDevice();
 
-        VkPipelineRenderingCreateInfo pipelineRenderingInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            .colorAttachmentCount = 1,
-            .pColorAttachmentFormats = &m_renderer->m_swapChainImageFormat,
-            .depthAttachmentFormat = m_renderer->m_depthImageFormat };
+        vk::PipelineRenderingCreateInfo pipelineRenderingInfo;
+        pipelineRenderingInfo.colorAttachmentCount = 1;
+        pipelineRenderingInfo.pColorAttachmentFormats = &m_renderer->m_swapChainImageFormat;
+        pipelineRenderingInfo.depthAttachmentFormat = m_renderer->m_depthImageFormat;
 
-        VkGraphicsPipelineCreateInfo pipelineCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .pNext = &pipelineRenderingInfo,
-            .stageCount = 2,
-            .pStages = shaderStages,
-            //remember its !MESH_SHADING
+        vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
+        pipelineCreateInfo.pNext = &pipelineRenderingInfo;
+        pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+        pipelineCreateInfo.pStages = shaderStages.data();
 #if !MESH_SHADING
-            .pVertexInputState = &vertexInputInfo,
-            .pInputAssemblyState = &inputAssembly,
+        pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
+        pipelineCreateInfo.pInputAssemblyState = &inputAssembly;
 #endif
-            .pViewportState = &viewportState,
-            .pRasterizationState = &rasterizer,
-            .pMultisampleState = &multisampling,
-            .pDepthStencilState = &depthInfo,
-            .pColorBlendState = &colorBlending,
-            .pDynamicState = &dynamicState,
-            .layout = pipelineLayout,
-            .renderPass = VK_NULL_HANDLE,
-        };
+        pipelineCreateInfo.pViewportState = &viewportState;
+        pipelineCreateInfo.pRasterizationState = &rasterizer;
+        pipelineCreateInfo.pMultisampleState = &multisampling;
+        pipelineCreateInfo.pDepthStencilState = &depthInfo;
+        pipelineCreateInfo.pColorBlendState = &colorBlending;
+        pipelineCreateInfo.pDynamicState = &dynamicState;
+        pipelineCreateInfo.layout = pipelineLayout;
+        pipelineCreateInfo.renderPass = nullptr;
 
-        VkPipeline graphicsPipeline;
+        try
+        {
+            auto result = device.createGraphicsPipelines(nullptr, { pipelineCreateInfo });
+            vk::Pipeline graphicsPipeline = result.value[0];
 
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
-        {
-            Log::Error("[VULKAN] Pipeline creation Failure");
-        }
-        else
-        {
             Log::InfoDebug("[PIPELINE] Pipeline created with key: ", pipelineKey);
+            m_pipelineCache[pipelineKey] = graphicsPipeline;
+            return graphicsPipeline;
         }
-        assert(graphicsPipeline);
-        m_pipelineCache[pipelineKey] = graphicsPipeline;
-        return graphicsPipeline;
+        catch (vk::SystemError& err)
+        {
+            Log::Error("[VULKAN] Pipeline creation Failure: " + std::string(err.what()));
+            throw;
+        }
     }
 
-    VkPipelineLayout PipelineManager::createPipelineLayout(const std::vector<std::string>& descLayoutKeys)
+    vk::PipelineLayout PipelineManager::createPipelineLayout(const std::vector<std::string>& descLayoutKeys)
     {
         std::string pipelineLayoutKey{};
 
-        for (const auto& key:descLayoutKeys)
+        for (const auto& key : descLayoutKeys)
         {
             pipelineLayoutKey += key + ";";
         }
 
-        if (m_pipelineCache.contains(pipelineLayoutKey))
+        if (m_pipelineLayoutCache.contains(pipelineLayoutKey))
         {
             return m_pipelineLayoutCache[pipelineLayoutKey];
         }
 
-        std::vector<VkDescriptorSetLayout> layouts;
+        std::vector<vk::DescriptorSetLayout> layouts;
         for (const auto& key : descLayoutKeys)
         {
             layouts.push_back(m_resourceManager->getDescriptorSetLayout(key));
         }
-        VkPushConstantRange pushConstantRange{};
+
+        vk::PushConstantRange pushConstantRange;
 #if MESH_SHADING
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eMeshEXT | vk::ShaderStageFlagBits::eFragment;
 #else
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 #endif
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(PushConstants);  // Size for material index
+        pushConstantRange.size = sizeof(PushConstants);
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(layouts.size());
+        vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
         pipelineLayoutInfo.pSetLayouts = layouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        VkPipelineLayout pipelineLayout;
-        if (vkCreatePipelineLayout(m_renderer->m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+        try
         {
-            Log::Error("[VULKAN] Pipeline Layout creation Failure");
-        }
-        else
+            vk::PipelineLayout pipelineLayout = m_renderer->m_device.createPipelineLayout(pipelineLayoutInfo);
             Log::Info("[VULKAN] Pipeline Layout creation Success");
-        m_pipelineLayoutCache[pipelineLayoutKey] = pipelineLayout;
-
-        return pipelineLayout;
+            m_pipelineLayoutCache[pipelineLayoutKey] = pipelineLayout;
+            return pipelineLayout;
+        }
+        catch (vk::SystemError& err)
+        {
+            Log::Error("[VULKAN] Pipeline Layout creation Failure: " + std::string(err.what()));
+            throw;
+        }
     }
 }
-

@@ -1,7 +1,11 @@
 #pragma once
 
+#include <SimpleMath.h>
+
 #include "common.h"
 #include <StandardTypes.h>
+
+namespace SM = DirectX::SimpleMath;
 
 namespace Cravillac
 {

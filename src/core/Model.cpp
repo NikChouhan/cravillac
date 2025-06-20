@@ -1,3 +1,5 @@
+#include <pch.h>
+
 #include <meshoptimizer.h>
 
 #include "Model.h"
@@ -477,9 +479,9 @@ bool Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_vi
 
 void Cravillac::Model::SetBuffers()
 {
-    VkDeviceSize bufferSize;
-    VkBuffer stagingBuffer{};
-    VkDeviceMemory stagingBufferMemory{};
+    vk::DeviceSize bufferSize;
+    vk::Buffer stagingBuffer{};
+    vk::DeviceMemory stagingBufferMemory{};
     void* data;
     // meshlet buffer stuff
 #if MESH_SHADING
@@ -512,8 +514,8 @@ void Cravillac::Model::SetBuffers()
 
     stagingBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
-        .setUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
-        .setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        .setUsage(vk::BufferUsageFlagBits::eTransferSrc| vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .setMemoryProperties(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
         .build(stagingBufferMemory);
 
     vkMapMemory(m_renderer->m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
@@ -522,8 +524,8 @@ void Cravillac::Model::SetBuffers()
 
     m_vertexBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
-        .setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
-        .setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+        .setUsage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .setMemoryProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
         .build(m_vertexMemory);
 
     CopyBuffer(m_renderer->m_device, m_renderer->m_commandPool, m_renderer->m_graphicsQueue, stagingBuffer, m_vertexBuffer,
@@ -535,8 +537,8 @@ void Cravillac::Model::SetBuffers()
 
     stagingBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
-        .setUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
-        .setMemoryProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        .setUsage(vk::BufferUsageFlagBits::eTransferSrc)
+        .setMemoryProperties(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
         .build(stagingBufferMemory);
 
     data = nullptr;
@@ -546,8 +548,8 @@ void Cravillac::Model::SetBuffers()
 
     m_indexBuffer = m_resourceManager->CreateBufferBuilder()
         .setSize(bufferSize)
-        .setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
-        .setMemoryProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+        .setUsage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
+        .setMemoryProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
         .build(m_indexMemory);
 
     CopyBuffer(m_renderer->m_device, m_renderer->m_commandPool, m_renderer->m_graphicsQueue, stagingBuffer, m_indexBuffer,

@@ -76,11 +76,11 @@ struct Material
     std::string EmissivePath;
     std::string AOPath;
 
-    VkImageView AlbedoView = nullptr;
-    VkImageView NormalView = nullptr;
-    VkImageView MetallicRoughnessView = nullptr;
-    VkImageView EmissiveView = nullptr;
-    VkImageView AOView = nullptr;
+    vk::ImageView AlbedoView = nullptr;
+    vk::ImageView NormalView = nullptr;
+    vk::ImageView MetallicRoughnessView = nullptr;
+    vk::ImageView EmissiveView = nullptr;
+    vk::ImageView AOView = nullptr;
 
     DirectX::XMFLOAT3 FlatColor;
 };
@@ -137,17 +137,17 @@ namespace Cravillac
         std::shared_ptr<Renderer> m_renderer;
 
 
-        VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
-        VkBuffer m_indexBuffer = VK_NULL_HANDLE;
-        VkBuffer m_meshletBuffer = VK_NULL_HANDLE;
+        vk::Buffer m_vertexBuffer = VK_NULL_HANDLE;
+        vk::Buffer m_indexBuffer = VK_NULL_HANDLE;
+        vk::Buffer m_meshletBuffer = VK_NULL_HANDLE;
 
         std::vector<Texture> modelTextures;
     private:
 
 
-        VkDeviceMemory m_vertexMemory = VK_NULL_HANDLE;
-        VkDeviceMemory m_indexMemory = VK_NULL_HANDLE;
-        VkDeviceMemory m_meshletMemory = VK_NULL_HANDLE;
+        vk::DeviceMemory m_vertexMemory = VK_NULL_HANDLE;
+        vk::DeviceMemory m_indexMemory = VK_NULL_HANDLE;
+        vk::DeviceMemory m_meshletMemory = VK_NULL_HANDLE;
 
         std::unordered_set<std::string> loadedTextures; // To track loaded textures
         std::unordered_map<cgltf_material*, size_t> materialLookup;

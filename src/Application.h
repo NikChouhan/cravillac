@@ -7,6 +7,9 @@
 #include "Vertex.h"
 #include "Model.h"
 
+#include <vulkan/vulkan.hpp>
+#include <GLFW/glfw3.h>
+
 namespace Cravillac 
 {
     class Texture;
@@ -41,30 +44,32 @@ namespace Cravillac
         void DrawFrame();
         void SetResources();
 
-        void RecordCmdBuffer(VkCommandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
+        void RecordCmdBuffer(vk::CommandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
         [[nodiscard]] UniformBufferObject UpdateUniformBuffer(const MeshInfo& meshInfo) const;
 
+        vk::Device GetDevice();
 
         std::shared_ptr<Cravillac::Camera> m_camera;
 
     private:
         const char *title;
-        VkSurfaceKHR m_surface;
+        vk::SurfaceKHR m_surface;
         std::shared_ptr<Renderer> renderer;
+        vk::Device device{};
         GLFWwindow* m_window = nullptr;
         ResourceManager* m_resourceManager;
         // bda handle
-        VkDeviceAddress m_vertexBufferAddress;
-        VkDeviceAddress m_meshletBufferAddress;
+        vk::DeviceAddress m_vertexBufferAddress;
+        vk::DeviceAddress m_meshletBufferAddress;
 
-        std::array<std::vector<VkDescriptorSet>, MAX_FRAMES_IN_FLIGHT> descriptorSets;
+        std::array<std::vector<vk::DescriptorSet>, MAX_FRAMES_IN_FLIGHT> descriptorSets;
 
-        std::vector<VkCommandBuffer> m_cmdBuffers{ VK_NULL_HANDLE };
+        std::vector<vk::CommandBuffer> m_cmdBuffers{ VK_NULL_HANDLE };
 
         // sync primitives
-        std::vector<VkSemaphore> m_imageAvailableSemaphore{ VK_NULL_HANDLE };
-        std::vector<VkSemaphore> m_renderFinishedSemaphore{ VK_NULL_HANDLE };
-        std::vector<VkFence> m_inFlightFence{ VK_NULL_HANDLE };
+        std::vector<vk::Semaphore> m_imageAvailableSemaphore{ VK_NULL_HANDLE };
+        std::vector<vk::Semaphore> m_renderFinishedSemaphore{ VK_NULL_HANDLE };
+        std::vector<vk::Fence> m_inFlightFence{ VK_NULL_HANDLE };
 
         std::vector<Texture> textures;
         uint32_t m_currentFrame{ 0 };

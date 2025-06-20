@@ -1,45 +1,35 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#ifdef _WIN32
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_EXPOSE_NATIVE_WIN32
-#elif defined(__linux__)
-#if defined(USE_WAYLAND)
-#define VK_USE_PLATFORM_WAYLAND_KHR
-#define GLFW_EXPOSE_NATIVE_WAYLAND
-#else
-#define VK_USE_PLATFORM_XLIB_KHR
-#define GLFW_EXPOSE_NATIVE_X11
-#endif
-#endif
-
-#define VK_NO_PROTOTYPES
-#include <volk.h>
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
-
-#include <SimpleMath.h>
-
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 inline uint32_t MAX_TEXTURES = 256;
 
-namespace SM = DirectX::SimpleMath;
-
 // meshInfo shading pipeline
-#define MESH_SHADING 0  // NOLINT(modernize-macro-to-enum)
+#define MESH_SHADING 0
 
 // error check
 
-#define VK_ASSERT(call)                                                                 \
-    do                                                                                 \
-    {                                                                                  \
-        VkResult result = call;                                                        \
-        if (result != VK_SUCCESS)                                                      \
-        {                                                                              \
-            fprintf(stderr, "Vulkan error %d at %s:%d\n", result, __FILE__, __LINE__); \
-            abort();                                                                   \
-        }                                                                              \
+#define VK_ASSERT(call)                                                                                     \
+    do                                                                                                      \
+    {                                                                                                       \
+        vk::Result result = call;                                                                           \
+        if (result != vk::Result::eSuccess)                                                                 \
+        {                                                                                                   \
+            fprintf(stderr, "Vulkan error %d at %s:%d\n", static_cast<int>(result), __FILE__, __LINE__);    \
+			abort();                                                                                        \
+        }                                                                                                   \
+    } while (0)
+// assert with lambda
+#define VK_ASSERT_L(call, cleanupLambda)                                                                      \
+    do                                                                                                      \
+    {                                                                                                       \
+        vk::Result result = call;                                                                           \
+        if (result != vk::Result::eSuccess)                                                                 \
+        {                                                                                                   \
+            fprintf(stderr, "Vulkan error %d at %s:%d\n", static_cast<int>(result), __FILE__, __LINE__);    \
+			cleanupLambda();                                                                                \
+			abort();                                                                                        \
+        }                                                                                                   \
     } while (0)
 
 #endif // COMMON_H

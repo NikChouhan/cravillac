@@ -1,9 +1,8 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "common.h"
-
 #include <memory>
+#include <vulkan/vulkan.hpp>
 
 namespace Cravillac
 {
@@ -21,11 +20,11 @@ namespace Cravillac
         void CreateTextureSampler();
 
     public:
-        VkImage m_texImage = VK_NULL_HANDLE;
-        VkDeviceMemory m_texImageMemory = VK_NULL_HANDLE;
-        VkImageView m_texImageView = VK_NULL_HANDLE;
-        VkSampler m_texSampler = VK_NULL_HANDLE;
-        std::shared_ptr<Cravillac::Renderer> m_renderer;
+        vk::Image m_texImage = VK_NULL_HANDLE;
+        vk::DeviceMemory m_texImageMemory = VK_NULL_HANDLE;
+        vk::ImageView m_texImageView = VK_NULL_HANDLE;
+        vk::Sampler m_texSampler = VK_NULL_HANDLE;
+        std::shared_ptr<Renderer> m_renderer;
     };
 }
 

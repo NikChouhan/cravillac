@@ -1,17 +1,20 @@
 #ifndef VERTEX_H
 #define VERTEX_H
 
-#include "common.h"
-#include <array>
+#include <vulkan/vulkan.hpp>
 
+#include "common.h"
+#include <SimpleMath.h>
 #include "StandardTypes.h"
+
+namespace SM = DirectX::SimpleMath;
 
 namespace  Cravillac
 {
     struct PushConstants
     {
         DirectX::XMMATRIX mvp;
-        VkDeviceAddress vertexBufferAddress;
+        vk::DeviceAddress vertexBufferAddress;
 #if MESH_SHADING
         VkDeviceAddress meshletBufferAddress;
 #endif

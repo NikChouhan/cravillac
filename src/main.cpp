@@ -1,6 +1,7 @@
 #include "Application.h"
+#include <pch.h>
 
-int main() 
+int main()
 {
     Cravillac::Application app;
     app.Init();

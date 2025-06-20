@@ -1,3 +1,5 @@
+#include <pch.h>
+
 #include "Texture.h"
 #include "renderer.h"
 #include "Log.h"
@@ -27,12 +29,12 @@ namespace Cravillac
         }
         else
         {
-            VkDeviceSize imageSize = width * height * 4;
+            vk::DeviceSize imageSize = width * height * 4;
 
-            VkBuffer stagingBuffer{};
-            VkDeviceMemory stagingBufferMemory{};
+            vk::Buffer stagingBuffer{};
+            vk::DeviceMemory stagingBufferMemory{};
 
-            CreateBuffer(renderer->m_device, renderer->m_physicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+            CreateBuffer(renderer->m_device, renderer->m_physicalDevice, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingBufferMemory);
 
             void *data;
             vkMapMemory(renderer->m_device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -40,13 +42,13 @@ namespace Cravillac
             vkUnmapMemory(renderer->m_device, stagingBufferMemory);
             stbi_image_free(imgData);
 
-            CreateImage(renderer->m_physicalDevice, renderer->m_device, width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texImage, m_texImageMemory);
+            CreateImage(renderer->m_physicalDevice, renderer->m_device, width, height, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, m_texImage, m_texImageMemory);
 
-            VkCommandBuffer tempCmdBuffer = BeginSingleTimeCommands(renderer->m_device, renderer->m_commandPool);
+            vk::CommandBuffer tempCmdBuffer = BeginSingleTimeCommands(renderer->m_device, renderer->m_commandPool);
 
-            TransitionImage(tempCmdBuffer, m_texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            TransitionImage(tempCmdBuffer, m_texImage, {}, vk::ImageLayout::eTransferDstOptimal);
             CopyBufferToImage(tempCmdBuffer, m_texImage, stagingBuffer, width, height);
-            TransitionImage(tempCmdBuffer, m_texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            TransitionImage(tempCmdBuffer, m_texImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 
             EndSingleTimeCommands(renderer->m_device, renderer->m_graphicsQueue, renderer->m_commandPool, tempCmdBuffer);
 
@@ -59,39 +61,40 @@ namespace Cravillac
     }
     void Texture::CreateTextureImageView()
     {
-        m_texImageView = CreateImageView(m_renderer->m_device, m_texImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        m_texImageView = CreateImageView(m_renderer->m_device, m_texImage, vk::Format::eR8G8B8A8Srgb,vk::ImageAspectFlagBits::eColor);
     }
     void Texture::CreateTextureSampler()
     {
-        VkSamplerCreateInfo samplerInfo{
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .magFilter = VK_FILTER_LINEAR,
-            .minFilter = VK_FILTER_LINEAR,
-        };
+        vk::SamplerCreateInfo samplerInfo{};
+        samplerInfo.magFilter = vk::Filter::eLinear;
+        samplerInfo.minFilter = vk::Filter::eLinear;
 
-        VkPhysicalDeviceProperties2 properties{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-        vkGetPhysicalDeviceProperties2(m_renderer->m_physicalDevice, &properties);
+        vk::PhysicalDeviceProperties2 properties{};
+        properties = m_renderer->m_physicalDevice.getProperties2();
 
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        samplerInfo.addressModeU = vk::SamplerAddressMode::eMirroredRepeat;
+        samplerInfo.addressModeV = vk::SamplerAddressMode::eMirroredRepeat;
+        samplerInfo.addressModeW = vk::SamplerAddressMode::eMirroredRepeat;
         samplerInfo.anisotropyEnable = VK_TRUE;
         samplerInfo.maxAnisotropy = properties.properties.limits.maxSamplerAnisotropy;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
         samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.compareOp = vk::CompareOp::eAlways;
+        samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
 
-        if (vkCreateSampler(m_renderer->m_device, &samplerInfo, nullptr, &m_texSampler) != VK_SUCCESS)
+        try
         {
-            Log::Error("[TEXTURE] Failure to create Texture Sampler");
-            m_texSampler = VK_NULL_HANDLE;
-        }
-        else
+            m_texSampler = m_renderer->m_device.createSampler(samplerInfo);
             Log::Info("[TEXTURE] Success to create Texture Sampler");
+        }
+        catch (vk::SystemError& err)
+        {
+            Log::Error("[TEXTURE] Failure to create Texture Sampler: " + std::string(err.what()));
+            m_texSampler = nullptr;
+        }
     }
 };

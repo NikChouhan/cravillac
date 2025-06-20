@@ -1,5 +1,5 @@
-#include <vector>
-#include <string>
+#include <pch.h>
+
 #include <fstream>
 #include <set>
 #include <algorithm>
@@ -56,13 +56,12 @@ namespace Cravillac
         return extensions;
     }
 
-    bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+    bool IsDeviceSuitable(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface)
     {
         const QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
-
-	        const bool extensionsSupported = CheckDeviceExtensionSupport(physicalDevice);
-
+        const bool extensionsSupported = CheckDeviceExtensionSupport(physicalDevice);
         bool swapChainAdequate = false;
+
         if (extensionsSupported)
         {
             Log::Info("[VULKAN] Required Extensions supported!");
@@ -72,18 +71,13 @@ namespace Cravillac
 
         return indices.IsComplete() && extensionsSupported && swapChainAdequate;
     }
-
-    bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice)
+    bool CheckDeviceExtensionSupport(vk::PhysicalDevice physicalDevice)
     {
-        uint32_t extensionCount = 0;
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
-
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+        auto availableExtensions = physicalDevice.enumerateDeviceExtensionProperties();
 
         std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-        for (const auto &extension : availableExtensions)
+        for (const auto& extension : availableExtensions)
         {
             requiredExtensions.erase(extension.extensionName);
         }
@@ -91,31 +85,25 @@ namespace Cravillac
         return requiredExtensions.empty();
     }
 
-    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+    QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface)
     {
         QueueFamilyIndices indices;
 
-        uint32_t queueFamilyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-        VkBool32 presentSupport = false;
+        auto queueFamilies = physicalDevice.getQueueFamilyProperties();
 
         int i = 0;
-        for (const auto &queueFamily : queueFamilies)
+        for (const auto& queueFamily : queueFamilies)
         {
-            // Log::InfoDebug("[VULKAN] Queue Family: ", queueFamily.queueFlags);
+            // Log::InfoDebug("[VULKAN] Queue Family: ", static_cast<uint32_t>(queueFamily.queueFlags));
 
-            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+            bool presentSupport = physicalDevice.getSurfaceSupportKHR(i, surface);
 
             if (presentSupport)
             {
                 indices._presentFamily = i;
             }
 
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
             {
                 indices._graphicsFamily = i;
 
@@ -128,36 +116,23 @@ namespace Cravillac
         return indices;
     }
 
-    SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+    SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface)
     {
         SwapChainSupportDetails details;
 
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
-        uint32_t formatCount{0};
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-        if (formatCount != 0)
-        {
-            details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
-        }
-
-        uint32_t presentModeCount{0};
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
-
-        if (presentModeCount != 0)
-        {
-            details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.presentModes.data());
-        }
+        details.capabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
+        details.formats = physicalDevice.getSurfaceFormatsKHR(surface);
+        details.presentModes = physicalDevice.getSurfacePresentModesKHR(surface);
 
         return details;
     }
 
-    VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats)
+    vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
     {
-        for (const auto &availableFormat : availableFormats)
+        for (const auto& availableFormat : availableFormats)
         {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            if (availableFormat.format == vk::Format::eB8G8R8A8Srgb &&
+                availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
             {
                 return availableFormat;
             }
@@ -165,11 +140,11 @@ namespace Cravillac
         return availableFormats[0];
     }
 
-    VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes)
+    vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes)
     {
-        for (const auto &availablePresentMode : availablePresentModes)
+        for (const auto& availablePresentMode : availablePresentModes)
         {
-            if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+            if (availablePresentMode == vk::PresentModeKHR::eImmediate)
             {
                 return availablePresentMode;
             }
@@ -177,7 +152,7 @@ namespace Cravillac
         return availablePresentModes[0];
     }
 
-    VkExtent2D ChooseSwapExtent(GLFWwindow *window, const VkSurfaceCapabilitiesKHR &capabilities)
+    vk::Extent2D ChooseSwapExtent(GLFWwindow* window, const vk::SurfaceCapabilitiesKHR& capabilities)
     {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
         {
@@ -188,21 +163,20 @@ namespace Cravillac
             int width, height;
             glfwGetFramebufferSize(window, &width, &height);
 
-            VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+            vk::Extent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 
             actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
-                                            capabilities.maxImageExtent.height);
+                capabilities.maxImageExtent.width);
             actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
-                                             capabilities.maxImageExtent.height);
+                capabilities.maxImageExtent.height);
 
             return actualExtent;
         }
     }
 
-    std::optional<u32> FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+    std::optional<uint32_t> FindMemoryType(vk::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties)
     {
-        VkPhysicalDeviceMemoryProperties memProperties{};
-        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+        auto memProperties = physicalDevice.getMemoryProperties();
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
         {
@@ -213,351 +187,359 @@ namespace Cravillac
         }
         Log::Error("[MEMORY] Failed to find suitable memory type");
         return std::nullopt;
-
     }
 
-    void TransitionImage(VkCommandBuffer commandBuffer, VkImage &image, VkImageLayout currentLayout,
-                         VkImageLayout newLayout)
+    void TransitionImage(vk::CommandBuffer commandBuffer, vk::Image image, vk::ImageLayout currentLayout, vk::ImageLayout newLayout)
     {
-        VkImageAspectFlags aspectMask{0};
-        VkPipelineStageFlags2 srcStageMask{0};
-        VkPipelineStageFlags2 dstStageMask{0};
-        VkAccessFlags2 srcAccessMask{0};
-        VkAccessFlags2 dstAccessMask{0};
-        if (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        vk::ImageAspectFlags aspectMask{ 0 };
+	    vk::PipelineStageFlags2 srcStageMask{};
+	    vk::PipelineStageFlags2 dstStageMask{};
+        vk::AccessFlags2 srcAccessMask{ 0 };
+        vk::AccessFlags2 dstAccessMask{ 0 };
+
+        if (newLayout == vk::ImageLayout::eColorAttachmentOptimal)
         {
-            aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            srcAccessMask = 0;
-            srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            aspectMask = vk::ImageAspectFlagBits::eColor;
+            srcAccessMask = {};
+            srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+            dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+            dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+        }
+        else if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
+        {
+            aspectMask = vk::ImageAspectFlagBits::eDepth; // or with vk::ImageAspectFlagBits::eStencil later when want to enable
+            srcAccessMask = {};
+            srcStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
+            dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+            dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
+        }
+        else
+        {
+            aspectMask = vk::ImageAspectFlagBits::eColor;    // this is for the texture transitions
         }
 
-        else if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-        {
-            aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; // or with VK_IMAGE_ASPECT_STENCIL_BIT later when want to enable
-            srcAccessMask = 0;
-            srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-            dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-            dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        }
-        else aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;    // this is for the texture transitions
+        vk::ImageMemoryBarrier2 imageBarrier{};
+        imageBarrier.sType = vk::StructureType::eImageMemoryBarrier2;
+        imageBarrier.pNext = nullptr;
 
-        VkImageMemoryBarrier2 imageBarrier{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            .pNext = nullptr};
-        VkImageSubresourceRange subresourceRange = {};
+        vk::ImageSubresourceRange subresourceRange{};
         subresourceRange.aspectMask = aspectMask;
         subresourceRange.baseMipLevel = 0;
         subresourceRange.levelCount = 1; // not using mipmaps
         subresourceRange.baseArrayLayer = 0;
         subresourceRange.layerCount = 1; // For a standard 2D image
 
-        if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && (
-                newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ||
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL))
+        if (currentLayout == vk::ImageLayout::eUndefined && (
+            newLayout == vk::ImageLayout::eColorAttachmentOptimal ||
+            newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal))
         {
             // access mask - how the resource is being used
             // stage mask - at what stage the ops need to be done
-            imageBarrier.srcAccessMask = 0;                   // no memory access for source (no previous memory operations to sync with)
+            imageBarrier.srcAccessMask = {};                   // no memory access for source (no previous memory operations to sync with)
             imageBarrier.srcStageMask = srcStageMask;
-            imageBarrier.dstAccessMask = dstAccessMask;  
+            imageBarrier.dstAccessMask = dstAccessMask;
             imageBarrier.dstStageMask = dstStageMask;         // after the barrier finishes start the transfer at the transfer stage
         }
         // texture transition
-        else if (currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        else if (currentLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
         {
             // access mask - how the resource is being used
             // stage mask - at what stage the ops need to be done
-            imageBarrier.srcAccessMask = 0;                                     // no memory access for source (no previous memory operations to sync with)
-            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;      // start at the top of pipeline stage
-            imageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;          // enable transfer write ops 
-            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // after the barrier finishes start the transfter at the transfer stage
+            imageBarrier.srcAccessMask = {};                                     // no memory access for source (no previous memory operations to sync with)
+            imageBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;      // start at the top of pipeline stage
+            imageBarrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite;          // enable transfer write ops 
+            imageBarrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;         // after the barrier finishes start the transfer at the transfer stage
         }
         // texture transition again
-        else if (currentLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout ==
-                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        else if (currentLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
         {
-            imageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;          // the previous (src) operation is being done, so wait it out
-            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;         // start at the transfer stage (transfer ops are handled by separate units in a physical gpu)
-            imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;             // enable access of shader for read
-            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;  // after the barrier finishes start the ops (transition here) at the fragment stage in pipeline
+            imageBarrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;          // the previous (src) operation is being done, so wait it out
+            imageBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;         // start at the transfer stage (transfer ops are handled by separate units in a physical gpu)
+            imageBarrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;             // enable access of shader for read
+            imageBarrier.dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;  // after the barrier finishes start the ops (transition here) at the fragment stage in pipeline
         }
-        else if (currentLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        else if (currentLayout == vk::ImageLayout::eColorAttachmentOptimal && newLayout == vk::ImageLayout::ePresentSrcKHR)
         {
-            imageBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        	imageBarrier.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            imageBarrier.dstAccessMask = 0;
-        	imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_NONE;
+            imageBarrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+            imageBarrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+            imageBarrier.dstAccessMask = {};
+            imageBarrier.dstStageMask = vk::PipelineStageFlagBits2::eNone;
         }
         else
         {
             // temporary solution, unoptimised but atleast works
-            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-            imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-            imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+            imageBarrier.srcStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+            imageBarrier.srcAccessMask = vk::AccessFlagBits2::eMemoryWrite;
+            imageBarrier.dstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+            imageBarrier.dstAccessMask = vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead;
         }
 
         imageBarrier.oldLayout = currentLayout;
         imageBarrier.newLayout = newLayout;
-
         imageBarrier.subresourceRange = subresourceRange;
         imageBarrier.image = image;
 
-        VkDependencyInfo depInfo{};
-        depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        vk::DependencyInfo depInfo{};
+        depInfo.sType = vk::StructureType::eDependencyInfo;
         depInfo.pNext = nullptr;
-
         depInfo.imageMemoryBarrierCount = 1;
         depInfo.pImageMemoryBarriers = &imageBarrier;
 
-        vkCmdPipelineBarrier2(commandBuffer, &depInfo);
+        commandBuffer.pipelineBarrier2(depInfo);
     }
     // redundant
-    void CreateBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage,
-                      VkMemoryPropertyFlags propertyFlags, VkBuffer &buffer, VkDeviceMemory &bufferMemory)
+    void CreateBuffer(vk::Device device, vk::PhysicalDevice physicalDevice, vk::DeviceSize size,
+        vk::BufferUsageFlags usage, vk::MemoryPropertyFlags propertyFlags,
+        vk::Buffer& buffer, vk::DeviceMemory& bufferMemory)
     {
         // what's happening here is simple af. Create a bufferCI with appropriate size , then create a buffer.
         // Then make memrequirements struct, to store the memrequirements, supplied with the buffer.
         // Then allocate memory using the memrequirements, and store it in memory.
         // Then bind the memory, map it to cpu accessible buffer
-        //
-        VkBufferCreateInfo bufferCI{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = size,
-            .usage = usage,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        };
 
-        if (vkCreateBuffer(device, &bufferCI, nullptr, &buffer) != VK_SUCCESS)
+        vk::BufferCreateInfo bufferCI{};
+        bufferCI.size = size;
+        bufferCI.usage = usage;
+        bufferCI.sharingMode = vk::SharingMode::eExclusive;
+
+        try
         {
-            Log::Error("[VULKAN] Vertex Buffer creation Failure");
-        }
-        else
+            buffer = device.createBuffer(bufferCI);
             Log::Info("[VULKAN] Vertex Buffer creation Success");
+        }
+        catch (vk::SystemError& err)
+        {
+            Log::Error("[VULKAN] Vertex Buffer creation Failure: " + std::string(err.what()));
+            return;
+        }
 
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+        vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(buffer);
         auto memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, propertyFlags);
 
-        VkMemoryAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+        vk::MemoryAllocateInfo allocInfo{};
         allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = 0;  // Will be set below
+
         if (memoryTypeIndex.has_value())
-            allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, propertyFlags).value();
-        else Log::Error("[VULKAN] No memory type found");
-
-
-        if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
         {
-            Log::Error("[VULKAN] Allocation of Vertex Buffer Memory Failed");
+            allocInfo.memoryTypeIndex = memoryTypeIndex.value();
         }
         else
+        {
+            Log::Error("[VULKAN] No memory type found");
+            return;
+        }
+
+        try
+        {
+            bufferMemory = device.allocateMemory(allocInfo);
             Log::Info("[VULKAN] Allocation of Vertex Buffer Memory Success");
-        vkBindBufferMemory(device, buffer, bufferMemory, 0);
+        }
+        catch (vk::SystemError& err)
+        {
+            Log::Error("[VULKAN] Allocation of Vertex Buffer Memory Failed: " + std::string(err.what()));
+            return;
+        }
+
+        device.bindBufferMemory(buffer, bufferMemory, 0);
     }
-
-    void CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize size)
+    void CopyBuffer(vk::Device device, vk::CommandPool commandPool, vk::Queue queue, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
     {
-        const VkCommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
+        vk::CommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
 
-        VkBufferCopy copyRegion{
-            .srcOffset = 0,
-            .dstOffset = 0,
-            .size = size};
+        vk::BufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
 
-        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+        commandBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
 
         EndSingleTimeCommands(device, queue, commandPool, commandBuffer);
     }
 
-    VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
+    vk::CommandBuffer BeginSingleTimeCommands(vk::Device device, vk::CommandPool commandPool)
     {
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        vk::CommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = vk::StructureType::eCommandBufferAllocateInfo;
+        allocInfo.level = vk::CommandBufferLevel::ePrimary;
         allocInfo.commandPool = commandPool;
         allocInfo.commandBufferCount = 1;
 
-        VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+        auto commandBuffers = device.allocateCommandBuffers(allocInfo);
+        auto commandBuffer = commandBuffers[0];
 
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vk::CommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = vk::StructureType::eCommandBufferBeginInfo;
+        beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        commandBuffer.begin(beginInfo);
 
         return commandBuffer;
     }
 
-    void EndSingleTimeCommands(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkCommandBuffer commandBuffer)
+    void EndSingleTimeCommands(vk::Device device, vk::Queue queue, vk::CommandPool commandPool, vk::CommandBuffer commandBuffer)
     {
-        vkEndCommandBuffer(commandBuffer);
+        commandBuffer.end();
 
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        vk::SubmitInfo submitInfo{};
+        submitInfo.sType = vk::StructureType::eSubmitInfo;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(queue); // very very inefficient.TODO: Implement memory barrier instead
+        auto result = queue.submit(1, &submitInfo, nullptr);
+        if (result != vk::Result::eSuccess) {
+            throw std::runtime_error("Failed to copy buffer to image: " + vk::to_string(result));
+        }
+        queue.waitIdle(); // very very inefficient. TODO: Implement memory barrier instead
 
-        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+        device.freeCommandBuffers(commandPool, 1, &commandBuffer);
     }
 
-    void CreateImage(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+    void CreateImage(vk::PhysicalDevice physicalDevice, vk::Device device, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory)
     {
-        VkImageCreateInfo imageCI{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .mipLevels = 1,
-            .arrayLayers = 1};
-
+        vk::ImageCreateInfo imageCI{};
+        imageCI.sType = vk::StructureType::eImageCreateInfo;
+        imageCI.imageType = vk::ImageType::e2D;
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
         imageCI.extent.width = static_cast<uint32_t>(width);
         imageCI.extent.height = static_cast<uint32_t>(height);
         imageCI.extent.depth = 1;
-
         imageCI.format = format;
         imageCI.tiling = tiling;
-        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageCI.initialLayout = vk::ImageLayout::eUndefined;
         imageCI.usage = usage;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCI.flags = 0;
+        imageCI.sharingMode = vk::SharingMode::eExclusive;
+        imageCI.samples = vk::SampleCountFlagBits::e1;
+        imageCI.flags = {};
 
-        if (vkCreateImage(device, &imageCI, nullptr, &image) != VK_SUCCESS)
+        auto result = device.createImage(&imageCI, nullptr, &image);
+        if (result != vk::Result::eSuccess)
         {
             Log::Error("[STB] Failed to Create Texture Image");
         }
         else
             Log::Info("[STB] Success to Create Texture Image");
 
-        VkMemoryRequirements memRequirements{};
-        vkGetImageMemoryRequirements(device, image, &memRequirements);
+        auto memRequirements = device.getImageMemoryRequirements(image);
         auto memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
-        VkMemoryAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+        vk::MemoryAllocateInfo allocInfo{};
+        allocInfo.sType = vk::StructureType::eMemoryAllocateInfo;
         allocInfo.allocationSize = memRequirements.size;
-        if (memoryTypeIndex.has_value())
-            allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties).value();
-        else Log::Error("[VULKAN] No memory type found");
 
-        if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+        if (memoryTypeIndex.has_value())
+            allocInfo.memoryTypeIndex = memoryTypeIndex.value();
+        else
+            Log::Error("[VULKAN] No memory type found");
+
+        auto allocResult = device.allocateMemory(&allocInfo, nullptr, &imageMemory);
+        if (allocResult != vk::Result::eSuccess)
         {
             Log::Error("[TEXTURE] Failed to allocate texture memory");
         }
         else
             Log::Info("[TEXTURE] Success to allocate texture memory");
 
-        vkBindImageMemory(device, image, imageMemory, 0);
+        device.bindImageMemory(image, imageMemory, 0);
     }
 
 
-    void CopyBufferToImage(VkCommandBuffer commandBuffer, VkImage& image, VkBuffer& buffer, uint32_t width, uint32_t height)
+    void CopyBufferToImage(vk::CommandBuffer commandBuffer, vk::Image& image, vk::Buffer& buffer, uint32_t width, uint32_t height)
     {
-        VkBufferImageCopy2 region{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2};
+        vk::BufferImageCopy2 region{};
+        region.sType = vk::StructureType::eBufferImageCopy2;
         region.bufferOffset = 0;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
         region.imageSubresource.mipLevel = 0;
         region.imageSubresource.baseArrayLayer = 0;
         region.imageSubresource.layerCount = 1;
-        region.imageOffset = {0, 0, 0};
-        region.imageExtent = {width, height, 1};
+        region.imageOffset = vk::Offset3D{ 0, 0, 0 };
+        region.imageExtent = vk::Extent3D{ width, height, 1 };
 
-        VkCopyBufferToImageInfo2 bufferCI{.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2};
+        vk::CopyBufferToImageInfo2 bufferCI{};
+        bufferCI.sType = vk::StructureType::eCopyBufferToImageInfo2;
         bufferCI.srcBuffer = buffer;
         bufferCI.regionCount = 1;
         bufferCI.pRegions = &region;
-        bufferCI.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        bufferCI.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
         bufferCI.dstImage = image;
-        vkCmdCopyBufferToImage2(commandBuffer, &bufferCI);
+
+        commandBuffer.copyBufferToImage2(&bufferCI);
     }
 
-
-    VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags)
+    vk::ImageView CreateImageView(vk::Device device, vk::Image& image, vk::Format format, vk::ImageAspectFlags aspectFlags)
     {
-        VkImageSubresourceRange range{
-            .aspectMask = aspectFlags,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1
-        };
+        vk::ImageSubresourceRange range{};
+        range.aspectMask = aspectFlags;
+        range.baseMipLevel = 0;
+        range.levelCount = 1;
+        range.baseArrayLayer = 0;
+        range.layerCount = 1;
 
-        VkImageViewCreateInfo imageViewCI{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image = image,
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = format,
-            .subresourceRange = range,
-        };
+        vk::ImageViewCreateInfo imageViewCI{};
+        imageViewCI.sType = vk::StructureType::eImageViewCreateInfo;
+        imageViewCI.image = image;
+        imageViewCI.viewType = vk::ImageViewType::e2D;
+        imageViewCI.format = format;
+        imageViewCI.subresourceRange = range;
 
-        VkImageView imageView;
-
-        if(vkCreateImageView(device, &imageViewCI, nullptr, &imageView) != VK_SUCCESS)
+        vk::ImageView imageView;
+        auto result = device.createImageView(&imageViewCI, nullptr, &imageView);
+        if (result != vk::Result::eSuccess)
         {
             Log::Error("[TEXTURE] Failed to create Image View");
-            imageView = VK_NULL_HANDLE;
+            imageView = nullptr;
         }
-        else 
+        else
         {
             Log::Info("[TEXTURE] Success to create Image View");
         }
         return imageView;
     }
 
-    VkFormat FindSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& candidates, VkImageTiling tiling,
-	    VkFormatFeatureFlags flags)
+    vk::Format FindSupportedFormat(vk::PhysicalDevice physicalDevice, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags flags)
     {
-        for (VkFormat format : candidates)
+        for (vk::Format format : candidates)
         {
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+            auto props = physicalDevice.getFormatProperties(format);
 
-            if (tiling == VK_IMAGE_TILING_LINEAR && ((props.linearTilingFeatures & flags) == flags))
+            if (tiling == vk::ImageTiling::eLinear && ((props.linearTilingFeatures & flags) == flags))
                 return format;
-            if (tiling == VK_IMAGE_TILING_OPTIMAL && ((props.optimalTilingFeatures & flags) == flags))
+            if (tiling == vk::ImageTiling::eOptimal && ((props.optimalTilingFeatures & flags) == flags))
                 return format;
         }
         throw std::runtime_error("Failed to find supported format");
     }
 
-
-    VkFormat FindDepthFormat(VkPhysicalDevice physicalDevice)
-	{
+    vk::Format FindDepthFormat(vk::PhysicalDevice physicalDevice)
+    {
         return FindSupportedFormat(physicalDevice,
-            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+            { vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
+            vk::ImageTiling::eOptimal,
+            vk::FormatFeatureFlagBits::eDepthStencilAttachment
         );
     }
 
-    bool HasStencilComponent(VkFormat format)
+    bool HasStencilComponent(vk::Format format)
     {
-        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+        return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
     }
 
     std::vector<char> ReadShaderFile(const std::string& filename)
     {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
         if (!file.is_open())
         {
             Log::Error("[SHADER] Failed to open file");
         }
-
         size_t fileSize = (size_t)file.tellg();
         std::vector<char> buffer(fileSize);
-
         file.seekg(0);
         file.read(buffer.data(), fileSize);
-
         file.close();
-
         return buffer;
     }
 }

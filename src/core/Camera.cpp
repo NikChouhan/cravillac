@@ -1,5 +1,5 @@
 #include "Camera.h"
-
+#include <pch.h>
 
 using namespace DirectX;
 namespace Cravillac

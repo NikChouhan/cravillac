@@ -8,6 +8,8 @@
 #include "PipelineManager.h"
 
 #include <memory>
+#include <vector>
+#include <string>
 
 
 namespace Cravillac
@@ -18,9 +20,9 @@ namespace Cravillac
 	public:
 		explicit ResourceManager(const std::shared_ptr<Renderer>& renderer);
 		~ResourceManager();
-		VkDevice getDevice();
-		VkPhysicalDevice getPhysicalDevice();
-		[[nodiscard]] VkDescriptorPool getDescriptorPool() const { return m_descriptorPool; }
+		vk::Device getDevice() const;
+		vk::PhysicalDevice getPhysicalDevice() const;
+		[[nodiscard]] vk::DescriptorPool getDescriptorPool() const { return m_descriptorPool; }
 		// buffer
 		BufferBuilder CreateBufferBuilder();
 		// image
@@ -28,13 +30,13 @@ namespace Cravillac
 		// ImageBuilder CreateImageBuilder();
 		
 		// descriptor
-		void ConfigureDescriptorPoolSizes(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets);
+		void ConfigureDescriptorPoolSizes(const std::vector<vk::DescriptorPoolSize>& poolSizes, uint32_t maxSets);
 		DescriptorBuilder CreateDescriptorBuilder();
-		VkDescriptorSet CreateDescriptorSet(VkDescriptorSetLayout layout);
-		VkDescriptorSet UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, const std::optional<std::vector<Cravillac::Texture>>& textures);
+		vk::DescriptorSet CreateDescriptorSet(vk::DescriptorSetLayout layout);
+		vk::DescriptorSet UpdateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize size, const std::optional<std::vector<Cravillac::Texture>>& textures);
 
-		VkShaderModule	getShaderModule(const std::string& shaderPath);
-		VkDescriptorSetLayout getDescriptorSetLayout(const std::string& layoutKey);
+		vk::ShaderModule	getShaderModule(const std::string& shaderPath);
+		vk::DescriptorSetLayout getDescriptorSetLayout(const std::string& layoutKey);
 
 		[[nodiscard]] PipelineManager* getPipelineManager() const { return pipelineManager; }
 
@@ -42,14 +44,14 @@ namespace Cravillac
 	private:
 		PipelineManager* pipelineManager;
 		std::shared_ptr<Renderer> m_renderer;
-		VkDescriptorPool m_descriptorPool;
+		vk::DescriptorPool m_descriptorPool;
 
-		VkShaderModule createShaderModule(const std::string& shaderPath);
-		VkDescriptorSetLayout createDescriptorSetLayout(const std::string& layoutKey);
+		vk::ShaderModule createShaderModule(const std::string& shaderPath);
+		vk::DescriptorSetLayout createDescriptorSetLayout(const std::string& layoutKey);
 
 		std::unordered_map<std::string, Texture> m_textureCache;
-		std::unordered_map<std::string, VkDescriptorSetLayout> m_descriptorSetLayoutCache;
-		std::unordered_map<std::string, VkShaderModule> m_shaderModuleCache;
+		std::unordered_map<std::string, vk::DescriptorSetLayout> m_descriptorSetLayoutCache;
+		std::unordered_map<std::string, vk::ShaderModule> m_shaderModuleCache;
 	};
 }
 

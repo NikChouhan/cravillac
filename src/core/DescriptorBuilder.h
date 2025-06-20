@@ -4,8 +4,8 @@
 #include <vector>
 #include <memory>
 #include <optional>
-#include <string>
-#include "common.h"
+
+#include <vulkan/vulkan.hpp>
 
 namespace Cravillac
 {
@@ -17,8 +17,8 @@ namespace Cravillac
 	public:
 		// methods
 		DescriptorBuilder(ResourceManager& resourceManager);
-		VkDescriptorSet allocateDescriptorSet(VkDescriptorSetLayout layout);
-		VkDescriptorSet updateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize bufferSize, std::optional<std::vector<Cravillac::Texture>> textures);
+		vk::DescriptorSet allocateDescriptorSet(vk::DescriptorSetLayout layout) const;
+		vk::DescriptorSet updateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize bufferSize, std::optional<std::vector<Cravillac::Texture>> textures) const;
 
 		// vars
 		ResourceManager& m_resourceManager;

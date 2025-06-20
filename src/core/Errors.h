@@ -1,0 +1,6 @@
+enum class Errors
+{
+	BUFFER_CREATE,
+	BUFFER_ALLOCATE,
+	BUFFER_BIND_MEMORY,
+};

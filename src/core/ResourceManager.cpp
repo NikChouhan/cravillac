@@ -1,9 +1,8 @@
+#include <pch.h>
+
 #include <vector>
-
 #include "ResourceManager.h"
-
 #include <array>
-
 #include "Log.h"
 #include "renderer.h"
 #include "vk_utils.h"
@@ -23,12 +22,12 @@ namespace Cravillac
 		}
 	}
 
-	VkDevice ResourceManager::getDevice()
+	vk::Device ResourceManager::getDevice() const
 	{
 		return m_renderer->m_device;
 	}
 
-	VkPhysicalDevice ResourceManager::getPhysicalDevice()
+	vk::PhysicalDevice ResourceManager::getPhysicalDevice() const
 	{
 		return m_renderer->m_physicalDevice;
 	}
@@ -39,28 +38,24 @@ namespace Cravillac
 	}
 
 
-	void ResourceManager::ConfigureDescriptorPoolSizes(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets)
+	void ResourceManager::ConfigureDescriptorPoolSizes(const std::vector<vk::DescriptorPoolSize>& poolSizes, uint32_t maxSets)
 	{
-		if (m_descriptorPool != VK_NULL_HANDLE)
+		if (m_descriptorPool)
 		{
 			vkDestroyDescriptorPool(m_renderer->m_device, m_descriptorPool, nullptr);
 		}
 
-		VkDescriptorPoolCreateInfo poolCI{};
-		poolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolCI.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+		vk::DescriptorPoolCreateInfo poolCI{};
+		poolCI.flags = vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;
 		poolCI.maxSets = maxSets;
 		poolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolCI.pPoolSizes = poolSizes.data();
 
-		if (vkCreateDescriptorPool(m_renderer->m_device, &poolCI, nullptr, &m_descriptorPool) != VK_SUCCESS)
-		{
-			Log::Error("[VULKAN] Descriptor Pool creation Failed");
-		}
-		else
-		{
-			Log::Info("[VULKAN] Descriptor Pool creation Success");
-		}
+		VK_ASSERT_L(m_renderer->m_device.createDescriptorPool(& poolCI, nullptr,&m_descriptorPool),
+			[&]()
+			{
+				m_renderer->m_device.destroyDescriptorPool(m_descriptorPool);
+			});
 	}
 
 	DescriptorBuilder ResourceManager::CreateDescriptorBuilder()
@@ -68,24 +63,24 @@ namespace Cravillac
 		return DescriptorBuilder(*this);
 	}
 
-	VkDescriptorSet ResourceManager::CreateDescriptorSet(VkDescriptorSetLayout layout)
+	vk::DescriptorSet ResourceManager::CreateDescriptorSet(vk::DescriptorSetLayout layout)
 	{
 		return CreateDescriptorBuilder()
 			.allocateDescriptorSet(layout);
 	}
-	VkDescriptorSet ResourceManager::UpdateDescriptorSet(VkDescriptorSet set, uint32_t binding, VkDescriptorType type, VkBuffer& buffer, VkDeviceSize size, const std::optional<std::vector<Cravillac::Texture>>& textures)
+	vk::DescriptorSet ResourceManager::UpdateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize size, const std::optional<std::vector<Cravillac::Texture>>& textures)
 	{
 		return CreateDescriptorBuilder()
 			.updateDescriptorSet(set, binding, type, buffer, size, textures);
 	}
 
-	VkShaderModule ResourceManager::getShaderModule(const std::string& shaderPath)
+	vk::ShaderModule ResourceManager::getShaderModule(const std::string& shaderPath)
 	{
 		auto shaderCode = ReadShaderFile(shaderPath);
 		return createShaderModule(shaderPath);
 	}
 
-	VkDescriptorSetLayout ResourceManager::getDescriptorSetLayout(const std::string& layoutKey)
+	vk::DescriptorSetLayout ResourceManager::getDescriptorSetLayout(const std::string& layoutKey)
 	{
 		if (m_descriptorSetLayoutCache.contains(layoutKey))
 		{
@@ -94,7 +89,7 @@ namespace Cravillac
 		return createDescriptorSetLayout(layoutKey);
 	}
 
-	VkShaderModule ResourceManager::createShaderModule(const std::string& shaderPath)
+	vk::ShaderModule ResourceManager::createShaderModule(const std::string& shaderPath)
 	{
 		if (m_shaderModuleCache.contains(shaderPath))
 		{
@@ -103,26 +98,20 @@ namespace Cravillac
 
 		auto shaderCode = ReadShaderFile(shaderPath);
 
-		VkShaderModuleCreateInfo createInfo{
-			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-			.codeSize = shaderCode.size(),
-			.pCode = reinterpret_cast<const uint32_t*>(shaderCode.data()) };
+		vk::ShaderModuleCreateInfo createInfo{};
+		createInfo.codeSize = shaderCode.size();
+		createInfo.pCode = reinterpret_cast<const uint32_t*>(shaderCode.data());
 
-		VkShaderModule shaderModule;
+		vk::ShaderModule shaderModule;
 
 		auto device = getDevice();
 
-		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-		{
-			Log::Error("[SHADER] Shader Module creation Failed");
-		}
-		else
-			Log::Info("[SHADER] Shader Module creation Success");
+		VK_ASSERT(device.createShaderModule(&createInfo, nullptr, &shaderModule));
 		m_shaderModuleCache[shaderPath] = shaderModule;
 		return shaderModule;
 	}
 
-	VkDescriptorSetLayout ResourceManager::createDescriptorSetLayout(const std::string& layoutKey)
+	vk::DescriptorSetLayout ResourceManager::createDescriptorSetLayout(const std::string& layoutKey)
 	{
 		// what this does is create a simple layout for the descriptor set. It tells the driver that we will be
 		// creating a set with two bindings. One for the ubo buffer and the other for the sampler and inform it about the characteristics of both.
@@ -130,62 +119,56 @@ namespace Cravillac
 		//
 
 		auto device = getDevice();
-		std::vector<VkDescriptorSetLayoutBinding> bindings;
-		VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCI{};
-		std::vector<VkDescriptorBindingFlags> bindingFlags;
+		std::vector<vk::DescriptorSetLayoutBinding> bindings;
+		vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCI{};
+		std::vector<vk::DescriptorBindingFlags> bindingFlags;
 
 		if (layoutKey == "ubo") 
 		{
-			VkDescriptorSetLayoutBinding uboBinding{};
+			vk::DescriptorSetLayoutBinding uboBinding{};
 			uboBinding.binding = 0;
-			uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
 			uboBinding.descriptorCount = 1;
-			uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uboBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
 			uboBinding.pImmutableSamplers = nullptr;
 			bindings.push_back(uboBinding);
 		}
 		else if (layoutKey == "textures") 
 		{
-			VkDescriptorSetLayoutBinding textureBinding{};
+			vk::DescriptorSetLayoutBinding textureBinding{};
 			textureBinding.binding = 0;
-			textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			textureBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 			textureBinding.descriptorCount = MAX_TEXTURES;
-			textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			textureBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
 			textureBinding.pImmutableSamplers = nullptr;
 			bindings.push_back(textureBinding);
 
-			bindingFlags.push_back(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
-			bindingFlagsCI = {
-				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-				.bindingCount = 1,
-				.pBindingFlags = bindingFlags.data()
-			};
+			bindingFlags.push_back(vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind);
+			bindingFlagsCI.bindingCount = 1;
+			bindingFlagsCI.pBindingFlags = bindingFlags.data();
 		}
 		else if (layoutKey == "ssbo")
 		{
-			VkDescriptorSetLayoutBinding ssboBinding{};
+			vk::DescriptorSetLayoutBinding ssboBinding{};
 			ssboBinding.binding = 0;
-			ssboBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			ssboBinding.descriptorType = vk::DescriptorType::eStorageBuffer;
 			ssboBinding.descriptorCount = 1;
-			ssboBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			ssboBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
 			ssboBinding.pImmutableSamplers = nullptr;
 			bindings.push_back(ssboBinding);
 		}
 		// Add more layoutKey cases or make it configurable via a vector input
 
-		VkDescriptorSetLayoutCreateInfo descLayoutCI{};
-		descLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		vk::DescriptorSetLayoutCreateInfo descLayoutCI{};
 		descLayoutCI.bindingCount = static_cast<uint32_t>(bindings.size());
 		descLayoutCI.pBindings = bindings.data();
 		if (!bindingFlags.empty()) {
 			descLayoutCI.pNext = &bindingFlagsCI;
-			descLayoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+			descLayoutCI.flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
 		}
 
-		VkDescriptorSetLayout layout;
-		if (vkCreateDescriptorSetLayout(device, &descLayoutCI, nullptr, &layout) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create descriptor set layout");
-		}
+		vk::DescriptorSetLayout layout;
+		VK_ASSERT(device.createDescriptorSetLayout(&descLayoutCI, nullptr, &layout));
 
 		m_descriptorSetLayoutCache[layoutKey] = layout;
 		return layout;
@@ -193,7 +176,7 @@ namespace Cravillac
 		//now with the above info for the descriptor set layout, we know that the descriptor set is created with the actual data
 		// that we are going to push to it. So if I have multiple models whose data -textures, primitives, indices are to be handled
 		// I can't do it at the global renderer level. What I need is the implementation in the model class itself. If I do it here, all the data - tex, primitives,indices
-		// must be known to the VkDescriptorWriteInfo. Passing the texture data for every samppler feels foolish
+		// must be known to the vk::DescriptorWriteInfo. Passing the texture data for every samppler feels foolish
 		//
 		// (remember I might keep the descriptor set for the ubo buffer as I know it its meant to be for the global renderer, and is not model specific.
 
