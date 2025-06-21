@@ -13,15 +13,51 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace Cravillac
 {
+    static HANDLE hConsole = GetStdHandle(STD_ERROR_HANDLE);
+
     static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(
         vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         vk::DebugUtilsMessageTypeFlagsEXT messageType,
         const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData)
     {
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        WORD color = FOREGROUND_RED | FOREGROUND_INTENSITY;
+
+        switch (messageSeverity)
+        {
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+            color = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED; // Gray
+            break;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+            color = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+            break;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+            color = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+            break;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+            color = FOREGROUND_RED | FOREGROUND_INTENSITY;
+            break;
+        default:
+            break;
+        }
+
+        SetConsoleTextAttribute(hConsole, color);
+
+        std::cerr << "[Validation][" << vk::to_string(messageSeverity) << "] "
+            << "[" << pCallbackData->pMessageIdName << " | " << pCallbackData->messageIdNumber << "] "
+            << pCallbackData->pMessage << "\n\n";
+
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset to default gray
+#if _WIN32
+#if EXTREME
+        if (messageSeverity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+            __debugbreak(); // breaks execution here, letting you inspect the call stack
+#endif
+#endif
+
         return vk::False;
     }
+
 
     void Renderer::populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT& createInfo)
     {
@@ -77,7 +113,6 @@ namespace Cravillac
     Renderer::Renderer()
     {
     }
-
 
     void Renderer::InitVulkan()
     {
@@ -392,7 +427,13 @@ namespace Cravillac
     void Renderer::CreateSynObjects(std::vector<vk::Semaphore>& imgAvailableSem, std::vector<vk::Semaphore>& renderFinishedSem, std::vector<vk::Fence>& inFlightFences)
     {
         imgAvailableSem.resize(MAX_FRAMES_IN_FLIGHT);
-        renderFinishedSem.resize(MAX_FRAMES_IN_FLIGHT);
+        // only renderFinishedSem is resized to swapchain images size because it is used in two queues, it is signalled from graphics queue
+        // when render is finished, and waited by present queue. If we index it with current frame parameter which is just cpu side fence parameter
+        // it wont work. In the cpu code the current frame parameter is changed in the end of the loop, and its asynchronous to the gpu rendering and
+        // present code, so its possible that the current frame parameter changes before the presentation is done. Remember that the current frame
+        // var was used to index into the renderFinishedSem, so its possible (and highly likely for gpu driven work, where cpu is more idle than the gpu)
+        // for it to index into the wrong semaphore, and signal an already signalled semaphore.
+        renderFinishedSem.resize(m_swapChainImages.size());
         inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
         vk::SemaphoreCreateInfo semaphoreCI{};
@@ -402,10 +443,10 @@ namespace Cravillac
 
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            try
+
+        	try
             {
                 imgAvailableSem[i] = m_device.createSemaphore(semaphoreCI);
-                renderFinishedSem[i] = m_device.createSemaphore(semaphoreCI);
                 inFlightFences[i] = m_device.createFence(fenceCI);
 
                 Log::Info("[VULKAN] Fence/Semaphore creation Success for frame " + std::to_string(i));
@@ -414,6 +455,20 @@ namespace Cravillac
             {
                 Log::Error("[VULKAN] Fence/Semaphore creation Failure for frame " + std::to_string(i) + ": " + std::string(err.what()));
                 throw;
+            }
+        }
+        for (int i = 0; i < m_swapChainImages.size(); i++)
+        {
+
+            try
+            {
+                renderFinishedSem[i] = m_device.createSemaphore(semaphoreCI);
+                Log::Info("[VULKAN] Semaphore renderfinished creation success");
+            }
+            catch (const vk::SystemError& err)
+            {
+                std::string error = err.what();
+                Log::Error("[VULKAN] Semaphore renderfinished creation failure" + error);
             }
         }
     }

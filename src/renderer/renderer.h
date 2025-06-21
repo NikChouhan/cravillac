@@ -19,6 +19,7 @@ namespace Cravillac
     {
     public:
         Renderer();
+        ~Renderer() = default;
         void InitVulkan();
         void CreateSwapChain(vk::SurfaceKHR surface, GLFWwindow* window);
         // Vulkan base setup

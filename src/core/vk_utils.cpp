@@ -517,7 +517,7 @@ namespace Cravillac
     vk::Format FindDepthFormat(vk::PhysicalDevice physicalDevice)
     {
         return FindSupportedFormat(physicalDevice,
-            { vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
+            { vk::Format::eD32Sfloat },
             vk::ImageTiling::eOptimal,
             vk::FormatFeatureFlagBits::eDepthStencilAttachment
         );

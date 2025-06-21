@@ -3,6 +3,7 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 inline uint32_t MAX_TEXTURES = 256;
+#define EXTREME 0
 
 // meshInfo shading pipeline
 #define MESH_SHADING 0
@@ -20,7 +21,7 @@ inline uint32_t MAX_TEXTURES = 256;
         }                                                                                                   \
     } while (0)
 // assert with lambda
-#define VK_ASSERT_L(call, cleanupLambda)                                                                      \
+#define VK_ASSERT_L(call, cleanupLambda)                                                                    \
     do                                                                                                      \
     {                                                                                                       \
         vk::Result result = call;                                                                           \

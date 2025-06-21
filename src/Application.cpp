@@ -180,7 +180,7 @@ namespace Cravillac
 
 			m_cmdBuffers[m_currentFrame].reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 
-			RecordCmdBuffer(m_cmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
+			RecordCmdBuffer(m_cmdBuffers[m_currentFrame], imageIndex);
 
 			vk::SubmitInfo submitInfo{};
 			vk::Semaphore waitSemaphores[] = { m_imageAvailableSemaphore[m_currentFrame] };
@@ -193,7 +193,7 @@ namespace Cravillac
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &m_cmdBuffers[m_currentFrame];
 
-			vk::Semaphore signalSemaphore[] = { m_renderFinishedSemaphore[m_currentFrame] };
+			vk::Semaphore signalSemaphore[] = { m_renderFinishedSemaphore[imageIndex] };
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = signalSemaphore;
 
@@ -201,7 +201,7 @@ namespace Cravillac
 
 			vk::PresentInfoKHR presentInfo{};
 			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[m_currentFrame];
+			presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore[imageIndex];
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = &renderer->m_swapChain;
 			presentInfo.pImageIndices = &imageIndex;
@@ -219,7 +219,7 @@ namespace Cravillac
 		vkDeviceWaitIdle(renderer->m_device);
 	}
 
-	void Application::RecordCmdBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex, uint32_t currentFrame) const
+	void Application::RecordCmdBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex) const
 	{
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
 		vk::PipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("textures;");
@@ -238,7 +238,7 @@ namespace Cravillac
 
 		// transition depth image from undefined to optimal for rendering
 		TransitionImage(commandBuffer, renderer->m_depthImage, vk::ImageLayout::eUndefined,
-			vk::ImageLayout::eDepthAttachmentOptimal);
+			vk::ImageLayout::eDepthStencilAttachmentOptimal);
 		// likely redundant cuz ubo sent to the ends
 		// for (const auto& meshInfo : models[0].m_meshitives)
 		// {
@@ -301,7 +301,7 @@ namespace Cravillac
 		scissor.extent = renderer->m_swapChainExtent;
 		commandBuffer.setScissor(0u, 1u, &scissor);
 
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0u, 1u, descriptorSets[currentFrame].data(), 0u, nullptr);
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0u, 1u, descriptorSets[m_currentFrame].data(), 0u, nullptr);
 
 
 		PushConstants pushConstants{};

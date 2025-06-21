@@ -44,7 +44,7 @@ namespace Cravillac
         void DrawFrame();
         void SetResources();
 
-        void RecordCmdBuffer(vk::CommandBuffer, uint32_t imageIndex, uint32_t currentFrame) const;
+        void RecordCmdBuffer(vk::CommandBuffer, uint32_t imageIndex) const;
         [[nodiscard]] UniformBufferObject UpdateUniformBuffer(const MeshInfo& meshInfo) const;
 
         vk::Device GetDevice();
