@@ -25,9 +25,6 @@ namespace Cravillac
 
         switch (messageSeverity)
         {
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-            color = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED; // Gray
-            break;
         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
             color = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
             break;
@@ -62,8 +59,7 @@ namespace Cravillac
     void Renderer::populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT& createInfo)
     {
         createInfo = vk::DebugUtilsMessengerCreateInfoEXT{};
-        createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-            vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+        createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
             vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
         createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
             vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
