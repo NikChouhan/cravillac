@@ -84,9 +84,9 @@ namespace Cravillac
 
 #if MESH_SHADING
 		// bda + pvp for meshlet buffer address
-		vk::BufferDeviceAddressInfo meshletBufferAddressInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+		vk::BufferDeviceAddressInfo meshletBufferAddressInfo{};
 		meshletBufferAddressInfo.buffer = models[0].m_meshletBuffer;
-		m_meshletBufferAddress = vkGetBufferDeviceAddress(renderer->m_device, &meshletBufferAddressInfo);
+		m_meshletBufferAddress = renderer->m_device.getBufferAddress(&meshletBufferAddressInfo);
 #else
 		// bda + pvp get vertex buffer address
 		vk::BufferDeviceAddressInfo vertexBufferAddressInfo{};
@@ -128,10 +128,10 @@ namespace Cravillac
 			.setMeshShader("shaders/meshlet.mesh.spv")
 			.setFragmentShader("shaders/mesh.frag.spv")
 			.addDescriptorSetLayout("textures")
-			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-			.setDynamicStates({VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR})
+			.setTopology(vk::PrimitiveTopology::eTriangleList)
+			.setDynamicStates({vk::DynamicState::eViewport, vk::DynamicState::eScissor})
 			.setDepthTest(true)
-			.setBlendMode(false)
+			.setBlendMode(false)	
 			.build("meshlet_raster");
 #else
 		// raster graphics pipeline
@@ -216,7 +216,6 @@ namespace Cravillac
 
 			glfwSetWindowTitle(m_window, newTitle);
 		}
-		vkDeviceWaitIdle(renderer->m_device);
 	}
 
 	void Application::RecordCmdBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex) const
@@ -319,9 +318,10 @@ namespace Cravillac
 			pushConstants.normalMatrix = normalMatrix;
 			pushConstants.materialIndex = materialIndex;
 #if MESH_SHADING
-			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT,
+			commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eMeshNV | vk::ShaderStageFlagBits::eFragment,
 				0, sizeof(PushConstants), &pushConstants);
-			vkCmdDrawMeshTasksEXT(commandBuffer, 32, 1, 1);
+			//vkCmdDrawMeshTasksEXT(commandBuffer, 32, 1, 1);
+			commandBuffer.drawMeshTasksNV(models[0].m_meshlets.size(), 0);
 #else
 			commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 			                   0, sizeof(PushConstants), &pushConstants);

@@ -208,7 +208,7 @@ namespace Cravillac
         drLocalRead.dynamicRenderingLocalRead = vk::True; */
 
         // mesh shading (optional)
-        vk::PhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
+        vk::PhysicalDeviceMeshShaderFeaturesNV meshShaderFeatures{};
         meshShaderFeatures.meshShader = vk::True;
 
         // BDA and scalar layout
@@ -220,10 +220,11 @@ namespace Cravillac
 
         vk::PhysicalDeviceBufferDeviceAddressFeatures bdaFeatures{};
         bdaFeatures.bufferDeviceAddress = vk::True;
+        bdaFeatures.bufferDeviceAddressCaptureReplay = vk::True;
         bdaFeatures.pNext = &scalarFeatures;
 
 #if MESH_SHADING
-        vk::PhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties{};
+        vk::PhysicalDeviceMeshShaderPropertiesNV meshShaderProperties{};
 
         vk::PhysicalDeviceProperties2 props{};
         props.pNext = &meshShaderProperties;

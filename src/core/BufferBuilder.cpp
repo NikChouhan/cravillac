@@ -33,6 +33,7 @@ namespace Cravillac
 		vk::BufferCreateInfo bufferCI{};
 		bufferCI.size = m_size;
 		bufferCI.usage = m_usage;
+		//bufferCI.flags = vk::BufferCreateFlagBits::eDeviceAddressCaptureReplay;
 		bufferCI.sharingMode = vk::SharingMode::eExclusive;
 
 		vk::Buffer buffer{};
@@ -45,15 +46,18 @@ namespace Cravillac
 			});
 		vk::MemoryRequirements memRequirements;
 		device.getBufferMemoryRequirements(buffer, &memRequirements);
-		// TODO: want to have it optional such that only vertex and index buffers use it,
-		// but prolly keeping it since thats all where I use it until now
+
 		vk::MemoryAllocateFlagsInfo allocFlagsInfo{};
-		allocFlagsInfo.flags = vk::MemoryAllocateFlagBits::eDeviceAddress;
 
 		auto memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, m_memProps);
 
 		vk::MemoryAllocateInfo allocInfo = {};
-		allocInfo.pNext = &allocFlagsInfo;
+		if (m_usage & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+			allocFlagsInfo.flags = vk::MemoryAllocateFlagBits::eDeviceAddress;
+			allocInfo.pNext = &allocFlagsInfo;
+		}
+		else allocInfo.pNext = nullptr;
+
 		allocInfo.allocationSize = memRequirements.size;
 		if (memoryTypeIndex.has_value())
 			allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, m_memProps).value();
