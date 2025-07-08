@@ -5,57 +5,42 @@
 
 #include <vector>
 #include <sstream>
-#include <DirectXMath.h>
+#include "StandardTypes.h"
 
-class Log
+namespace Cravillac
 {
-public:
-
-    enum class LogLevel
+    class Log
     {
-        Info,
-        InfoDebug,
-        Warn,
-        Error
-    };
+    public:
 
-    static void Init();
-    static void Shutdown();
+        enum class LogLevel
+        {
+            Info,
+            InfoDebug,
+            Warn,
+            Error
+        };
 
-    static void Info(const std::string& msg);
-    static void Warn(const std::string& msg);
-    static void Error(const std::string& msg);
-    static void Error(const std::string& msg, const std::string& value);
-    template <typename T>
-    static void InfoDebug(const std::string& msg, const T& value)
-    {
-        LogMessage(FormatLogs(msg, value), LogLevel::InfoDebug);
-    }
+        static void Init();
+        static void Shutdown();
+        template<typename... Args>
+        static void PrintL(LogLevel level, std::format_string<Args...> format, Args&&... args)
+    	{
+            std::string message = std::format(format, std::forward<Args>(args)...);
+            LogMessage(level, message.c_str());
+        }
+    private:
 
-private:
+        struct LogMessageData
+        {
+            std::string message;
+            LogLevel level;
+        };
+        static void LogMessage(LogLevel level, cstring msg);
+        static bool m_initialized;
+    };  
+}
 
-    struct LogMessageData
-    {
-        std::string message;
-        LogLevel level;
-    };
-    static void LogMessage(const std::string& msg, LogLevel level);
+#define printl(level, format, ...) Cravillac::Log::PrintL(level, format, __VA_ARGS__);
 
-    static void LogMessage(const std::string& msg, const std::string& value, LogLevel level);
-
-    template <typename T>
-    static std::string FormatLogs(const std::string& msg, const T& value)
-    {
-        std::ostringstream oss;
-        oss << msg << ": " << value;
-        return oss.str();
-    }
-
-    static std::string FormatLogs(const std::string& msg, const DirectX::XMMATRIX& matrix);
-    static std::string FormatLogs(const std::string& msg, const DirectX::XMVECTOR& vector);
-
-    static std::vector<LogMessageData> m_messages;
-    static bool m_initialized;
-};
-
-#endif // LOG_H
+#endif// LOG_H

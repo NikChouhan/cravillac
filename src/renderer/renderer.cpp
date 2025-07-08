@@ -51,7 +51,6 @@ namespace Cravillac
             __debugbreak(); // breaks execution here, letting you inspect the call stack
 #endif
 #endif
-
         return vk::False;
     }
 
@@ -78,11 +77,11 @@ namespace Cravillac
         try
         {
             debugMessenger = m_instance.createDebugUtilsMessengerEXT(createInfo);
-            Log::Info("[VULKAN] Debug messenger Success");
+            Log::PrintL(Log::LogLevel::Info,"[VULKAN] Debug messenger Success");
         }
         catch (const vk::SystemError& err)
         {
-            Log::Error("[VULKAN] Debug Messenger Failure: " + std::string(err.what()));
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Debug Messenger Failure: {}", std::string(err.what()));
             throw;
         }
     }
@@ -108,10 +107,10 @@ namespace Cravillac
 
         if (enableValidationLayers && !CheckValidationLayerSupport())
         {
-            Log::Error("[VULKAN] Validation layers requested but not available");
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Validation layers requested but not available");
         }
         else
-            Log::Info("[VULKAN] Validation layers requested available");
+            Log::PrintL(Log::LogLevel::Info,"[VULKAN] Validation layers requested available");
 
         auto appInfo = vk::ApplicationInfo{};
         appInfo.pApplicationName = "Vulkan Test";
@@ -145,7 +144,7 @@ namespace Cravillac
         std::vector<vk::PhysicalDevice> devices = m_instance.enumeratePhysicalDevices();
 
         if (devices.empty())
-            Log::Error("[VULKAN] Failed to find GPUs with Vulkan support");
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Failed to find GPUs with Vulkan support");
         for (const auto& physicalDevice : devices)
         {
             if (IsDeviceSuitable(physicalDevice, surface))
@@ -156,14 +155,14 @@ namespace Cravillac
         }
 
         if (!m_physicalDevice)  // vk::PhysicalDevice has implicit bool conversion
-            Log::Error("[VULKAN] Failed to find a suitable GPU");
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Failed to find a suitable GPU");
         else
         {
             for (const auto& physdev : devices)
             {
                 auto properties = physdev.getProperties();
                 const char* name = properties.deviceName;
-                Log::InfoDebug("[VULKAN] Device: ", name);
+                Log::PrintL(Log::LogLevel::InfoDebug,"[VULKAN] Device: ", name);
             }
         }
     }
@@ -254,11 +253,11 @@ namespace Cravillac
         try
         {
             m_device = m_physicalDevice.createDevice(createInfo);
-            Log::Info("[VULKAN] Logical Device creation Success");
+            Log::PrintL(Log::LogLevel::Info,"[VULKAN] Logical Device creation Success");
         }
         catch (const vk::SystemError& err)
         {
-            Log::Error("[VULKAN] Logical Device creation Failure: " + std::string(err.what()));
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Logical Device creation Failure: {} ", std::string(err.what()));
             throw;
         }
 
@@ -280,11 +279,11 @@ namespace Cravillac
         {
             // Use m_device.createCommandPool (C++ API) instead of vkCreateCommandPool (C API)
             m_commandPool = m_device.createCommandPool(poolInfo);
-            Log::Info("[VULKAN] Command Pool creation Success");
+            Log::PrintL(Log::LogLevel::Info,"[VULKAN] Command Pool creation Success");
         }
         catch (vk::SystemError& err)
         {
-            Log::Error("[VULKAN] Command Pool creation Failure: " + std::string(err.what()));
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Command Pool creation Failure: {}", std::string(err.what()));
         }
     }
 
@@ -352,11 +351,11 @@ namespace Cravillac
         try
         {
             m_swapChain = m_device.createSwapchainKHR(createInfo);
-            Log::Info("[VULKAN] SwapChain creation Success");
+            Log::PrintL(Log::LogLevel::Info,"[VULKAN] SwapChain creation Success");
         }
         catch (const vk::SystemError& err)
         {
-            Log::Error("[VULKAN] SwapChain creation Failed: " + std::string(err.what()));
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] SwapChain creation Failed: {}", std::string(err.what()));
             throw;
         }
 
@@ -393,11 +392,11 @@ namespace Cravillac
         try
         {
             cmdBuffers = m_device.allocateCommandBuffers(allocInfo);
-            Log::Info("[VULKAN] Command Buffer creation Success");
+            Log::PrintL(Log::LogLevel::Info,"[VULKAN] Command Buffer creation Success");
         }
         catch (const vk::SystemError& err)
         {
-            Log::Error("[VULKAN] Command Buffer creation Failure: " + std::string(err.what()));
+            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Command Buffer creation Failure: {} ", std::string(err.what()));
             throw;
         }
     }
@@ -427,11 +426,11 @@ namespace Cravillac
                 imgAvailableSem[i] = m_device.createSemaphore(semaphoreCI);
                 inFlightFences[i] = m_device.createFence(fenceCI);
 
-                Log::Info("[VULKAN] Fence/Semaphore creation Success for frame " + std::to_string(i));
+                Log::PrintL(Log::LogLevel::Info,"[VULKAN] Fence/Semaphore creation Success for frame {} ", std::to_string(i));
             }
             catch (const vk::SystemError& err)
             {
-                Log::Error("[VULKAN] Fence/Semaphore creation Failure for frame " + std::to_string(i) + ": " + std::string(err.what()));
+                Log::PrintL(Log::LogLevel::Error,"[VULKAN] Fence/Semaphore creation Failure for frame {}, error: {}", std::to_string(i), std::string(err.what()));
                 throw;
             }
         }
@@ -441,12 +440,12 @@ namespace Cravillac
             try
             {
                 renderFinishedSem[i] = m_device.createSemaphore(semaphoreCI);
-                Log::Info("[VULKAN] Semaphore renderfinished creation success");
+                Log::PrintL(Log::LogLevel::Info,"[VULKAN] Semaphore renderfinished creation success");
             }
             catch (const vk::SystemError& err)
             {
                 std::string error = err.what();
-                Log::Error("[VULKAN] Semaphore renderfinished creation failure" + error);
+                Log::PrintL(Log::LogLevel::Error,"[VULKAN] Semaphore renderfinished creation failure {}",error);
             }
         }
     }

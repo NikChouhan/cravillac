@@ -14,3 +14,5 @@ using u64 = uint64_t;
 using f32 = float;
 using f64 = double;
 using byte = uint8_t;
+
+using cstring = const char*;

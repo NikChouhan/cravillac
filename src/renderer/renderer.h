@@ -35,7 +35,6 @@ namespace Cravillac
         void CreateSynObjects(std::vector<vk::Semaphore>& imgAvailableSem, std::vector<vk::Semaphore>& renderFinishedSem, std::vector<vk::Fence>& inFlightFences);
         void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT& createInfo);
         void SetupDebugMessenger();
-        [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code) const;
     public:
         vk::Instance m_instance;
         vk::PhysicalDevice m_physicalDevice;

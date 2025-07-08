@@ -8,6 +8,10 @@ inline uint32_t MAX_TEXTURES = 256;
 // meshInfo shading pipeline
 #define MESH_SHADING 0
 
+// array size
+template <typename T, size_t N>
+constexpr size_t ArraySize(T(&)[N]) { return N; }
+
 // error check
 
 #define VK_ASSERT(call)                                                                                     \

@@ -2,122 +2,49 @@
 #include <iomanip>
 #include "Log.h"
 
-std::vector<Log::LogMessageData> Log::m_messages;
-bool Log::m_initialized = false;
-    
-void Log::Init()
-{
-    m_initialized = true;
-}
+#include <cstdarg>
+#include <cstdio>
+#include "common.h"
+#include <print>
 
-void Log::Shutdown()
+namespace Cravillac
 {
-    m_initialized = false;
-}
+    bool Log::m_initialized = false;
+    static constexpr u32 bufferSize = 1024 * 1024;
+    static char logBuffer[bufferSize];
 
-void Log::Info(const std::string &msg)
-{
-    LogMessage(msg, LogLevel::Info);
-}
-
-void Log::Warn(const std::string &msg)
-{
-    LogMessage(msg, LogLevel::Warn);
-}
-
-void Log::Error(const std::string &msg)
-{
-    LogMessage(msg, LogLevel::Error);
-}
-
-void Log::Error(const std::string& msg, const std::string& value)
-{
-    LogMessage(msg, value,LogLevel::Error);
-}
-void Log::LogMessage(const std::string &msg, LogLevel level)
-{
-    if (!m_initialized)
+    void Log::Init()
     {
-        return;
+        m_initialized = true;
     }
 
-    LogMessageData data;
-    data.message = msg;
-    data.level = level;
-
-    m_messages.push_back(data);
-
-    switch (level)
+    void Log::Shutdown()
     {
-    case LogLevel::Info:
-        std::cout << "\033[32mINFO: " << msg << "\033[0m" << std::endl;
-        break;
-    case LogLevel::InfoDebug:
-        std::cout << "\033[36mINFO_DEBUG: " << msg << "\033[0m" << std::endl;
-        break;
-    case LogLevel::Warn:
-        std::cout << "\033[33mWARN: " << msg << "\033[0m" << std::endl;
-        break;
-    case LogLevel::Error:
-        std::cout << "\033[31mERROR: " << msg << "\033[0m" << std::endl;
-        break;
-    default:
-        break;
-    }
-}
-
-void Log::LogMessage(const std::string& msg, const std::string& value, LogLevel level)
-{
-    if (!m_initialized)
-    {
-        return;
+        m_initialized = false;
     }
 
-    LogMessageData data;
-    data.message = msg;
-    data.level = level;
-
-    m_messages.push_back(data);
-
-    switch (level)
+    void Log::LogMessage(LogLevel level, cstring msg)
     {
-    case LogLevel::Info:
-        std::cout << "\033[32mINFO: " << msg << value << "\033[0m" << std::endl;
-        break;
-    case LogLevel::InfoDebug:
-        std::cout << "\033[36mINFO_DEBUG: " << msg << value << "\033[0m" << std::endl;
-        break;
-    case LogLevel::Warn:
-        std::cout << "\033[33mWARN: " << msg << value << "\033[0m" << std::endl;
-        break;
-    case LogLevel::Error:
-        std::cout << "\033[31mERROR: " << msg << value << "\033[0m" << std::endl;
-        break;
-    default:
-        break;
-    }
-}
+        if (!m_initialized)
+        {
+            return;
+        }
 
-std::string Log::FormatLogs(const std::string& msg, const DirectX::XMMATRIX& matrix)
-{
-    std::ostringstream oss;
-    oss << msg << ":\n\n";
-    for (int i = 0; i < 4; ++i)
-    {
-        DirectX::XMFLOAT4 row;
-        DirectX::XMStoreFloat4(&row, matrix.r[i]);
-        oss << std::fixed << std::setprecision(2)
-            << "[" << row.x << ", " << row.y << ", " << row.z << ", " << row.w << "]\n";
+        switch (level)
+        {
+        default: break;
+        case LogLevel::Info:
+            std::print("\033[32m{}\033[0m\n", msg);
+            break;
+        case LogLevel::Warn:
+            std::print("\033[33m{}\033[0m\n", msg);
+            break;
+        case LogLevel::Error:
+            std::print(("\033[31m{}\033[0m\n"), msg);
+            break;
+        case LogLevel::InfoDebug:
+            std::print(("\033[36m{}\033[0m\n"), msg);
+            break;
+        }
     }
-    return oss.str();
-}
-
-std::string Log::FormatLogs(const std::string& msg, const DirectX::XMVECTOR& vector)
-{
-    std::ostringstream oss;
-    DirectX::XMFLOAT4 vec;
-    DirectX::XMStoreFloat4(&vec, vector);
-    oss << msg << ": ["
-        << vec.x << ", " << vec.y << ", " << vec.z << ", " << vec.w << "]";
-    return oss.str();
 }

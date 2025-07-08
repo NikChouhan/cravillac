@@ -26,31 +26,31 @@ void Cravillac::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, cons
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
 
     if (result != cgltf_result_success)
-        Log::Error("[CGLTF] Failed to parse gltf file");
+        Log::PrintL(Log::LogLevel::Error,"[CGLTF] Failed to parse gltf file");
     else
-        Log::Info("[CGLTF] Successfully parsed gltf file");
+        Log::PrintL(Log::LogLevel::Info,"[CGLTF] Successfully parsed gltf file");
 
     result = cgltf_load_buffers(&options, data, path.c_str());
 
     if (result != cgltf_result_success)
     {
         cgltf_free(data);
-        Log::Error("[CGLTF] Failed to load buffers");
+        Log::PrintL(Log::LogLevel::Error,"[CGLTF] Failed to load buffers");
     }
     else
     {
-        Log::Info("[CGLTF] Successfully loaded buffers");
+        Log::PrintL(Log::LogLevel::Info,"[CGLTF] Successfully loaded buffers");
     }
 
     cgltf_scene *scene = data->scene;
 
     if (!scene)
     {
-        Log::Error("[CGLTF] No scene found in gltf file");
+        Log::PrintL(Log::LogLevel::Error,"[CGLTF] No scene found in gltf file");
     }
     else
     {
-        Log::Info("[CGLTF] Scene found in gltf file");
+        Log::PrintL(Log::LogLevel::Info,"[CGLTF] Scene found in gltf file");
         m_dirPath = path.substr(0, path.find_last_of("/"));
 
         for (size_t i = 0; i < (scene->nodes_count); i++)
@@ -59,11 +59,11 @@ void Cravillac::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, cons
             ProcessNode(scene->nodes[i], data, m_vertices, m_indices, transform);
         }
         // no of nodes
-        Log::InfoDebug("[CGLTF] No of nodes in the scene: ", scene->nodes_count);
+        Log::PrintL(Log::LogLevel::InfoDebug,"[CGLTF] No of nodes in the scene: {} ", scene->nodes_count);
 
         SetBuffers();
 
-        Log::Info("[CGLTF] Successfully loaded gltf file");
+        Log::PrintL(Log::LogLevel::Info,"[CGLTF] Successfully loaded gltf file");
     }
 
     ValidateResources();
@@ -143,19 +143,19 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Verte
 
     if (primitive->type != cgltf_primitive_type_triangles)
     {
-        Log::Warn("[CGLTF] Primitive type is not triangles");
+        Log::PrintL(Log::LogLevel::Warn,"[CGLTF] Primitive type is not triangles");
         return;
     }
 
     if (primitive->indices == nullptr)
     {
-        Log::Error("[CGLTF] Primitive has no indices");
+        Log::PrintL(Log::LogLevel::Error,"[CGLTF] Primitive has no indices");
         return;
     }
 
     if (primitive->material == nullptr)
     {
-        Log::Error("[CGLTF] Primitive has no material");
+        Log::PrintL(Log::LogLevel::Error,"[CGLTF] Primitive has no material");
         return;
     }
 
@@ -187,7 +187,7 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Verte
 
     if (!pos_attribute || !tex_attribute || !norm_attribute)
     {
-        Log::Warn("[CGLTF] Missing attributes in primitive");
+        Log::PrintL(Log::LogLevel::Warn,"[CGLTF] Missing attributes in primitive");
         return;
     }
 
@@ -203,15 +203,15 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Verte
         // Read original vertex data
         if (cgltf_accessor_read_float(pos_attribute->data, i, &vertex.pos.x, 3) == 0)
         {
-            Log::Warn("[CGLTF] Unable to read Position attributes!");
+            Log::PrintL(Log::LogLevel::Warn,"[CGLTF] Unable to read Position attributes!");
         }
         if (cgltf_accessor_read_float(tex_attribute->data, i, &vertex.texCoord.x, 2) == 0)
         {
-            Log::Warn("[CGLTF] Unable to read Texture attributes!");
+            Log::PrintL(Log::LogLevel::Warn,"[CGLTF] Unable to read Texture attributes!");
         }
         if (cgltf_accessor_read_float(norm_attribute->data, i, &vertex.normal.x, 3) == 0)
         {
-            Log::Warn("[CGLTF] Unable to read Normal attributes!");
+            Log::PrintL(Log::LogLevel::Warn,"[CGLTF] Unable to read Normal attributes!");
         }
         tempVertices.push_back(vertex);
         //vertices.push_back(vertex);
@@ -292,19 +292,17 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Verte
                 hr = LoadMaterialTexture(mat, view, type);
                 if (FAILED(hr))
                 {
-                    Log::Error("[Texture] Failed to load texture of type " + textureIdentifier + " with name: " + imageName);
-                    Log::InfoDebug("  #", i++);
+                    //Log::PrintL(Log::LogLevel::Error,"[Texture] Failed to load texture of type {} with name {} # {} ", textureIdentifier, imageName, i++);
                 }
                 else
                 {
-                    Log::Info("[Texture] Loaded texture of type " + textureIdentifier + " with name: " + imageName);
-                    Log::InfoDebug("  #", i++);
+                    //Log::PrintL(Log::LogLevel::Info,"[Texture] Loaded texture of type {} with name {} # {}", textureIdentifier, imageName, i++);
                     loadedTextures.insert(imageName); // Mark this texture type as loaded
                 }
             }
             else
             {
-                Log::Info("[Texture] Skipping already loaded texture of type "+ textureIdentifier + " with name: " + imageName);
+                //Log::PrintL(Log::LogLevel::Warn, "[Texture] Skipping already loaded texture of type {} with name {} ", textureIdentifier, imageName);
             }
         }
         m_materials.push_back(mat);
@@ -468,12 +466,12 @@ bool Cravillac::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_vi
         //     modelTextures.push_back(tex);
         //     return S_OK;
         default:
-            Log::Warn("[Texture] Unknown texture type.");
+            //Log::PrintL(Log::LogLevel::Warn,"[Texture] Unknown texture type.");
             return false;
         }
     }
     // Handle missing texture or image
-    Log::Warn("[Texture] Texture or image not found for this material.");
+    Log::PrintL(Log::LogLevel::Warn,"[Texture] Texture or image not found for material : {}", std::to_string(static_cast<int>(type)));
     return false;
 }
 
@@ -564,11 +562,9 @@ void Cravillac::Model::SetBuffers()
 
 void Cravillac::Model::ValidateResources() const
 {
-    Log::Info("[CGLTF] Validating Model Resources:");
-    Log::Info("[CGLTF] Vertices: " + std::to_string(m_vertices.size()));
-    Log::Info("[CGLTF] Indices: " + std::to_string(m_indices.size()));
-    Log::Info("[CGLTF] Materials: " + std::to_string(m_materials.size()));
-    Log::Info("[CGLTF] Meshes: " + std::to_string(m_meshes.size()));
+    Log::PrintL(Log::LogLevel::Info,
+                "[CGLTF] Validating Model Resources: \nVertices: {} \nIndices: {}\nMaterials: {}\nMeshes: {}",
+                m_vertices.size(), m_indices.size(), m_materials.size(), m_meshes.size());
     // Check camera position
     //DirectX::XMFLOAT3 pos;
     /*XMStoreFloat3(&pos, camera->GetPosition());

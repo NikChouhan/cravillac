@@ -24,7 +24,7 @@ namespace Cravillac
 
         if (!imgData)
         {
-            Log::Error("[STB] Failed to load texture");
+            Log::PrintL(Log::LogLevel::Error,"[STB] Failed to load texture");
             return;
         }
         else
@@ -89,11 +89,11 @@ namespace Cravillac
         try
         {
             m_texSampler = m_renderer->m_device.createSampler(samplerInfo);
-            Log::Info("[TEXTURE] Success to create Texture Sampler");
+            //Log::PrintL(Log::LogLevel::Info,"[TEXTURE] Success to create Texture Sampler");
         }
         catch (vk::SystemError& err)
         {
-            Log::Error("[TEXTURE] Failure to create Texture Sampler: " + std::string(err.what()));
+            Log::PrintL(Log::LogLevel::Error,"[TEXTURE] Failure to create Texture Sampler: {}", std::string(err.what()));
             m_texSampler = nullptr;
         }
     }
