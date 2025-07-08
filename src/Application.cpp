@@ -34,6 +34,8 @@ namespace Cravillac
 
 	void Application::Init()
 	{
+
+		Log::Init();
 		title = "Cravillac";
 		// camera setup
 		m_camera->InitAsPerspective(45.0f, WIDTH, HEIGHT);

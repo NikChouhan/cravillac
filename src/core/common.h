@@ -3,7 +3,7 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 inline uint32_t MAX_TEXTURES = 256;
-#define EXTREME 0
+#define EXTREME 1
 
 // meshInfo shading pipeline
 #define MESH_SHADING 0

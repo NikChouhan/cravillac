@@ -87,25 +87,6 @@ namespace Cravillac
         }
     }
 
-    vk::ShaderModule Renderer::CreateShaderModule(const std::vector<char>& code) const
-    {
-        VkShaderModuleCreateInfo createInfo{
-            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .codeSize = code.size(),
-            .pCode = reinterpret_cast<const uint32_t*>(code.data()) };
-
-        VkShaderModule shaderModule;
-
-        if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-        {
-            Log::Error("[SHADER] Shader Module creation Failed");
-        }
-        else
-            Log::Info("[SHADER] Shader Module creation Success");
-
-        return shaderModule;
-    }
-
     Renderer::Renderer()
     {
     }
