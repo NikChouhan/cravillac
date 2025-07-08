@@ -64,7 +64,7 @@ namespace Cravillac
 
         if (extensionsSupported)
         {
-            Log::PrintL(Log::LogLevel::Info,"[VULKAN] Required Extensions supported!");
+            printl(Log::LogLevel::Info,"[VULKAN] Required Extensions supported!");
             const SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, surface);
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
@@ -185,7 +185,7 @@ namespace Cravillac
                 return i;
             }
         }
-        Log::PrintL(Log::LogLevel::Error,"[MEMORY] Failed to find suitable memory type");
+        printl(Log::LogLevel::Error,"[MEMORY] Failed to find suitable memory type");
         return std::nullopt;
     }
 
@@ -305,11 +305,11 @@ namespace Cravillac
         try
         {
             buffer = device.createBuffer(bufferCI);
-            //Log::PrintL(Log::LogLevel::Info,"[VULKAN] Vertex Buffer creation Success");
+            //printl(Log::LogLevel::Info,"[VULKAN] Vertex Buffer creation Success");
         }
         catch (vk::SystemError& err)
         {
-            Log::PrintL(Log::LogLevel::Error, "[VULKAN] Vertex Buffer creation Failure: {}", std::string(err.what()));
+            printl(Log::LogLevel::Error, "[VULKAN] Vertex Buffer creation Failure: {}", std::string(err.what()));
             return;
         }
 
@@ -326,18 +326,18 @@ namespace Cravillac
         }
         else
         {
-            Log::PrintL(Log::LogLevel::Error, "[VULKAN] No memory type found");
+            printl(Log::LogLevel::Error, "[VULKAN] No memory type found");
             return;
         }
 
         try
         {
             bufferMemory = device.allocateMemory(allocInfo);
-            //Log::PrintL(Log::LogLevel::Info, "[VULKAN] Allocation of Vertex Buffer Memory Success");
+            //printl(Log::LogLevel::Info, "[VULKAN] Allocation of Vertex Buffer Memory Success");
         }
         catch (vk::SystemError& err)
         {
-            Log::PrintL(Log::LogLevel::Error, "[VULKAN] Allocation of Vertex Buffer Memory Failed: {}", std::string(err.what()));
+            printl(Log::LogLevel::Error, "[VULKAN] Allocation of Vertex Buffer Memory Failed: {}", std::string(err.what()));
             return;
         }
 
@@ -416,11 +416,11 @@ namespace Cravillac
         auto result = device.createImage(&imageCI, nullptr, &image);
         if (result != vk::Result::eSuccess)
         {
-            Log::PrintL(Log::LogLevel::Error,"[STB] Failed to Create Texture Image");
+            printl(Log::LogLevel::Error,"[STB] Failed to Create Texture Image");
         }
         else
         {
-            //Log::PrintL(Log::LogLevel::Info, "[STB] Success to Create Texture Image");
+            //printl(Log::LogLevel::Info, "[STB] Success to Create Texture Image");
         }
 
         auto memRequirements = device.getImageMemoryRequirements(image);
@@ -433,14 +433,14 @@ namespace Cravillac
         if (memoryTypeIndex.has_value())
             allocInfo.memoryTypeIndex = memoryTypeIndex.value();
         else
-            Log::PrintL(Log::LogLevel::Error,"[VULKAN] No memory type found");
+            printl(Log::LogLevel::Error,"[VULKAN] No memory type found");
 
         auto allocResult = device.allocateMemory(&allocInfo, nullptr, &imageMemory);
         if (allocResult != vk::Result::eSuccess)
         {
-            Log::PrintL(Log::LogLevel::Error,"[TEXTURE] Failed to allocate texture memory");
+            printl(Log::LogLevel::Error,"[TEXTURE] Failed to allocate texture memory");
         }
-        // else Log::PrintL(Log::LogLevel::Info, "[TEXTURE] Success to allocate texture memory");
+        // else printl(Log::LogLevel::Info, "[TEXTURE] Success to allocate texture memory");
 
         device.bindImageMemory(image, imageMemory, 0);
     }
@@ -491,12 +491,12 @@ namespace Cravillac
         auto result = device.createImageView(&imageViewCI, nullptr, &imageView);
         if (result != vk::Result::eSuccess)
         {
-            Log::PrintL(Log::LogLevel::Error,"[TEXTURE] Failed to create Image View");
+            printl(Log::LogLevel::Error,"[TEXTURE] Failed to create Image View");
             imageView = nullptr;
         }
         else
         {
-            //Log::PrintL(Log::LogLevel::Info,"[TEXTURE] Success to create Image View");
+            //printl(Log::LogLevel::Info,"[TEXTURE] Success to create Image View");
         }
         return imageView;
     }
@@ -534,7 +534,7 @@ namespace Cravillac
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
         if (!file.is_open())
         {
-            Log::PrintL(Log::LogLevel::Error,"[SHADER] Failed to open file");
+            printl(Log::LogLevel::Error,"[SHADER] Failed to open file");
         }
         size_t fileSize = (size_t)file.tellg();
         std::vector<char> buffer(fileSize);

@@ -18,7 +18,7 @@ namespace Cravillac
         if (it != m_pipelineCache.end()) {
             return it->second;
         }
-        Log::PrintL(Log::LogLevel::Error,"[PIPELINE] Pipeline not found: {}", pipelineKey);
+        printl(Log::LogLevel::Error,"[PIPELINE] Pipeline not found: {}", pipelineKey);
         throw std::runtime_error("Pipeline not found");
     }
 
@@ -240,13 +240,13 @@ namespace Cravillac
             auto result = device.createGraphicsPipelines(nullptr, { pipelineCreateInfo });
             vk::Pipeline graphicsPipeline = result.value[0];
 
-            Log::PrintL(Log::LogLevel::InfoDebug,"[PIPELINE] Pipeline created with key: ", pipelineKey);
+            printl(Log::LogLevel::InfoDebug,"[PIPELINE] Pipeline created with key: ", pipelineKey);
             m_pipelineCache[pipelineKey] = graphicsPipeline;
             return graphicsPipeline;
         }
         catch (vk::SystemError& err)
         {
-            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Pipeline creation Failure : {} ", std::string(err.what()));
+            printl(Log::LogLevel::Error,"[VULKAN] Pipeline creation Failure : {} ", std::string(err.what()));
             throw;
         }
     }
@@ -289,13 +289,13 @@ namespace Cravillac
         try
         {
             vk::PipelineLayout pipelineLayout = m_renderer->m_device.createPipelineLayout(pipelineLayoutInfo);
-            Log::PrintL(Log::LogLevel::Info,"[VULKAN] Pipeline Layout creation Success");
+            printl(Log::LogLevel::Info,"[VULKAN] Pipeline Layout creation Success");
             m_pipelineLayoutCache[pipelineLayoutKey] = pipelineLayout;
             return pipelineLayout;
         }
         catch (vk::SystemError& err)
         {
-            Log::PrintL(Log::LogLevel::Error,"[VULKAN] Pipeline Layout creation Failure:{} ", std::string(err.what()));
+            printl(Log::LogLevel::Error,"[VULKAN] Pipeline Layout creation Failure:{} ", std::string(err.what()));
             throw;
         }
     }

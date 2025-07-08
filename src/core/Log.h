@@ -12,7 +12,6 @@ namespace Cravillac
     class Log
     {
     public:
-
         enum class LogLevel
         {
             Info,
@@ -30,7 +29,6 @@ namespace Cravillac
             LogMessage(level, message.c_str());
         }
     private:
-
         struct LogMessageData
         {
             std::string message;
@@ -41,6 +39,6 @@ namespace Cravillac
     };  
 }
 
-#define printl(level, format, ...) Cravillac::Log::PrintL(level, format, __VA_ARGS__);
+#define printl(level, format, ...) Cravillac::Log::PrintL(level, format, __VA_ARGS__)
 
 #endif// LOG_H

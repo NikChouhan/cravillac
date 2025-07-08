@@ -58,8 +58,8 @@ namespace Cravillac
 
 		auto result = (glfwCreateWindowSurface(renderer->m_instance, m_window, nullptr, &ret));
 		if (result != VK_SUCCESS)
-			Log::PrintL(Log::LogLevel::Error,"[VULKAN] GLFW Window surface");
-		else Log::PrintL(Log::LogLevel::Info,"[VULKAN] GLFW window surface");
+			printl(Log::LogLevel::Error,"[VULKAN] GLFW Window surface");
+		else printl(Log::LogLevel::Info,"[VULKAN] GLFW window surface");
 		m_surface = vk::SurfaceKHR{ ret };
 		// post surface stuff
 		renderer->PickPhysicalDevice(m_surface);

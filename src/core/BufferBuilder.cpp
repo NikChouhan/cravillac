@@ -61,7 +61,7 @@ namespace Cravillac
 		allocInfo.allocationSize = memRequirements.size;
 		if (memoryTypeIndex.has_value())
 			allocInfo.memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, m_memProps).value();
-		else Log::PrintL(Log::LogLevel::Error, "[VULKAN] No memory type found");
+		else printl(Log::LogLevel::Error, "[VULKAN] No memory type found");
 
 		VK_ASSERT(device.allocateMemory(&allocInfo, nullptr, &outMemory),
 			[&] ()
@@ -71,7 +71,7 @@ namespace Cravillac
 
 		device.bindBufferMemory(buffer, outMemory, 0);
 		if (!buffer) {
-			Log::PrintL(Log::LogLevel::Error,"[BUFFER] Failed to bind memory to buffer");
+			printl(Log::LogLevel::Error,"[BUFFER] Failed to bind memory to buffer");
 			vkDestroyBuffer(device, buffer, nullptr);
 			vkFreeMemory(device, outMemory, nullptr);
 			throw std::runtime_error("Failed to bind memory to buffer");
