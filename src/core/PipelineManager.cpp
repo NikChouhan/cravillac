@@ -8,9 +8,9 @@
 #include "vk_utils.h"
 #include "renderer.h"
 
-namespace Cravillac
+namespace CV
 {
-    PipelineManager::PipelineManager(ResourceManager* resourceManager, const std::shared_ptr<Renderer>& renderer) : m_resourceManager(resourceManager), m_renderer(renderer) {}
+    PipelineManager::PipelineManager(ResourceManager* resourceManager, const std::shared_ptr<Renderer>& renderer) : _resourceManager(resourceManager), _renderer(renderer) {}
 
     vk::Pipeline PipelineManager::getPipeline(const std::string& pipelineKey)
     {
@@ -104,11 +104,11 @@ namespace Cravillac
         vk::PipelineLayout pipelineLayout = createPipelineLayout(builder.m_descriptorSetLayoutKeys);
 
 #if MESH_SHADING
-        vk::ShaderModule meshShaderModule = m_resourceManager->getShaderModule(builder.m_meshShaderPath);
+        vk::ShaderModule meshShaderModule = _resourceManager->getShaderModule(builder.m_meshShaderPath);
 #else
-        vk::ShaderModule vertShaderModule = m_resourceManager->getShaderModule(builder.m_vertShaderPath);
+        vk::ShaderModule vertShaderModule = _resourceManager->getShaderModule(builder.m_vertShaderPath);
 #endif
-        vk::ShaderModule fragShaderModule = m_resourceManager->getShaderModule(builder.m_fragShaderPath);
+        vk::ShaderModule fragShaderModule = _resourceManager->getShaderModule(builder.m_fragShaderPath);
 
         // Shader stages
         vk::PipelineShaderStageCreateInfo fragShaderStageInfo;
@@ -143,14 +143,14 @@ namespace Cravillac
         vk::Viewport viewport;
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = static_cast<float>(m_renderer->m_swapChainExtent.width);
-        viewport.height = static_cast<float>(m_renderer->m_swapChainExtent.height);
+        viewport.width = static_cast<float>(_renderer->_swapChainExtent.width);
+        viewport.height = static_cast<float>(_renderer->_swapChainExtent.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
         vk::Rect2D scissor;
         scissor.offset = vk::Offset2D{ 0, 0 };
-        scissor.extent = m_renderer->m_swapChainExtent;
+        scissor.extent = _renderer->_swapChainExtent;
 
         vk::PipelineDynamicStateCreateInfo dynamicState;
         dynamicState.dynamicStateCount = static_cast<uint32_t>(builder.m_dynamicStates.size());
@@ -211,12 +211,12 @@ namespace Cravillac
         depthInfo.minDepthBounds = 0.0f;
         depthInfo.maxDepthBounds = 1.0f;
 
-        auto device = m_resourceManager->getDevice();
+        auto device = _resourceManager->getDevice();
 
         vk::PipelineRenderingCreateInfo pipelineRenderingInfo;
         pipelineRenderingInfo.colorAttachmentCount = 1;
-        pipelineRenderingInfo.pColorAttachmentFormats = &m_renderer->m_swapChainImageFormat;
-        pipelineRenderingInfo.depthAttachmentFormat = m_renderer->m_depthImageFormat;
+        pipelineRenderingInfo.pColorAttachmentFormats = &_renderer->_swapChainImageFormat;
+        pipelineRenderingInfo.depthAttachmentFormat = _renderer->_depthImageFormat;
 
         vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
         pipelineCreateInfo.pNext = &pipelineRenderingInfo;
@@ -268,7 +268,7 @@ namespace Cravillac
         std::vector<vk::DescriptorSetLayout> layouts;
         for (const auto& key : descLayoutKeys)
         {
-            layouts.push_back(m_resourceManager->getDescriptorSetLayout(key));
+            layouts.push_back(_resourceManager->getDescriptorSetLayout(key));
         }
 
         vk::PushConstantRange pushConstantRange;
@@ -288,7 +288,7 @@ namespace Cravillac
 
         try
         {
-            vk::PipelineLayout pipelineLayout = m_renderer->m_device.createPipelineLayout(pipelineLayoutInfo);
+            vk::PipelineLayout pipelineLayout = _renderer->_device.createPipelineLayout(pipelineLayoutInfo);
             printl(Log::LogLevel::Info,"[VULKAN] Pipeline Layout creation Success");
             m_pipelineLayoutCache[pipelineLayoutKey] = pipelineLayout;
             return pipelineLayout;

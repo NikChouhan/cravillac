@@ -10,7 +10,7 @@
 #include <vulkan/vulkan.hpp>
 #include "StandardTypes.h"
 
-namespace Cravillac
+namespace CV
 {
 	const std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"

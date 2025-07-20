@@ -12,7 +12,7 @@
 #undef max
 #endif
 
-namespace Cravillac
+namespace CV
 {
     bool CheckValidationLayerSupport()
     {

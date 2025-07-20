@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
-namespace Cravillac
+namespace CV
 {
 	class ResourceManager;
 	class Renderer;
@@ -51,8 +51,8 @@ namespace Cravillac
 		};
 
 	private:
-		ResourceManager* m_resourceManager;
-		std::shared_ptr<Renderer> m_renderer;
+		ResourceManager* _resourceManager;
+		std::shared_ptr<Renderer> _renderer;
 		std::unordered_map<std::string, vk::Pipeline> m_pipelineCache;
 		std::unordered_map<std::string, vk::PipelineLayout> m_pipelineLayoutCache;
 

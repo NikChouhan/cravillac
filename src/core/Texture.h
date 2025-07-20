@@ -4,12 +4,12 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
-namespace Cravillac
+namespace CV
 {
     class Renderer;
 }
 
-namespace Cravillac
+namespace CV
 {
     class Texture
     {
@@ -24,7 +24,7 @@ namespace Cravillac
         vk::DeviceMemory m_texImageMemory = VK_NULL_HANDLE;
         vk::ImageView m_texImageView = VK_NULL_HANDLE;
         vk::Sampler m_texSampler = VK_NULL_HANDLE;
-        std::shared_ptr<Renderer> m_renderer;
+        std::shared_ptr<Renderer> _renderer;
     };
 }
 

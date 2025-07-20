@@ -6,7 +6,7 @@
 #include "pch.h"
 
 
-namespace Cravillac
+namespace CV
 {
     class Texture;
     enum class Buffer
@@ -36,28 +36,28 @@ namespace Cravillac
         void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT& createInfo);
         void SetupDebugMessenger();
     public:
-        vk::Instance m_instance;
-        vk::PhysicalDevice m_physicalDevice;
-        vk::Device m_device;
-        vk::Queue m_graphicsQueue;
-        vk::Queue m_presentQueue;
-        vk::SwapchainKHR m_swapChain;
-        vk::Format m_swapChainImageFormat;
-        vk::Extent2D m_swapChainExtent;
-        std::vector<vk::Image> m_swapChainImages{};
-        std::vector<vk::ImageView> m_swapChainImageViews{};
+        vk::Instance _instance;
+        vk::PhysicalDevice _physicalDevice;
+        vk::Device _device;
+        vk::Queue _graphicsQueue;
+        vk::Queue _presentQueue;
+        vk::SwapchainKHR _swapChain;
+        vk::Format _swapChainImageFormat;
+        vk::Extent2D _swapChainExtent;
+        std::vector<vk::Image> _swapChainImages{};
+        std::vector<vk::ImageView> _swapChainImageViews{};
         //depth image vars
-        vk::Image m_depthImage;
-        vk::DeviceMemory m_depthImageMemory;
-        vk::ImageView m_depthImageView;
-        vk::Format m_depthImageFormat;
-        std::vector<vk::Buffer> m_uniformBuffers{};
-        std::vector<vk::DeviceMemory> m_uniformBufferMemory{};
-        std::vector<void*> m_uniformBufferMapped{};
+        vk::Image _depthImage;
+        vk::DeviceMemory _depthImageMemory;
+        vk::ImageView _depthImageView;
+        vk::Format _depthImageFormat;
+        std::vector<vk::Buffer> _uniformBuffers{};
+        std::vector<vk::DeviceMemory> _uniformBufferMemory{};
+        std::vector<void*> _uniformBufferMapped{};
         // issue commands
-        vk::CommandPool m_commandPool;
-        std::vector<vk::CommandBuffer> m_commandBuffer;
+        vk::CommandPool _commandPool;
+        std::vector<vk::CommandBuffer> _commandBuffer;
         // sync primitives
-        vk::DebugUtilsMessengerEXT debugMessenger;
+        vk::DebugUtilsMessengerEXT _debugMessenger;
     };
 };

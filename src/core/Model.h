@@ -12,7 +12,7 @@
 #include "common.h"
 #include "ResourceManager.h"
 
-namespace Cravillac
+namespace CV
 {
     class Renderer;
     struct Vertex;
@@ -87,7 +87,7 @@ struct Material
 
 struct Mesh
 {
-    std::vector<Cravillac::Vertex> vertices;
+    std::vector<CV::Vertex> vertices;
     std::vector<u32> indices;
     u32 vertexCount;
     u32 indexCount;
@@ -104,7 +104,7 @@ struct MeshInfo
     DirectX::XMMATRIX normalMatrix;
 };
 
-namespace Cravillac
+namespace CV
 {
     class Model
     {
@@ -127,32 +127,32 @@ namespace Cravillac
         MaterialConstants matColor;
 
     public:
-        std::string m_dirPath;
-        std::vector<Vertex> m_vertices;
-        std::vector<u32> m_indices;
-        std::vector<MeshInfo> m_meshes;
-        std::vector<Meshlet> m_meshlets;
-        std::vector<Material> m_materials;
+        std::string _dirPath;
+        std::vector<Vertex> _vertices;
+        std::vector<u32> _indices;
+        std::vector<MeshInfo> _meshes;
+        std::vector<Meshlet> _meshlets;
+        std::vector<Material> _materials;
 
-        std::shared_ptr<Renderer> m_renderer;
+        std::shared_ptr<Renderer> _renderer;
 
 
-        vk::Buffer m_vertexBuffer = VK_NULL_HANDLE;
-        vk::Buffer m_indexBuffer = VK_NULL_HANDLE;
-        vk::Buffer m_meshletBuffer = VK_NULL_HANDLE;
+        vk::Buffer _vertexBuffer = VK_NULL_HANDLE;
+        vk::Buffer _indexBuffer = VK_NULL_HANDLE;
+        vk::Buffer _meshletBuffer = VK_NULL_HANDLE;
 
         std::vector<Texture> modelTextures;
     private:
 
 
-        vk::DeviceMemory m_vertexMemory = VK_NULL_HANDLE;
-        vk::DeviceMemory m_indexMemory = VK_NULL_HANDLE;
-        vk::DeviceMemory m_meshletMemory = VK_NULL_HANDLE;
+        vk::DeviceMemory _vertexMemory = VK_NULL_HANDLE;
+        vk::DeviceMemory _indexMemory = VK_NULL_HANDLE;
+        vk::DeviceMemory _meshletMemory = VK_NULL_HANDLE;
 
         std::unordered_set<std::string> loadedTextures; // To track loaded textures
         std::unordered_map<cgltf_material*, size_t> materialLookup;
 
-        ResourceManager* m_resourceManager;
+        ResourceManager* _resourceManager;
 
     };
 }

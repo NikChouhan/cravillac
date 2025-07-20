@@ -7,7 +7,7 @@
 #include <sstream>
 #include "StandardTypes.h"
 
-namespace Cravillac
+namespace CV
 {
     class Log
     {
@@ -39,6 +39,6 @@ namespace Cravillac
     };  
 }
 
-#define printl(level, format, ...) Cravillac::Log::PrintL(level, format, __VA_ARGS__)
+#define printl(level, format, ...) CV::Log::PrintL(level, format, __VA_ARGS__)
 
 #endif// LOG_H

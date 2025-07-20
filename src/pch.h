@@ -32,3 +32,5 @@ namespace SM = DirectX::SimpleMath;
 #include <string>
 #include <memory>
 #include <optional>
+
+#include "Log.h"
