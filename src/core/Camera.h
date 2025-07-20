@@ -29,7 +29,7 @@ public:
 	DirectX::XMMATRIX getProjMatrix() const { return proj_; }
 	void InitPerspective()
 	{
-		proj_ = DirectX::XMMatrixPerspectiveFovRH(DirectX::XMConvertToRadians(45.f), 16./9., 0.1f, 1000.0f);
+		proj_ = DirectX::XMMatrixPerspectiveFovRH(DirectX::XMConvertToRadians(45.f), 16./9.f, 0.1f, 1000.0f);
 		proj_.r[1].m128_f32[1] *= -1.0f;
 	}
 

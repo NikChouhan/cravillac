@@ -46,10 +46,10 @@ elseif (is_mode("release")) then
     set_runtimes("MD")
 end
 
-target("VulkanTest")
+target("game")
     set_default(true)
     set_kind("binary")
     add_files("src/*.cpp")
     add_headerfiles("src/*.h")
-    add_deps("core", "renderer")
+    add_deps("engine")
 target_end()

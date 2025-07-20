@@ -25,7 +25,7 @@ namespace
 		bool pressedLeft = false;
 	} mouseState;
 
-	constexpr float ratio = 16. / 9.;
+	constexpr float ratio = 16. / 9.f;
 
 	constexpr SM::Vector3 kInitialCameraPos = SM::Vector3{ (0.0f, 1.0f, -1.5f) };
 	constexpr SM::Vector3 kInitialCameraTarget{ (0.0f, 0.5f, 0.0f) };
@@ -56,8 +56,8 @@ int main()
 	renderer->InitVulkan();
 
 	VkSurfaceKHR ret{};
-	auto result = (glfwCreateWindowSurface(renderer->_instance, _window, nullptr, &ret));
-	if (result != VK_SUCCESS)
+	auto res = (glfwCreateWindowSurface(renderer->_instance, _window, nullptr, &ret));
+	if (res != VK_SUCCESS)
 		printl(Log::LogLevel::Error, "[VULKAN] GLFW Window surface");
 	else printl(Log::LogLevel::Info, "[VULKAN] GLFW window surface");
 	vk::SurfaceKHR _surface = vk::SurfaceKHR{ ret };
@@ -222,7 +222,7 @@ int main()
 		};
 
 	// lambda for record command buffer
-	auto _recordCommandBuffer = [&](vk::CommandBuffer commandBuffer, uint32_t imageIndex, CV::PushConstants pc)
+	auto _recordCommandBuffer = [&](vk::CommandBuffer commandBuffer, uint32_t imageIndex)
 		{
 			CV::PipelineManager* pipelineManager = _resourceManager->getPipelineManager();
 			vk::PipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("textures;");
@@ -363,7 +363,6 @@ int main()
 		const SM::Vector3& pos = positioner.getPosition();
 		SM::Vector4 cameraPos = SM::Vector4(pos.x, pos.y, pos.z, 1.0f);
 
-		CV::PushConstants pc;
 		VK_ASSERT(renderer->_device.waitForFences(1u, &_inFlightFence[_currentFrame], VK_TRUE, UINT64_MAX));
 		VK_ASSERT(renderer->_device.resetFences(1u, &_inFlightFence[_currentFrame]));
 
@@ -374,7 +373,7 @@ int main()
 
 		_cmdBuffers[_currentFrame].reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 
-		_recordCommandBuffer(_cmdBuffers[_currentFrame], imageIndex, pc);
+		_recordCommandBuffer(_cmdBuffers[_currentFrame], imageIndex);
 
 		vk::SubmitInfo submitInfo{};
 		vk::Semaphore waitSemaphores[] = { _imageAvailableSemaphore[_currentFrame] };

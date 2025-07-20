@@ -37,7 +37,7 @@ namespace CV
         void SetupDebugMessenger();
     public:
         vk::Instance _instance;
-        vk::PhysicalDevice _physicalDevice;
+        vk::PhysicalDevice _physicalDevice; 
         vk::Device _device;
         vk::Queue _graphicsQueue;
         vk::Queue _presentQueue;

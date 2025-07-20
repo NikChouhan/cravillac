@@ -37,8 +37,6 @@ namespace CV
 		bufferCI.sharingMode = vk::SharingMode::eExclusive;
 
 		vk::Buffer buffer{};
-		auto result = device.createBuffer(& bufferCI, nullptr, & buffer);
-
 		VK_ASSERT(device.createBuffer(&bufferCI, nullptr, &buffer),
 			[&]()
 			{
