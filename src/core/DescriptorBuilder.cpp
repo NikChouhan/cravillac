@@ -5,14 +5,14 @@
 #include "Log.h"
 #include "Texture.h"
 
-namespace Cravillac 
+namespace CV 
 {
-	DescriptorBuilder::DescriptorBuilder(ResourceManager& resourceManager) : m_resourceManager(resourceManager){}
+	DescriptorBuilder::DescriptorBuilder(ResourceManager& resourceManager) : _resourceManager(resourceManager){}
 
 	vk::DescriptorSet DescriptorBuilder::allocateDescriptorSet(vk::DescriptorSetLayout layout) const
 	{
-		vk::DescriptorPool descriptorPool = m_resourceManager.getDescriptorPool();
-		vk::Device device = m_resourceManager.getDevice();
+		vk::DescriptorPool descriptorPool = _resourceManager.getDescriptorPool();
+		vk::Device device = _resourceManager.getDevice();
 
 		vk::DescriptorSetAllocateInfo allocInfo{};
 		allocInfo.descriptorPool = descriptorPool;
@@ -26,7 +26,7 @@ namespace Cravillac
 		return descriptorSet;
 	}
 
-	vk::DescriptorSet DescriptorBuilder::updateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize bufferSize, std::optional<std::vector<Cravillac::Texture>> texturesOpt) const
+	vk::DescriptorSet DescriptorBuilder::updateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize bufferSize, std::optional<std::vector<CV::Texture>> texturesOpt) const
 	{
 
 		// here the binding is for the descriptor in the descriptor set.
@@ -35,7 +35,7 @@ namespace Cravillac
 		// same set, different bindings for fast access
 
 
-		auto device = m_resourceManager.getDevice();
+		auto device = _resourceManager.getDevice();
 		if (buffer && (!texturesOpt.has_value()))
 		{
 			vk::DescriptorBufferInfo descBI{};

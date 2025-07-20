@@ -7,29 +7,29 @@
 #include "renderer.h"
 #include "vk_utils.h"
 
-namespace Cravillac
+namespace CV
 {
-	ResourceManager::ResourceManager(const std::shared_ptr<Renderer>& renderer) : m_renderer(renderer), m_descriptorPool(VK_NULL_HANDLE)
+	ResourceManager::ResourceManager(const std::shared_ptr<Renderer>& renderer) : _renderer(renderer), m_descriptorPool(VK_NULL_HANDLE)
 	{
-		pipelineManager = new PipelineManager(this, m_renderer);
+		pipelineManager = new PipelineManager(this, _renderer);
 	}
 
 	ResourceManager::~ResourceManager()
 	{
 		if (m_descriptorPool != VK_NULL_HANDLE)
 		{
-			vkDestroyDescriptorPool(m_renderer->m_device, m_descriptorPool, nullptr);
+			vkDestroyDescriptorPool(_renderer->_device, m_descriptorPool, nullptr);
 		}
 	}
 
 	vk::Device ResourceManager::getDevice() const
 	{
-		return m_renderer->m_device;
+		return _renderer->_device;
 	}
 
 	vk::PhysicalDevice ResourceManager::getPhysicalDevice() const
 	{
-		return m_renderer->m_physicalDevice;
+		return _renderer->_physicalDevice;
 	}
 
 	BufferBuilder ResourceManager::CreateBufferBuilder()
@@ -42,7 +42,7 @@ namespace Cravillac
 	{
 		if (m_descriptorPool)
 		{
-			vkDestroyDescriptorPool(m_renderer->m_device, m_descriptorPool, nullptr);
+			vkDestroyDescriptorPool(_renderer->_device, m_descriptorPool, nullptr);
 		}
 
 		vk::DescriptorPoolCreateInfo poolCI{};
@@ -51,10 +51,10 @@ namespace Cravillac
 		poolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolCI.pPoolSizes = poolSizes.data();
 
-		VK_ASSERT_L(m_renderer->m_device.createDescriptorPool(& poolCI, nullptr,&m_descriptorPool),
+		VK_ASSERT_L(_renderer->_device.createDescriptorPool(& poolCI, nullptr,&m_descriptorPool),
 			[&]()
 			{
-				m_renderer->m_device.destroyDescriptorPool(m_descriptorPool);
+				_renderer->_device.destroyDescriptorPool(m_descriptorPool);
 			});
 	}
 
@@ -68,7 +68,7 @@ namespace Cravillac
 		return CreateDescriptorBuilder()
 			.allocateDescriptorSet(layout);
 	}
-	vk::DescriptorSet ResourceManager::UpdateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize size, const std::optional<std::vector<Cravillac::Texture>>& textures)
+	vk::DescriptorSet ResourceManager::UpdateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize size, const std::optional<std::vector<CV::Texture>>& textures)
 	{
 		return CreateDescriptorBuilder()
 			.updateDescriptorSet(set, binding, type, buffer, size, textures);

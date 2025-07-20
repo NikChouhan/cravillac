@@ -7,7 +7,7 @@
 #include "common.h"
 #include <print>
 
-namespace Cravillac
+namespace CV
 {
     bool Log::m_initialized = false;
     static constexpr u32 bufferSize = 1024 * 1024;

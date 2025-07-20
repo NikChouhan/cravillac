@@ -5,7 +5,7 @@
 
 // have the staging buffers here so no staging buffer copying or such is not visible in the application side
 
-namespace Cravillac
+namespace CV
 {
 	class ResourceManager;
 
@@ -22,7 +22,7 @@ namespace Cravillac
 		vk::Buffer build(vk::DeviceMemory& outMemory) const;
 
 	private:
-		ResourceManager& m_resourceManager;
+		ResourceManager& _resourceManager;
 		vk::DeviceSize m_size{};
 		vk::BufferUsageFlags m_usage{};
 		vk::MemoryPropertyFlags m_memProps{};

@@ -5,9 +5,9 @@
 #include "Log.h"
 #include "vk_utils.h"
 
-namespace Cravillac
+namespace CV
 {
-	BufferBuilder::BufferBuilder(ResourceManager& resourceManager) : m_resourceManager(resourceManager) {}
+	BufferBuilder::BufferBuilder(ResourceManager& resourceManager) : _resourceManager(resourceManager) {}
 
 	BufferBuilder& BufferBuilder::setSize(vk::DeviceSize size)
 	{
@@ -28,8 +28,8 @@ namespace Cravillac
 	}
 
 	vk::Buffer BufferBuilder::build(vk::DeviceMemory& outMemory) const {
-		const auto device = m_resourceManager.getDevice();
-		const auto physicalDevice = m_resourceManager.getPhysicalDevice();
+		const auto device = _resourceManager.getDevice();
+		const auto physicalDevice = _resourceManager.getPhysicalDevice();
 		vk::BufferCreateInfo bufferCI{};
 		bufferCI.size = m_size;
 		bufferCI.usage = m_usage;

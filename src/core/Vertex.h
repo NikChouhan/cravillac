@@ -9,7 +9,7 @@
 
 namespace SM = DirectX::SimpleMath;
 
-namespace  Cravillac
+namespace  CV
 {
     struct PushConstants
     {

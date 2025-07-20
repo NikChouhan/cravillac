@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace Cravillac
+namespace CV
 {
 	class ResourceManager;
 	class Texture;
@@ -18,10 +18,10 @@ namespace Cravillac
 		// methods
 		DescriptorBuilder(ResourceManager& resourceManager);
 		vk::DescriptorSet allocateDescriptorSet(vk::DescriptorSetLayout layout) const;
-		vk::DescriptorSet updateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize bufferSize, std::optional<std::vector<Cravillac::Texture>> textures) const;
+		vk::DescriptorSet updateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize bufferSize, std::optional<std::vector<CV::Texture>> textures) const;
 
 		// vars
-		ResourceManager& m_resourceManager;
+		ResourceManager& _resourceManager;
 	};
 }
 

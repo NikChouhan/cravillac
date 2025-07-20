@@ -11,7 +11,7 @@
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
-namespace Cravillac
+namespace CV
 {
     static HANDLE hConsole = GetStdHandle(STD_ERROR_HANDLE);
 
@@ -76,7 +76,7 @@ namespace Cravillac
 
         try
         {
-            debugMessenger = m_instance.createDebugUtilsMessengerEXT(createInfo);
+            _debugMessenger = _instance.createDebugUtilsMessengerEXT(createInfo);
             printl(Log::LogLevel::Info,"[VULKAN] Debug messenger Success");
         }
         catch (const vk::SystemError& err)
@@ -133,15 +133,15 @@ namespace Cravillac
         }
 
         // Create instance - no need to pass dispatcher here
-        m_instance = vk::createInstance(instanceInfo);
+        _instance = vk::createInstance(instanceInfo);
 
         // Initialize the dispatcher with the instance
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(m_instance);
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(_instance);
     }
 
     void Renderer::PickPhysicalDevice(vk::SurfaceKHR surface)
     {
-        std::vector<vk::PhysicalDevice> devices = m_instance.enumeratePhysicalDevices();
+        std::vector<vk::PhysicalDevice> devices = _instance.enumeratePhysicalDevices();
 
         if (devices.empty())
             printl(Log::LogLevel::Error,"[VULKAN] Failed to find GPUs with Vulkan support");
@@ -149,12 +149,12 @@ namespace Cravillac
         {
             if (IsDeviceSuitable(physicalDevice, surface))
             {
-                m_physicalDevice = physicalDevice;
+                _physicalDevice = physicalDevice;
                 break;
             }
         }
 
-        if (!m_physicalDevice)  // vk::PhysicalDevice has implicit bool conversion
+        if (!_physicalDevice)  // vk::PhysicalDevice has implicit bool conversion
             printl(Log::LogLevel::Error,"[VULKAN] Failed to find a suitable GPU");
         else
         {
@@ -168,7 +168,7 @@ namespace Cravillac
     }
     void Renderer::CreateLogicalDevice(vk::SurfaceKHR surface)
     {
-        QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, surface);
+        QueueFamilyIndices indices = FindQueueFamilies(_physicalDevice, surface);
 
         std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = { indices._graphicsFamily.value(), indices._presentFamily.value() };
@@ -209,7 +209,7 @@ namespace Cravillac
         vk::PhysicalDeviceProperties2 props{};
         props.pNext = &meshShaderProperties;
 
-        m_physicalDevice.getProperties2(&props);
+        _physicalDevice.getProperties2(&props);
 #endif
 
         // bindless
@@ -252,7 +252,7 @@ namespace Cravillac
 
         try
         {
-            m_device = m_physicalDevice.createDevice(createInfo);
+            _device = _physicalDevice.createDevice(createInfo);
             printl(Log::LogLevel::Info,"[VULKAN] Logical Device creation Success");
         }
         catch (const vk::SystemError& err)
@@ -261,15 +261,15 @@ namespace Cravillac
             throw;
         }
 
-        m_graphicsQueue = m_device.getQueue(indices._graphicsFamily.value(), 0);
-        m_presentQueue = m_device.getQueue(indices._presentFamily.value(), 0);
+        _graphicsQueue = _device.getQueue(indices._graphicsFamily.value(), 0);
+        _presentQueue = _device.getQueue(indices._presentFamily.value(), 0);
 
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(m_device);
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(_device);
     }
 
     void Renderer::CreateCommandPool(vk::SurfaceKHR surface)
     {
-        QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_physicalDevice, surface);
+        QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(_physicalDevice, surface);
 
         vk::CommandPoolCreateInfo poolInfo{};
         poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
@@ -277,8 +277,8 @@ namespace Cravillac
 
         try
         {
-            // Use m_device.createCommandPool (C++ API) instead of vkCreateCommandPool (C API)
-            m_commandPool = m_device.createCommandPool(poolInfo);
+            // Use _device.createCommandPool (C++ API) instead of vkCreateCommandPool (C API)
+            _commandPool = _device.createCommandPool(poolInfo);
             printl(Log::LogLevel::Info,"[VULKAN] Command Pool creation Success");
         }
         catch (vk::SystemError& err)
@@ -289,17 +289,17 @@ namespace Cravillac
 
     void Renderer::CreateDepthResources()
     {
-        m_depthImageFormat = FindDepthFormat(m_physicalDevice);
-        CreateImage(m_physicalDevice, m_device, m_swapChainExtent.width, m_swapChainExtent.height,
-            m_depthImageFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment,
-            vk::MemoryPropertyFlagBits::eDeviceLocal, m_depthImage, m_depthImageMemory);
-        m_depthImageView = CreateImageView(m_device, m_depthImage, m_depthImageFormat, vk::ImageAspectFlagBits::eDepth);
+        _depthImageFormat = FindDepthFormat(_physicalDevice);
+        CreateImage(_physicalDevice, _device, _swapChainExtent.width, _swapChainExtent.height,
+            _depthImageFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment,
+            vk::MemoryPropertyFlagBits::eDeviceLocal, _depthImage, _depthImageMemory);
+        _depthImageView = CreateImageView(_device, _depthImage, _depthImageFormat, vk::ImageAspectFlagBits::eDepth);
     }
 
     void Renderer::CreateSwapChain(vk::SurfaceKHR surface, GLFWwindow* window)
     {
-        assert(m_physicalDevice);
-        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(m_physicalDevice, surface);
+        assert(_physicalDevice);
+        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(_physicalDevice, surface);
         auto surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.formats);
         auto presentMode = ChooseSwapPresentMode(swapChainSupport.presentModes);
         vk::Extent2D extent = ChooseSwapExtent(window, swapChainSupport.capabilities);
@@ -316,7 +316,7 @@ namespace Cravillac
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
-        assert(m_device);
+        assert(_device);
         vk::SwapchainCreateInfoKHR createInfo{};
         createInfo.surface = surface;
         createInfo.minImageCount = imageCount;
@@ -326,7 +326,7 @@ namespace Cravillac
         createInfo.imageArrayLayers = 1u;
         createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
 
-        QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice, surface);
+        QueueFamilyIndices indices = FindQueueFamilies(_physicalDevice, surface);
         uint32_t queueFamilyIndices[] = { indices._graphicsFamily.value(), indices._presentFamily.value() };
 
         if (indices._graphicsFamily != indices._presentFamily)
@@ -350,7 +350,7 @@ namespace Cravillac
 
         try
         {
-            m_swapChain = m_device.createSwapchainKHR(createInfo);
+            _swapChain = _device.createSwapchainKHR(createInfo);
             printl(Log::LogLevel::Info,"[VULKAN] SwapChain creation Success");
         }
         catch (const vk::SystemError& err)
@@ -359,22 +359,22 @@ namespace Cravillac
             throw;
         }
 
-        m_swapChainImages = m_device.getSwapchainImagesKHR(m_swapChain);
-        m_swapChainImageFormat = surfaceFormat.format;
-        m_swapChainExtent = extent;
+        _swapChainImages = _device.getSwapchainImagesKHR(_swapChain);
+        _swapChainImageFormat = surfaceFormat.format;
+        _swapChainExtent = extent;
 
         // swapchain image views
-        m_swapChainImageViews.resize(m_swapChainImages.size());
-        for (size_t i = 0; i < m_swapChainImages.size(); i++)
+        _swapChainImageViews.resize(_swapChainImages.size());
+        for (size_t i = 0; i < _swapChainImages.size(); i++)
         {
-            m_swapChainImageViews[i] = CreateImageView(m_device, m_swapChainImages[i], m_swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
+            _swapChainImageViews[i] = CreateImageView(_device, _swapChainImages[i], _swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
         }
     }
 
     // TODO
     // void Renderer::RecreateSwapChain()
     //{
-    //    vkDeviceWaitIdle(m_device);
+    //    vkDeviceWaitIdle(_device);
 
     //    CreateSwapChain();
     //    CreateImageView();
@@ -385,13 +385,13 @@ namespace Cravillac
         cmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         vk::CommandBufferAllocateInfo allocInfo;
-        allocInfo.commandPool = m_commandPool;
+        allocInfo.commandPool = _commandPool;
         allocInfo.level = vk::CommandBufferLevel::ePrimary;
         allocInfo.commandBufferCount = static_cast<uint32_t>(cmdBuffers.size());
 
         try
         {
-            cmdBuffers = m_device.allocateCommandBuffers(allocInfo);
+            cmdBuffers = _device.allocateCommandBuffers(allocInfo);
             printl(Log::LogLevel::Info,"[VULKAN] Command Buffer creation Success");
         }
         catch (const vk::SystemError& err)
@@ -410,7 +410,7 @@ namespace Cravillac
         // present code, so its possible that the current frame parameter changes before the presentation is done. Remember that the current frame
         // var was used to index into the renderFinishedSem, so its possible (and highly likely for gpu driven work, where cpu is more idle than the gpu)
         // for it to index into the wrong semaphore, and signal an already signalled semaphore.
-        renderFinishedSem.resize(m_swapChainImages.size());
+        renderFinishedSem.resize(_swapChainImages.size());
         inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
         vk::SemaphoreCreateInfo semaphoreCI{};
@@ -423,8 +423,8 @@ namespace Cravillac
 
         	try
             {
-                imgAvailableSem[i] = m_device.createSemaphore(semaphoreCI);
-                inFlightFences[i] = m_device.createFence(fenceCI);
+                imgAvailableSem[i] = _device.createSemaphore(semaphoreCI);
+                inFlightFences[i] = _device.createFence(fenceCI);
 
                 printl(Log::LogLevel::Info,"[VULKAN] Fence/Semaphore creation Success for frame {} ", std::to_string(i));
             }
@@ -434,12 +434,12 @@ namespace Cravillac
                 throw;
             }
         }
-        for (int i = 0; i < m_swapChainImages.size(); i++)
+        for (int i = 0; i < _swapChainImages.size(); i++)
         {
 
             try
             {
-                renderFinishedSem[i] = m_device.createSemaphore(semaphoreCI);
+                renderFinishedSem[i] = _device.createSemaphore(semaphoreCI);
                 printl(Log::LogLevel::Info,"[VULKAN] Semaphore renderfinished creation success");
             }
             catch (const vk::SystemError& err)
