@@ -16,14 +16,14 @@ add_requires("glfw",
 
 add_requires("cgltf")
 
---add_requires("imgui docking",
---{
---    configs =
---    {
---        glfw = true,
---        vulkan = true
---    }
---})
+add_requires("imgui docking",
+{
+   configs =
+   {
+       glfw = true,
+       vulkan = true
+   }
+})
 
 --add_requires("vulkan-memory-allocator")
 

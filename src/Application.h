@@ -16,6 +16,9 @@ namespace Cravillac
 	class Renderer;
 	class ResourceManager;
     class PipelineManager;
+}
+namespace Math
+{
     class Camera;
 }
 
@@ -23,8 +26,8 @@ struct ImGuiIO;
 
 namespace Cravillac
 {
-	constexpr uint32_t WIDTH = 1280;
-	constexpr uint32_t HEIGHT = 720;
+	constexpr uint32_t WIDTH = 1920;
+	constexpr uint32_t HEIGHT = 1080;
 
 
     struct UniformBufferObject
@@ -44,12 +47,11 @@ namespace Cravillac
         void DrawFrame();
         void SetResources();
 
-        void RecordCmdBuffer(vk::CommandBuffer, uint32_t imageIndex) const;
-        [[nodiscard]] UniformBufferObject UpdateUniformBuffer(const MeshInfo& meshInfo) const;
+        void RecordCmdBuffer(vk::CommandBuffer, uint32_t imageIndex, PushConstants& pc) const;
+        [[nodiscard]] UniformBufferObject CameraUpdate(const MeshInfo& meshInfo) const;
 
         vk::Device GetDevice();
 
-        std::shared_ptr<Cravillac::Camera> m_camera;
 
     private:
         const char *title;

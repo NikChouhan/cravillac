@@ -34,16 +34,16 @@ namespace Cravillac
         {
         default: break;
         case LogLevel::Info:
-            std::print("\033[32m{}\033[0m\n", msg);
+            std::println("\033[32m{}\033[0m", msg);
             break;
         case LogLevel::Warn:
-            std::print("\033[33m{}\033[0m\n", msg);
+            std::println("\033[33m{}\033[0m", msg);
             break;
         case LogLevel::Error:
-            std::print(("\033[31m{}\033[0m\n"), msg);
+            std::println(("\033[31m{}\033[0m"), msg);
             break;
         case LogLevel::InfoDebug:
-            std::print(("\033[36m{}\033[0m\n"), msg);
+            std::println(("\033[36m{}\033[0m"), msg);
             break;
         }
     }

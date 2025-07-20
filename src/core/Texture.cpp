@@ -42,8 +42,13 @@ namespace Cravillac
             vkUnmapMemory(renderer->m_device, stagingBufferMemory);
             stbi_image_free(imgData);
 
+            // allocate memory inside device (gpu) to upload the texture, bind it to the image memory handle (watch Tu Wien lecture for more info. TLDR; Vulkan can allocate the memory anywhere inside the hw optimally, and the image memory handle is whats used to access it)
             CreateImage(renderer->m_physicalDevice, renderer->m_device, width, height, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, m_texImage, m_texImageMemory);
 
+            /* remember: The actual uploading of texture from storage to VRAM occurs here.
+             * The command buffers do the work related to it. So its important to target
+             * this place when I implement a proper texture streaming
+			*/
             vk::CommandBuffer tempCmdBuffer = BeginSingleTimeCommands(renderer->m_device, renderer->m_commandPool);
 
             TransitionImage(tempCmdBuffer, m_texImage, {}, vk::ImageLayout::eTransferDstOptimal);

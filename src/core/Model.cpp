@@ -71,12 +71,10 @@ void Cravillac::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, cons
     cgltf_free(data);
 }
 
-DirectX::XMFLOAT3X3 Cravillac::Model::ComputeNormalMatrix(const DirectX::XMMATRIX& worldMatrix)
+DirectX::XMMATRIX Cravillac::Model::ComputeNormalMatrix(const DirectX::XMMATRIX& worldMatrix)
 {
     DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, worldMatrix));
-    DirectX::XMFLOAT3X3 result;
-    DirectX::XMStoreFloat3x3(&result, normalMatrix);
-    return result;
+    return normalMatrix;
 }
 
 void Cravillac::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
@@ -322,6 +320,9 @@ void Cravillac::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Verte
     mesh.indices = tempIndices;
     mesh.vertexCount = static_cast<u32>(vertexCount);
     mesh.indexCount = static_cast<u32>(indexCount);
+
+    /*for (int i = 0; i < tempVertices.size(); i++) m_vertices.push_back(tempVertices[i]);
+    for (int i = 0; i < tempIndices.size(); i++) m_indices.push_back(tempIndices[i]);*/
 
     OptimiseMesh(meshInfo, mesh);
     ProcessMeshlets(mesh);

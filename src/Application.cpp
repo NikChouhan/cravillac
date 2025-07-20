@@ -3,8 +3,9 @@
 #include "Application.h"
 
 #include <chrono>
+#include <complex>
 #include <cstring>
-#include <stdio.h>
+#include <cstdio>
 
 #include "Camera.h"
 #include "common.h"
@@ -15,12 +16,18 @@
 #include "vk_utils.h"
 #include "Vertex.h"
 
-namespace
-{
-	static void HandleCameraMovement(const std::shared_ptr<Cravillac::Camera>& camera, GLFWwindow* window, float deltaTime, float sensitivity);
-	void HandleMouseMovement(const std::shared_ptr<Cravillac::Camera>& camera, float deltaX, float deltaY, float sensitivity);
-	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-}
+struct MouseState {
+	SM::Vector2 pos = SM::Vector2(0.0f);
+	bool pressedLeft = false;
+} mouseState;
+
+constexpr float ratio = 16. / 9.;
+
+constexpr SM::Vector3 kInitialCameraPos = SM::Vector3{ (0.0f, 1.0f, -1.5f) };
+constexpr SM::Vector3 kInitialCameraTarget{ (0.0f, 0.5f, 0.0f) };
+
+CameraPositioner_FirstPerson positioner(kInitialCameraPos, kInitialCameraTarget, SM::Vector3(0.0f, 1.0f, 0.0f));
+Camera m_camera(positioner);
 namespace Cravillac
 {
 	Application::Application() : title(nullptr), m_surface(VK_NULL_HANDLE), m_window(nullptr),
@@ -29,18 +36,14 @@ namespace Cravillac
 	                             m_meshletBufferAddress(0) {
 		renderer = std::make_shared<Renderer>();
 		textures = std::vector<Texture>();
-		m_camera = std::make_unique<Camera>();
 	}
 
 	void Application::Init()
-	{
-
+ 	{
+		m_camera.InitPerspective();
 		Log::Init();
 		title = "Cravillac";
 		// camera setup
-		m_camera->InitAsPerspective(45.0f, WIDTH, HEIGHT);
-		//m_camera->InitAsOrthographic(m_renderer->m_width, m_renderer->m_height);
-		m_camera->SetPosition({ 0.0f, 0.0f, 6.f });
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -50,10 +53,8 @@ namespace Cravillac
 
 		glfwMakeContextCurrent(m_window);
 		glfwSetWindowUserPointer(m_window, this);
-
-		glfwSetCursorPosCallback(m_window, mouse_callback);
-		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
+		glfwFocusWindow(m_window);
+		//glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		VkSurfaceKHR ret{};
 
 		auto result = (glfwCreateWindowSurface(renderer->m_instance, m_window, nullptr, &ret));
@@ -68,6 +69,60 @@ namespace Cravillac
 		renderer->CreateDepthResources();
 		renderer->CreateCommandPool(m_surface);
 
+		glfwSetInputMode(m_window,GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+		glfwSetCursorPosCallback(m_window, [](auto* window, double x, double y) {
+			int width, height;
+			glfwGetFramebufferSize(window, &width, &height);
+			mouseState.pos.x = static_cast<float>(x / width);
+			mouseState.pos.y = 1.0f - static_cast<float>(y / height);
+			});
+		glfwSetMouseButtonCallback(m_window, [](auto* window, int button, int action, int mods) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				printl(Log::LogLevel::Info, "Yes its hit\n");
+				mouseState.pressedLeft = action == GLFW_PRESS;
+			}
+			double xpos, ypos;
+			glfwGetCursorPos(window, &xpos, &ypos);
+			int width, height;
+			glfwGetFramebufferSize(window, &width, &height);
+
+			// ...and reset the positioner's internal state to prevent a jump.
+			positioner.resetMousePosition({
+				static_cast<float>(xpos / width),
+				1.0f - static_cast<float>(ypos / height)
+				});
+			});
+
+		glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+			const bool pressed = action != GLFW_RELEASE;
+			if (key == GLFW_KEY_ESCAPE && pressed)
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+			if (key == GLFW_KEY_W)
+				positioner.movement_.forward_ = pressed;
+			if (key == GLFW_KEY_S)
+				positioner.movement_.backward_ = pressed;
+			if (key == GLFW_KEY_A)
+				positioner.movement_.left_ = pressed;
+			if (key == GLFW_KEY_D)
+				positioner.movement_.right_ = pressed;
+			if (key == GLFW_KEY_1)
+				positioner.movement_.up_ = pressed;
+			if (key == GLFW_KEY_2)
+				positioner.movement_.down_ = pressed;
+			if (mods & GLFW_MOD_SHIFT)
+				positioner.movement_.fastSpeed_ = pressed;
+			if (key == GLFW_KEY_SPACE) {
+				positioner.lookAt(kInitialCameraPos, kInitialCameraTarget, SM::Vector3(0.0f, 1.0f, 0.0f));
+				positioner.setSpeed(SM::Vector3{ 0.,0.,0. });
+			}
+			});
+
+		/*
+		* TODO: remove this bs and replace with custom allocator. Refactor the code to separate Resources into their own structs
+		* like Buffers/Samplers/Textures, etc and then have a build sorta function that takes in designated initializers structs
+		* to build them. Remove the stupid classes and pointers with tangled lifetime. Just clean it all with the ArenaFree.
+		*/
 		m_resourceManager = new ResourceManager(renderer);
 		// init imgui
 
@@ -80,7 +135,7 @@ namespace Cravillac
 		//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
 		//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
 		mod1.LoadModel(renderer, "../../../../assets/models/sponza/Sponza.gltf");
-		//mod1.LoadModel(renderer, "../../../../assets/models/bistrogodot/bistrogodot.gltf");
+		//mod1.LoadModel(renderer, "../../../../assets/models/bistro/Bistro.glb");
 		//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 		models.push_back(mod1);
 
@@ -171,9 +226,11 @@ namespace Cravillac
 			float deltaTime = currentFrameTime - lastFrameTime;
 			lastFrameTime = currentFrameTime;
 
-			float sensitivity = 0.2f;
-			HandleCameraMovement(m_camera, m_window, deltaTime, sensitivity);
+			positioner.update(deltaTime, mouseState.pos, mouseState.pressedLeft);
+			const SM::Vector3& pos = positioner.getPosition();
+			SM::Vector4 cameraPos = SM::Vector4(pos.x, pos.y, pos.z, 1.0f);
 
+			PushConstants pc;
 		 	VK_ASSERT(renderer->m_device.waitForFences(1u, &m_inFlightFence[m_currentFrame], VK_TRUE, UINT64_MAX));
 			VK_ASSERT(renderer->m_device.resetFences(1u, &m_inFlightFence[m_currentFrame]));
 
@@ -182,7 +239,7 @@ namespace Cravillac
 
 			m_cmdBuffers[m_currentFrame].reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 
-			RecordCmdBuffer(m_cmdBuffers[m_currentFrame], imageIndex);
+			RecordCmdBuffer(m_cmdBuffers[m_currentFrame], imageIndex, pc);
 
 			vk::SubmitInfo submitInfo{};
 			vk::Semaphore waitSemaphores[] = { m_imageAvailableSemaphore[m_currentFrame] };
@@ -220,7 +277,7 @@ namespace Cravillac
 		}
 	}
 
-	void Application::RecordCmdBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex) const
+	void Application::RecordCmdBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex, PushConstants& pc) const
 	{
 		PipelineManager* pipelineManager = m_resourceManager->getPipelineManager();
 		vk::PipelineLayout pipelineLayout = pipelineManager->getPipelineLayout("textures;");
@@ -313,7 +370,7 @@ namespace Cravillac
 #endif
 
 		for (const auto& meshInfo : models[0].m_meshes) {
-			auto [mvp, normalMatrix] = UpdateUniformBuffer(meshInfo);
+			auto [mvp, normalMatrix] = CameraUpdate(meshInfo);
 			uint32_t materialIndex = meshInfo.materialIndex;
 
 			pushConstants.mvp = mvp;
@@ -341,116 +398,29 @@ namespace Cravillac
 		commandBuffer.end();
 	}
 
-	UniformBufferObject Application::UpdateUniformBuffer(const MeshInfo& meshInfo) const
+	UniformBufferObject Application::CameraUpdate(const MeshInfo& meshInfo) const
 	{
-		DirectX::XMMATRIX viewMatrix = m_camera->GetViewMatrix();
-		DirectX::XMMATRIX projectionMatrix = m_camera->GetProjectionMatrix();
+		DirectX::XMMATRIX viewMatrix = positioner.getViewMatrix();
+		DirectX::XMMATRIX projectionMatrix = m_camera.getProjMatrix();
 
 		DirectX::XMMATRIX worldMatrix = meshInfo.transform.Matrix;
 
-		DirectX::XMFLOAT3X3 normalMatrix = meshInfo.normalMatrix;
+		DirectX::XMMATRIX normalMatrix = meshInfo.normalMatrix;
 
+		//DirectX::XMMATRIX worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;
 		DirectX::XMMATRIX worldViewProjMatrix = worldMatrix * viewMatrix * projectionMatrix;
 
 		UniformBufferObject ubo{};
 
-		ubo.mvp = worldViewProjMatrix;
-		ubo.normalMatrix = normalMatrix;
-
+		//ubo.mvp = DirectX::XMMatrixTranspose(worldViewProjMatrix);
+		ubo.mvp = (worldViewProjMatrix);
+		//DirectX::XMStoreFloat3x3(&ubo.normalMatrix, DirectX::XMMatrixTranspose(normalMatrix));
+		DirectX::XMStoreFloat3x3(&ubo.normalMatrix, (DirectX::XMMATRIX(normalMatrix)));
 		return ubo;
 	}
 
 	vk::Device Application::GetDevice()
 	{
 		return renderer->m_device;
-	}
-}
-
-namespace 
-{
-	static void HandleCameraMovement(const std::shared_ptr<Cravillac::Camera>& camera, GLFWwindow* window, float deltaTime, float sensitivity)
-	{
-		float moveSpeed = sensitivity * 5;
-
-		SM::Vector3 forward = camera->GetLookAtTarget();
-		forward.Normalize();
-
-		SM::Vector3 up = camera->GetUp();
-		up.Normalize();
-
-		//might fix this later but I guess this left-right movement is more intuitive. Still will change it if needs be
-		SM::Vector3 right = forward.Cross(up);
-		right.Normalize();
-
-		// Calculate movement in local space
-		SM::Vector3 movement(0.0f, 0.0f, 0.0f);
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		{
-			//Log::Info("W key pressed");
-			movement += forward * moveSpeed * deltaTime;
-		}
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) movement -= forward * moveSpeed * deltaTime;
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) movement -= right * moveSpeed * deltaTime;
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) movement += right * moveSpeed * deltaTime;
-		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) movement -= up * moveSpeed * deltaTime;
-		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) movement += up * moveSpeed * deltaTime;
-		//Spar::Log::InfoDebug("movement: ", movement);
-		camera->Translate(movement);
-	}
-
-	void HandleMouseMovement(const std::shared_ptr<Cravillac::Camera>& camera, float deltaX, float deltaY, float sensitivity) {
-		deltaX *= sensitivity;
-		deltaY *= -sensitivity;
-
-		float yaw = 0.0f;
-		yaw += deltaX;
-		float pitch = 0.0f;
-		pitch += deltaY;
-
-		bool constrainPitch = true;
-
-		if (constrainPitch) {
-			if (pitch > 89.0f) // Fixed to 89.0f for consistency  // NOLINT(readability-use-std-min-max)
-				pitch = 89.0f;
-			if (pitch < -89.0f)  // NOLINT(readability-use-std-min-max)
-				pitch = -89.0f;
-		}
-
-		SM::Vector3 up = camera->GetUp();
-		up.Normalize();
-
-		camera->Rotate(up, DirectX::XMConvertToRadians(yaw));
-
-		SM::Vector3 forward = camera->GetLookAtTarget();
-		forward.Normalize();
-
-		SM::Vector3 right = forward.Cross(up);
-		right.Normalize();
-
-		camera->Rotate(right, DirectX::XMConvertToRadians(pitch));
-	}
-
-	void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-		static bool firstMouse = true;
-		static float lastX = 0.0f, lastY = 0.0f;
-		static float sensitivity = 1.f; // Adjust as needed
-
-		// Retrieve Application instance
-		Cravillac::Application* app = reinterpret_cast<Cravillac::Application*>(glfwGetWindowUserPointer(window));
-
-		if (firstMouse) {
-			lastX = static_cast<float>(xpos);
-			lastY = static_cast<float>(ypos);
-			firstMouse = false;
-		}
-
-		float deltaX = static_cast<float>(xpos) - lastX;
-		float deltaY = static_cast<float>(ypos) - lastY;
-
-		lastX = static_cast<float>(xpos);
-		lastY = static_cast<float>(ypos);
-
-		// Pass Application's camera to HandleMouseMovement
-		HandleMouseMovement(app->m_camera, deltaX, deltaY, sensitivity);
 	}
 }

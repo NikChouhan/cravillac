@@ -101,7 +101,7 @@ struct MeshInfo
     uint32_t startIndex = 0;
     uint32_t startVertex = 0;
     Transformation transform;
-    DirectX::XMFLOAT3X3 normalMatrix;
+    DirectX::XMMATRIX normalMatrix;
 };
 
 namespace Cravillac
@@ -112,7 +112,7 @@ namespace Cravillac
         Model();
         ~Model();
         void LoadModel(const std::shared_ptr<Renderer>& renderer, const std::string& path);
-        DirectX::XMFLOAT3X3 ComputeNormalMatrix(const DirectX::XMMATRIX &worldMatrix);
+        DirectX::XMMATRIX ComputeNormalMatrix(const DirectX::XMMATRIX &worldMatrix);
         void SetBuffers();
     private:
         void ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
