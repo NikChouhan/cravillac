@@ -1,4 +1,5 @@
 #include <pch.h>
+#define GLM_ENABLE_EXPERIMENTAL
 
 #include "common.h"
 #include "renderer.h"
@@ -14,31 +15,35 @@ namespace
 	constexpr uint32_t WIDTH = 1920;
 	constexpr uint32_t HEIGHT = 1080;
 
+	using glm::mat4;
+	using glm::mat3;
+	using glm::vec2;
+	using glm::vec3;
+	using glm::vec4;
+
 	struct CameraPlex
 	{
-		DirectX::XMMATRIX mvp;
-		DirectX::XMFLOAT3X3 normalMatrix;
+		mat4 mvp;
+		mat3 normalMatrix;
 	};
 
 	struct MouseState {
-		SM::Vector2 pos = SM::Vector2(0.0f);
+		glm::vec2 pos = glm::vec2(0.0f);
 		bool pressedLeft = false;
 	} mouseState;
 
-	constexpr float ratio = 16. / 9.f;
+	const vec3 kInitialCameraPos = vec3(0.0f, 1.0f, -1.5f);
+	const vec3 kInitialCameraTarget = vec3(0.0f, 0.5f, 0.0f);
 
-	constexpr SM::Vector3 kInitialCameraPos = SM::Vector3{ (0.0f, 1.0f, -1.5f) };
-	constexpr SM::Vector3 kInitialCameraTarget{ (0.0f, 0.5f, 0.0f) };
-
-	CameraPositioner_FirstPerson positioner(kInitialCameraPos, kInitialCameraTarget, SM::Vector3(0.0f, 1.0f, 0.0f));
-	Camera m_camera(positioner);
+	CameraPositioner_FirstPerson positioner(kInitialCameraPos, kInitialCameraTarget, vec3(0.0f, 1.0f, 0.0f));
+	Camera camera(positioner);
 }
 
 int main()
 {
-	m_camera.InitPerspective();
+	camera.InitPerspective();
 	Log::Init();
-	const char* title = "CV";
+	const char* title = "Cravillac";
 
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -96,11 +101,6 @@ int main()
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 
-		// ...and reset the positioner's internal state to prevent a jump.
-		positioner.resetMousePosition({
-			static_cast<float>(xpos / width),
-			1.0f - static_cast<float>(ypos / height)
-			});
 		});
 
 	glfwSetKeyCallback(_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -122,16 +122,17 @@ int main()
 		if (mods & GLFW_MOD_SHIFT)
 			positioner.movement_.fastSpeed_ = pressed;
 		if (key == GLFW_KEY_SPACE) {
-			positioner.lookAt(kInitialCameraPos, kInitialCameraTarget, SM::Vector3(0.0f, 1.0f, 0.0f));
-			positioner.setSpeed(SM::Vector3{ 0.,0.,0. });
+			positioner.lookAt(kInitialCameraPos, kInitialCameraTarget, vec3(0.0f, 1.0f, 0.0f));
+			positioner.setSpeed(vec3(0));
 		}
 		});
 	// set resources
 	Model mod1;
 	//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
 	//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
-	mod1.LoadModel(renderer, "../../../../assets/models/sponza/Sponza.gltf");
+	//mod1.LoadModel(renderer, "../../../../assets/models/sponza/Sponza.gltf");
 	//mod1.LoadModel(renderer, "../../../../assets/models/bistro/Bistro.glb");
+	mod1.LoadModel(renderer, "../../../../assets/models/bistro2/bistro.gltf");
 	//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 
 #if MESH_SHADING
@@ -201,25 +202,25 @@ int main()
 	renderer->CreateSynObjects(_imageAvailableSemaphore, _renderFinishedSemaphore, _inFlightFence);
 
 	auto _cameraUpdate = [&](const MeshInfo& meshInfo) -> CameraPlex
-		{
-			DirectX::XMMATRIX viewMatrix = positioner.getViewMatrix();
-			DirectX::XMMATRIX projectionMatrix = m_camera.getProjMatrix();
+	{
+		mat4 viewMatrix = positioner.getViewMatrix();
+		mat4 projectionMatrix = camera.getProjMatrix();
 
-			DirectX::XMMATRIX worldMatrix = meshInfo.transform.Matrix;
+		mat4 worldMatrix = meshInfo.transform.Matrix;
 
-			DirectX::XMMATRIX normalMatrix = meshInfo.normalMatrix;
+		mat4 modelView = viewMatrix * worldMatrix;
 
-			//DirectX::XMMATRIX worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;
-			DirectX::XMMATRIX worldViewProjMatrix = worldMatrix * viewMatrix * projectionMatrix;
 
-			CameraPlex camMat{};
+		//DirectX::XMMATRIX worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;
+		//mat4 worldViewProjMatrix = worldMatrix * viewMatrix * projectionMatrix;
+		mat4 worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;
 
-			//ubo.mvp = DirectX::XMMatrixTranspose(worldViewProjMatrix);
-			camMat.mvp = (worldViewProjMatrix);
-			//DirectX::XMStoreFloat3x3(&ubo.normalMatrix, DirectX::XMMatrixTranspose(normalMatrix));
-			DirectX::XMStoreFloat3x3(&camMat.normalMatrix, (DirectX::XMMATRIX(normalMatrix)));
-			return camMat;
-		};
+		CameraPlex camMat;
+
+		camMat.mvp = worldViewProjMatrix;
+		camMat.normalMatrix = glm::transpose(glm::inverse(modelView));
+		return camMat;
+	};
 
 	// lambda for record command buffer
 	auto _recordCommandBuffer = [&](vk::CommandBuffer commandBuffer, uint32_t imageIndex)
@@ -360,8 +361,7 @@ int main()
 		lastFrameTime = currentFrameTime;
 
 		positioner.update(deltaTime, mouseState.pos, mouseState.pressedLeft);
-		const SM::Vector3& pos = positioner.getPosition();
-		SM::Vector4 cameraPos = SM::Vector4(pos.x, pos.y, pos.z, 1.0f);
+		const glm::vec3& pos = positioner.getPosition();
 
 		VK_ASSERT(renderer->_device.waitForFences(1u, &_inFlightFence[_currentFrame], VK_TRUE, UINT64_MAX));
 		VK_ASSERT(renderer->_device.resetFences(1u, &_inFlightFence[_currentFrame]));

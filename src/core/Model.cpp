@@ -1,8 +1,12 @@
 #include <pch.h>
 
 #include <meshoptimizer.h>
-
+#define GLM_ENABLE_EXPERIMENTAL
 #include "Model.h"
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm\gtx\euler_angles.hpp>
+
 #include "Log.h"
 #include "Texture.h"
 #include "renderer.h"
@@ -71,28 +75,39 @@ void CV::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, const std::
     cgltf_free(data);
 }
 
-DirectX::XMMATRIX CV::Model::ComputeNormalMatrix(const DirectX::XMMATRIX& worldMatrix)
-{
-    DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, worldMatrix));
-    return normalMatrix;
-}
+//glm::mat4 CV::Model::ComputeNormalMatrix(const glm::mat4 worldMatrix)
+//{
+//    glm::mat4 normalMatrix = ;
+//    return normalMatrix;
+//}
 
 void CV::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
 {
-    Transformation localTransform;
-    localTransform.Matrix = parentTransform.Matrix;
-    if (node->has_scale) 
-    {
-        localTransform.Matrix *= DirectX::XMMatrixScaling(node->scale[0], node->scale[1], node->scale[2]);
+    Transformation localTransform = parentTransform;
+    glm::mat4 translationMatrix(1.0f);
+    glm::mat4 rotationMatrix(1.0f);
+    glm::mat4 scaleMatrix(1.0f);
+
+    if (node->has_translation) {
+        glm::vec3 translation = glm::vec3(node->translation[0], node->translation[1], node->translation[2]);
+        localTransform.Position = translation;
+        translationMatrix = glm::translate(glm::mat4(1.0f), translation);
     }
-    if (node->has_rotation) 
-    {
-        DirectX::XMVECTOR quat = DirectX::XMVectorSet(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]);
-        localTransform.Matrix *= DirectX::XMMatrixRotationQuaternion(quat);
+    if (node->has_rotation) {
+        // TODO: transform quaternion
+        rotationMatrix = glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
     }
-    if (node->has_translation) 
-    {
-        localTransform.Matrix *= DirectX::XMMatrixTranslation(node->translation[0], node->translation[1], node->translation[2]);
+    if (node->has_scale) {
+        glm::vec3 scale = glm::vec3(node->scale[0], node->scale[1], node->scale[2]);
+        localTransform.Scale = scale;
+        scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
+    }
+
+    if (node->has_matrix) {
+        localTransform.Matrix *= glm::make_mat4(node->matrix);
+    }
+    else {
+        localTransform.Matrix *= translationMatrix * rotationMatrix * scaleMatrix;
     }
 
     //if (node->camera)
@@ -160,7 +175,7 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
     MeshInfo meshInfo;
 
     meshInfo.transform = parentTransform;
-    meshInfo.normalMatrix = ComputeNormalMatrix(parentTransform.Matrix);
+    //meshInfo.normalMatrix = ComputeNormalMatrix(parentTransform.Matrix);
 
     // Get attributes
     cgltf_attribute *pos_attribute = nullptr;

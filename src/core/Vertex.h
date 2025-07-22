@@ -5,6 +5,8 @@
 
 #include "common.h"
 #include <SimpleMath.h>
+#include <glm/glm.hpp>
+
 #include "StandardTypes.h"
 
 namespace SM = DirectX::SimpleMath;
@@ -13,21 +15,21 @@ namespace  CV
 {
     struct PushConstants
     {
-        DirectX::XMMATRIX mvp;
+        glm::mat4 mvp;
         vk::DeviceAddress vertexBufferAddress;
 #if MESH_SHADING
         VkDeviceAddress meshletBufferAddress;
 #endif
-        DirectX::XMFLOAT3X3 normalMatrix;
+        glm::mat3 normalMatrix;
         u32 materialIndex;
         float padding[2];
     };
 
     struct Vertex
     {
-        SM::Vector3 pos;
-        SM::Vector2 texCoord;
-        SM::Vector3 normal;
+        glm::vec3 pos;
+        glm::vec2 texCoord;
+        glm::vec3 normal;
     };
 
     struct Meshlet

@@ -2,16 +2,17 @@
 
 #include <assert.h>
 #include <algorithm>
-#include <SimpleMath.h>
 
-#undef min
+#include "UtilsMath.h"
+
+#include "glm/gtx/euler_angles.hpp"
 
 class CameraPositionerInterface
 {
 public:
 	virtual ~CameraPositionerInterface() = default;
-	virtual SM::Matrix getViewMatrix() const = 0;
-	virtual SM::Vector3 getPosition() const = 0;
+	virtual glm::mat4 getViewMatrix() const = 0;
+	virtual glm::vec3 getPosition() const = 0;
 };
 
 class Camera final
@@ -19,54 +20,56 @@ class Camera final
 public:
 	explicit Camera(CameraPositionerInterface& positioner)
 		: positioner_(&positioner)
-	{}
+	{
+	}
 
 	Camera(const Camera&) = default;
 	Camera& operator = (const Camera&) = default;
 
-	SM::Matrix getViewMatrix() const { return positioner_->getViewMatrix(); }
-	SM::Vector3 getPosition() const { return positioner_->getPosition(); }
-	DirectX::XMMATRIX getProjMatrix() const { return proj_; }
+	glm::mat4 getViewMatrix() const { return positioner_->getViewMatrix(); }
+	glm::vec3 getPosition() const { return positioner_->getPosition(); }
+	glm::mat4 getProjMatrix() const { return proj_; }
 	void InitPerspective()
 	{
-		proj_ = DirectX::XMMatrixPerspectiveFovRH(DirectX::XMConvertToRadians(45.f), 16./9.f, 0.1f, 1000.0f);
-		proj_.r[1].m128_f32[1] *= -1.0f;
+		proj_ = glm::perspective(glm::radians(60.0f), static_cast<float>(16.f / 9.f), 0.1f, 1000.0f);
+		proj_[1][1] *= -1.0f;
 	}
 
 private:
 	const CameraPositionerInterface* positioner_;
-	DirectX::XMMATRIX proj_;
+	glm::mat4 proj_;
 };
 
-class CameraPositioner_FirstPerson final: public CameraPositionerInterface
+class CameraPositioner_FirstPerson final : public CameraPositionerInterface
 {
 public:
 	CameraPositioner_FirstPerson() = default;
-	CameraPositioner_FirstPerson(const SM::Vector3& pos, const SM::Vector3& target, const SM::Vector3& up)
-	: cameraPosition_(pos)
-	, cameraOrientation_(DirectX::XMQuaternionRotationMatrix(DirectX::XMMatrixLookAtRH(pos, target, up)))
-	, up_(up)
-	{}
+	CameraPositioner_FirstPerson(const glm::vec3& pos, const glm::vec3& target, const glm::vec3& up)
+		: cameraPosition_(pos)
+		, cameraOrientation_(glm::lookAt(pos, target, up))
+		, up_(up)
+	{
+	}
 
-	void update(double deltaSeconds, const SM::Vector2& mousePos, bool mousePressed)
+	void update(double deltaSeconds, const glm::vec2& mousePos, bool mousePressed)
 	{
 		if (mousePressed)
 		{
-			const SM::Vector2 delta = mousePos - mousePos_;
-			const SM::Quaternion deltaQuat = SM::Quaternion(SM::Vector3(-mouseSpeed_ * delta.y, mouseSpeed_ * delta.x, 0.0f));
+			const glm::vec2 delta = mousePos - mousePos_;
+			const glm::quat deltaQuat = glm::quat(glm::vec3(-mouseSpeed_ * delta.y, mouseSpeed_ * delta.x, 0.0f));
 			cameraOrientation_ = deltaQuat * cameraOrientation_;
-			cameraOrientation_.Normalize();
+			cameraOrientation_ = glm::normalize(cameraOrientation_);
 			setUpVector(up_);
 		}
 		mousePos_ = mousePos;
 
-		const SM::Matrix v = DirectX::XMMatrixRotationQuaternion(cameraOrientation_);
+		const glm::mat4 v = glm::mat4_cast(cameraOrientation_);
 
-		SM::Vector3 forward = DirectX::XMVectorNegate(SM::Vector3(v._13, v._23, v._33));
-		SM::Vector3 right = SM::Vector3(v._11, v._21, v._31);
-		const SM::Vector3 up = DirectX::XMVector3Cross(right, forward);
+		const glm::vec3 forward = -glm::vec3(v[0][2], v[1][2], v[2][2]);
+		const glm::vec3 right = glm::vec3(v[0][0], v[1][0], v[2][0]);
+		const glm::vec3 up = glm::cross(right, forward);
 
-		SM::Vector3 accel(0.0f);
+		glm::vec3 accel(0.0f);
 
 		if (movement_.forward_) accel += forward;
 		if (movement_.backward_) accel -= forward;
@@ -79,7 +82,7 @@ public:
 
 		if (movement_.fastSpeed_) accel *= fastCoef_;
 
-		if (accel == SM::Vector3{ 0.,0.,0. })
+		if (accel == glm::vec3(0))
 		{
 			// decelerate naturally according to the damping value
 			moveSpeed_ -= moveSpeed_ * std::min((1.0f / damping_) * static_cast<float>(deltaSeconds), 1.0f);
@@ -89,52 +92,45 @@ public:
 			// acceleration
 			moveSpeed_ += accel * acceleration_ * static_cast<float>(deltaSeconds);
 			const float maxSpeed = movement_.fastSpeed_ ? maxSpeed_ * fastCoef_ : maxSpeed_;
-			if ((moveSpeed_.Length()) > maxSpeed)
-			{
-				moveSpeed_.Normalize();
-				moveSpeed_ = DirectX::XMVectorScale((moveSpeed_), maxSpeed);
-			}
+			if (glm::length(moveSpeed_) > maxSpeed) moveSpeed_ = glm::normalize(moveSpeed_) * maxSpeed;
 		}
 
 		cameraPosition_ += moveSpeed_ * static_cast<float>(deltaSeconds);
 	}
 
-	virtual SM::Matrix getViewMatrix() const override
+	virtual glm::mat4 getViewMatrix() const override
 	{
-		SM::Matrix t = SM::Matrix::CreateTranslation(-cameraPosition_);
-		const SM::Matrix r = SM::Matrix::CreateFromQuaternion(cameraOrientation_);
+		const glm::mat4 t = glm::translate(glm::mat4(1.0f), -cameraPosition_);
+		const glm::mat4 r = glm::mat4_cast(cameraOrientation_);
 		return r * t;
 	}
 
-	virtual SM::Vector3 getPosition() const override
+	virtual glm::vec3 getPosition() const override
 	{
 		return cameraPosition_;
 	}
 
-	void setPosition(const SM::Vector3& pos)
+	void setPosition(const glm::vec3& pos)
 	{
 		cameraPosition_ = pos;
 	}
 
-	void setSpeed(const SM::Vector3& speed) {
+	void setSpeed(const glm::vec3& speed) {
 		moveSpeed_ = speed;
 	}
 
-	void resetMousePosition(const SM::Vector2& p) { mousePos_ = p; };
+	void resetMousePosition(const glm::vec2& p) { mousePos_ = p; };
 
-	void setUpVector(const SM::Vector3& up)
+	void setUpVector(const glm::vec3& up)
 	{
-		const SM::Matrix view = getViewMatrix();
-		SM::Vector3 dir = DirectX::XMVectorNegate(SM::Vector3(view._13, view._23, view._33));
-
-		cameraOrientation_ = DirectX::XMQuaternionRotationMatrix(
-			DirectX::XMMatrixLookAtRH(cameraPosition_, DirectX::XMVectorAdd(cameraPosition_, dir), up)
-		);
+		const glm::mat4 view = getViewMatrix();
+		const glm::vec3 dir = -glm::vec3(view[0][2], view[1][2], view[2][2]);
+		cameraOrientation_ = glm::lookAt(cameraPosition_, cameraPosition_ + dir, up);
 	}
 
-	inline void lookAt(const SM::Vector3& pos, const SM::Vector3& target, const SM::Vector3& up) {
+	inline void lookAt(const glm::vec3& pos, const glm::vec3& target, const glm::vec3& up) {
 		cameraPosition_ = pos;
-		cameraOrientation_ = DirectX::XMQuaternionRotationMatrix(DirectX::XMMatrixLookAtRH(pos, target, up));
+		cameraOrientation_ = glm::lookAt(pos, target, up);
 	}
 
 public:
@@ -151,31 +147,32 @@ public:
 	} movement_;
 
 public:
-	float mouseSpeed_ = 2.0f;
-	float acceleration_ = 114.0f;
+	float mouseSpeed_ = 4.0f;
+	float acceleration_ = 150.0f;
 	float damping_ = 0.2f;
 	float maxSpeed_ = 10.0f;
 	float fastCoef_ = 10.0f;
 
 private:
-	SM::Vector2 mousePos_ = SM::Vector2{0., 0.};
-	SM::Vector3 cameraPosition_ = SM::Vector3(0.0f, 10.0f, 10.0f);
-	SM::Quaternion cameraOrientation_ = SM::Quaternion::Identity;
-	SM::Vector3 moveSpeed_ = SM::Vector3(0.0f);
-	SM::Vector3 up_ = SM::Vector3(0.0f, 0.0f, 1.0f);
+	glm::vec2 mousePos_ = glm::vec2(0);
+	glm::vec3 cameraPosition_ = glm::vec3(0.0f, 10.0f, 10.0f);
+	glm::quat cameraOrientation_ = glm::quat(glm::vec3(0));
+	glm::vec3 moveSpeed_ = glm::vec3(0.0f);
+	glm::vec3 up_ = glm::vec3(0.0f, 0.0f, 1.0f);
 };
 
 class CameraPositioner_MoveTo final : public CameraPositionerInterface
 {
 public:
-	CameraPositioner_MoveTo(const SM::Vector3& pos, const SM::Vector3& angles)
+	CameraPositioner_MoveTo(const glm::vec3& pos, const glm::vec3& angles)
 		: positionCurrent_(pos)
 		, positionDesired_(pos)
 		, anglesCurrent_(angles)
 		, anglesDesired_(angles)
-	{}
+	{
+	}
 
-	void update(float deltaSeconds, const SM::Vector2& mousePos, bool mousePressed)
+	void update(float deltaSeconds, const glm::vec2& mousePos, bool mousePressed)
 	{
 		positionCurrent_ += dampingLinear_ * deltaSeconds * (positionDesired_ - positionCurrent_);
 
@@ -189,36 +186,34 @@ public:
 		// normalize new angles
 		anglesCurrent_ = clipAngles(anglesCurrent_);
 
-		DirectX::XMVECTOR a = DirectX::XMVectorMultiply(anglesCurrent_, DirectX::XMVectorReplicate(DirectX::XM_PI / 180.0f));
+		const glm::vec3 a = glm::radians(anglesCurrent_);
 
-		DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationRollPitchYaw(a.m128_f32[1], a.m128_f32[0], a.m128_f32[2]);
-		DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(-positionCurrent_.x, -positionCurrent_.y, -positionCurrent_.z);
-		currentTransform_ = translation * rotation;
+		currentTransform_ = glm::translate(glm::yawPitchRoll(a.y, a.x, a.z), -positionCurrent_);
 	}
 
-	void setPosition(const SM::Vector3& p) { positionCurrent_ = p; }
-	void setAngles(float pitch, float pan, float roll) { anglesCurrent_ = SM::Vector3(pitch, pan, roll); }
-	void setAngles(const SM::Vector3& angles) { anglesCurrent_ = angles; }
-	void setDesiredPosition(const SM::Vector3& p) { positionDesired_ = p; }
-	void setDesiredAngles(float pitch, float pan, float roll) { anglesDesired_ = SM::Vector3(pitch, pan, roll); }
-	void setDesiredAngles(const SM::Vector3& angles) { anglesDesired_ = angles; }
+	void setPosition(const glm::vec3& p) { positionCurrent_ = p; }
+	void setAngles(float pitch, float pan, float roll) { anglesCurrent_ = glm::vec3(pitch, pan, roll); }
+	void setAngles(const glm::vec3& angles) { anglesCurrent_ = angles; }
+	void setDesiredPosition(const glm::vec3& p) { positionDesired_ = p; }
+	void setDesiredAngles(float pitch, float pan, float roll) { anglesDesired_ = glm::vec3(pitch, pan, roll); }
+	void setDesiredAngles(const glm::vec3& angles) { anglesDesired_ = angles; }
 
-	virtual SM::Vector3 getPosition() const override { return positionCurrent_; }
-	virtual SM::Matrix getViewMatrix() const override { return currentTransform_; }
+	virtual glm::vec3 getPosition() const override { return positionCurrent_; }
+	virtual glm::mat4 getViewMatrix() const override { return currentTransform_; }
 
 public:
 	float dampingLinear_ = 10.0f;
-	SM::Vector3 dampingEulerAngles_ = SM::Vector3(5.0f, 5.0f, 5.0f);
+	glm::vec3 dampingEulerAngles_ = glm::vec3(5.0f, 5.0f, 5.0f);
 
 private:
-	SM::Vector3 positionCurrent_ = SM::Vector3(0.0f);
-	SM::Vector3 positionDesired_ = SM::Vector3(0.0f);
+	glm::vec3 positionCurrent_ = glm::vec3(0.0f);
+	glm::vec3 positionDesired_ = glm::vec3(0.0f);
 
 	/// pitch, pan, roll
-	SM::Vector3 anglesCurrent_ = SM::Vector3(0.0f);
-	SM::Vector3 anglesDesired_ = SM::Vector3(0.0f);
+	glm::vec3 anglesCurrent_ = glm::vec3(0.0f);
+	glm::vec3 anglesDesired_ = glm::vec3(0.0f);
 
-	SM::Matrix currentTransform_ = SM::Matrix();
+	glm::mat4 currentTransform_ = glm::mat4(1.0f);
 
 	static inline float clipAngle(float d)
 	{
@@ -227,18 +222,18 @@ private:
 		return d;
 	}
 
-	static inline SM::Vector3 clipAngles(const SM::Vector3& angles)
+	static inline glm::vec3 clipAngles(const glm::vec3& angles)
 	{
-		return SM::Vector3(
+		return glm::vec3(
 			std::fmod(angles.x, 360.0f),
 			std::fmod(angles.y, 360.0f),
 			std::fmod(angles.z, 360.0f)
 		);
 	}
 
-	static inline SM::Vector3 angleDelta(const SM::Vector3& anglesCurrent, const SM::Vector3& anglesDesired)
+	static inline glm::vec3 angleDelta(const glm::vec3& anglesCurrent, const glm::vec3& anglesDesired)
 	{
-		const SM::Vector3 d = clipAngles(anglesCurrent) - clipAngles(anglesDesired);
-		return SM::Vector3(clipAngle(d.x), clipAngle(d.y), clipAngle(d.z));
+		const glm::vec3 d = clipAngles(anglesCurrent) - clipAngles(anglesDesired);
+		return glm::vec3(clipAngle(d.x), clipAngle(d.y), clipAngle(d.z));
 	}
 };

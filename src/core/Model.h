@@ -12,6 +12,9 @@
 #include "common.h"
 #include "ResourceManager.h"
 
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
+
 namespace CV
 {
     class Renderer;
@@ -41,16 +44,16 @@ struct Transformation
 {
     Transformation()
     {
-        Matrix = DirectX::XMMatrixIdentity();
-        Position = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
-        Rotation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-        Scale = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+        Matrix = glm::mat4(1.f);
+        Position = {};
+        Rotation = {};
+        Scale = {};
     }
 
-    DirectX::XMMATRIX Matrix{};
-    DirectX::XMVECTOR Position {};
-    DirectX::XMVECTOR Rotation{};
-    DirectX::XMVECTOR Scale = {};
+    glm::mat4 Matrix{};
+    glm::vec3 Position{};
+    glm::vec3 Rotation{};
+    glm::vec3 Scale = {};
 };
 
 
@@ -101,7 +104,7 @@ struct MeshInfo
     uint32_t startIndex = 0;
     uint32_t startVertex = 0;
     Transformation transform;
-    DirectX::XMMATRIX normalMatrix;
+    glm::mat4 normalMatrix;
 };
 
 namespace CV
@@ -112,7 +115,7 @@ namespace CV
         Model();
         ~Model();
         void LoadModel(const std::shared_ptr<Renderer>& renderer, const std::string& path);
-        DirectX::XMMATRIX ComputeNormalMatrix(const DirectX::XMMATRIX &worldMatrix);
+        glm::mat4 ComputeNormalMatrix(const glm::mat4 worldMatrix);
         void SetBuffers();
     private:
         void ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
