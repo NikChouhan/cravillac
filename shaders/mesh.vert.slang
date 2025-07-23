@@ -17,8 +17,9 @@ struct PushConstants
     float32_t4x4 mvp;
     VertexBuffer* vertexBuffer;
     float32_t3x3 normalMatrix;
-    uint32_t materialIndex; // not used here
-    float padding[4];
+    uint32_t albedoIndex; // not used here
+    uint32_t normalIndex;
+    float padding[3];
 };
 
 struct VertexOutput

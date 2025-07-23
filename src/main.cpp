@@ -314,12 +314,14 @@ int main()
 #endif
 
 			for (const auto& meshInfo : mod1._meshes) {
+				const auto& material = mod1._materials[meshInfo.materialIndex];
+
 				auto [mvp, normalMatrix] = _cameraUpdate(meshInfo);
-				uint32_t materialIndex = meshInfo.materialIndex;
 
 				pushConstants.mvp = mvp;
 				pushConstants.normalMatrix = normalMatrix;
-				pushConstants.materialIndex = materialIndex;
+				pushConstants.albedoIndex = material.albedoIndex;
+				pushConstants.normalIndex = material.normalIndex;
 #if MESH_SHADING
 				commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eMeshNV | vk::ShaderStageFlagBits::eFragment,
 					0, sizeof(PushConstants), &pushConstants);

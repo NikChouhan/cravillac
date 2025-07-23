@@ -19,7 +19,7 @@ namespace CV
         _renderer = renderer;
         // Load the image using stb_image
         int width, height, channels;
-        stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
+        //stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
         unsigned char *imgData = stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
 
         if (!imgData)
@@ -34,7 +34,9 @@ namespace CV
             vk::Buffer stagingBuffer{};
             vk::DeviceMemory stagingBufferMemory{};
 
-            CreateBuffer(renderer->_device, renderer->_physicalDevice, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingBufferMemory);
+            CreateBuffer(renderer->_device, renderer->_physicalDevice, imageSize, vk::BufferUsageFlagBits::eTransferSrc,
+                         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                         stagingBuffer, stagingBufferMemory);
 
             void *data;
             vkMapMemory(renderer->_device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -42,8 +44,13 @@ namespace CV
             vkUnmapMemory(renderer->_device, stagingBufferMemory);
             stbi_image_free(imgData);
 
-            // allocate memory inside device (gpu) to upload the texture, bind it to the image memory handle (watch Tu Wien lecture for more info. TLDR; Vulkan can allocate the memory anywhere inside the hw optimally, and the image memory handle is whats used to access it)
-            CreateImage(renderer->_physicalDevice, renderer->_device, width, height, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, m_texImage, m_texImageMemory);
+            // allocate memory inside device (gpu) to upload the texture, bind it to the image memory handle
+            // (watch Tu Wien lecture for more info. TLDR; Vulkan can allocate the memory anywhere inside the hw optimally,
+            // and the image memory handle is whats used to access it)
+            CreateImage(renderer->_physicalDevice, renderer->_device, width, height, vk::Format::eR8G8B8A8Srgb,
+                        vk::ImageTiling::eOptimal,
+                        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+                        vk::MemoryPropertyFlagBits::eDeviceLocal, m_texImage, m_texImageMemory);
 
             /* remember: The actual uploading of texture from storage to VRAM occurs here.
              * The command buffers do the work related to it. So its important to target
@@ -53,7 +60,8 @@ namespace CV
 
             TransitionImage(tempCmdBuffer, m_texImage, {}, vk::ImageLayout::eTransferDstOptimal);
             CopyBufferToImage(tempCmdBuffer, m_texImage, stagingBuffer, width, height);
-            TransitionImage(tempCmdBuffer, m_texImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+            TransitionImage(tempCmdBuffer, m_texImage, vk::ImageLayout::eTransferDstOptimal,
+                            vk::ImageLayout::eShaderReadOnlyOptimal);
 
             EndSingleTimeCommands(renderer->_device, renderer->_graphicsQueue, renderer->_commandPool, tempCmdBuffer);
 
@@ -66,7 +74,8 @@ namespace CV
     }
     void Texture::CreateTextureImageView()
     {
-        m_texImageView = CreateImageView(_renderer->_device, m_texImage, vk::Format::eR8G8B8A8Srgb,vk::ImageAspectFlagBits::eColor);
+        m_texImageView = CreateImageView(_renderer->_device, m_texImage, vk::Format::eR8G8B8A8Srgb,
+                                         vk::ImageAspectFlagBits::eColor);
     }
     void Texture::CreateTextureSampler()
     {

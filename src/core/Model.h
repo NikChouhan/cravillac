@@ -25,19 +25,11 @@ namespace CV
 
 enum class TextureType
 {
-    ALBEDO,
-    NORMAL,
-    METALLIC_ROUGHNESS,
-    EMISSIVE,
-    AO,
-    SPECULAR,
-    DISPLACEMENT,
-    OPACITY,
-    GLOSSINESS,
-    HEIGHT,
-    CUBEMAP,
-    BRDF_LUT,
-    SPECULAR_GLOSSINESS
+    ALBEDO = 1,
+    NORMAL = 2,
+    METALLIC_ROUGHNESS = 4,
+    EMISSIVE = 8,
+    SPECULAR = 16
 };
 
 struct Transformation
@@ -73,6 +65,9 @@ struct Material
     bool HasEmissive = false;
     bool HasAO = false;
 
+    u32 albedoIndex = -1;
+    u32 normalIndex = -1;
+
     std::string AlbedoPath;
     std::string NormalPath;
     std::string MetallicRoughnessPath;
@@ -96,11 +91,12 @@ struct Mesh
     u32 indexCount;
 };
 
+
 struct MeshInfo
 {
     size_t vertexCount = 0;
     size_t indexCount = 0;
-    uint32_t materialIndex = 0;
+    u32 materialIndex = -1;
     uint32_t startIndex = 0;
     uint32_t startVertex = 0;
     Transformation transform;
@@ -122,8 +118,7 @@ namespace CV
         void ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform);
         void OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh);
         void ProcessMeshlets(Mesh& mesh);
-        bool LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type);
-
+        u32 LoadMaterialTexture(Material& mat, const cgltf_texture_view* textureView, TextureType type);
         void ValidateResources() const;
 
         //ConstantBuffer cb;
@@ -154,6 +149,7 @@ namespace CV
 
         std::unordered_set<std::string> loadedTextures; // To track loaded textures
         std::unordered_map<cgltf_material*, size_t> materialLookup;
+        std::unordered_map<std::string, size_t> textureIndexLookup;
 
         ResourceManager* _resourceManager;
 

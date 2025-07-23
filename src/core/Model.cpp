@@ -252,7 +252,10 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
 
         // the following code for materials is very much unoptimised.
         // It should only look for materials once, make a texture, sampler and save it in a map, not per primitive
-        // TODO
+        // TODO -- RESOLVED
+
+        // it still is prolly unoptimised due to too much use of hashmaps and string ops everywhere
+        // need to find a better solution (nvtt3?)
 
         if (material->has_pbr_metallic_roughness)
         {
@@ -280,12 +283,6 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
             // Map emissive texture
             textureMap[TextureType::EMISSIVE] = &material->emissive_texture;
         }
-
-        if (material->occlusion_texture.texture)
-        {
-            // Map occlusion texture
-            textureMap[TextureType::AO] = &material->occlusion_texture;
-        }
         if (material->has_pbr_specular_glossiness)
         {
             cgltf_pbr_specular_glossiness* pbr = &material->pbr_specular_glossiness;
@@ -298,39 +295,43 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
         // Load all textures from the map if they haven't been loaded before
         for (const auto& [type, view] : textureMap)
         {
-            static int i = 0;
-            std::string textureIdentifier = std::to_string(static_cast<int>(type)); // Unique identifier for texture type
             std::string imageName = view->texture->image->uri;
+            u32 textureIndex = -1;
 
-            if (!loadedTextures.contains(imageName)) // If not already loaded
+            if (!loadedTextures.contains(imageName)) // If texture file is new
             {
-                hr = LoadMaterialTexture(mat, view, type);
-                if (FAILED(hr))
-                {
-                    //printl(Log::LogLevel::Error,"[Texture] Failed to load texture of type {} with name {} # {} ", textureIdentifier, imageName, i++);
-                }
-                else
-                {
-                    //printl(Log::LogLevel::Info,"[Texture] Loaded texture of type {} with name {} # {}", textureIdentifier, imageName, i++);
-                    loadedTextures.insert(imageName); // Mark this texture type as loaded
-                }
+                textureIndex = LoadMaterialTexture(mat, view, type);
+
+                // Cache the index for this image file
+                loadedTextures.insert(imageName);
+                textureIndexLookup[imageName] = textureIndex;
+                printl(Log::LogLevel::Info, "[Texture] Loaded texture {} with index {}", imageName, textureIndex);
             }
             else
             {
-                //printl(Log::LogLevel::Warn, "[Texture] Skipping already loaded texture of type {} with name {} ", textureIdentifier, imageName);
+                textureIndex = textureIndexLookup[imageName];
+                printl(Log::LogLevel::Warn, "[Texture] Reusing texture {} with index {}", imageName, textureIndex);
+                Texture& existingTex = modelTextures[textureIndex];
+                if (type == TextureType::ALBEDO) mat.AlbedoView = existingTex.m_texImageView;
+                if (type == TextureType::NORMAL) mat.NormalView = existingTex.m_texImageView;
+                // ... rest types TODO
             }
+
+            if (type == TextureType::ALBEDO) mat.albedoIndex = textureIndex;
+            if (type == TextureType::NORMAL) mat.normalIndex = textureIndex;
+            // ... rest types TODO
         }
+
         _materials.push_back(mat);
         materialLookup[material] = _materials.size() - 1;
-        meshInfo.materialIndex = static_cast<u32>(materialLookup[material]);
     }
-
     meshInfo.materialIndex = static_cast<u32>(materialLookup[material]);
     meshInfo.transform = parentTransform;
     meshInfo.startIndex = indexOffset;
     meshInfo.startVertex = vertexOffset;
     meshInfo.vertexCount = vertexCount;
     meshInfo.indexCount = indexCount;
+
 
     Mesh mesh;
     mesh.vertices = tempVertices;
@@ -346,6 +347,57 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
     ProcessMeshlets(mesh);
 #endif
     _meshes.push_back(meshInfo);
+}
+
+u32 CV::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *textureView, const TextureType type)
+{
+    if (textureView && textureView->texture && textureView->texture->image)
+    {
+        cgltf_image *image = textureView->texture->image;
+        std::string path = _dirPath + "/" + std::string(image->uri);
+
+        Texture tex;
+        tex.LoadTexture(_renderer, path.c_str());
+
+        // Push the texture and return its new index
+        modelTextures.push_back(tex);
+        u32 newIndex = modelTextures.size() - 1;
+
+        // Assign the view to the material, but return the index for storage
+        if (type == TextureType::ALBEDO) mat.AlbedoView = tex.m_texImageView;
+        if (type == TextureType::NORMAL) mat.NormalView = tex.m_texImageView;
+
+        return newIndex;
+        /*if (type == TextureType::METALLIC_ROUGHNESS)
+        {
+            mat.MetallicRoughnessView = tex.m_texImageView;
+            mat.HasMetallicRoughness = true;
+            mat.MetallicRoughnessPath = path;
+            modelTextures.push_back(tex);
+            meshInfo.metallicIndex = modelTextures.size() - 1;
+            return true;
+        }
+
+        if (type == TextureType::EMISSIVE)
+        {
+            mat.EmissiveView = tex.m_texImageView;
+            mat.HasEmissive = true;
+            mat.EmissivePath = path;
+            modelTextures.push_back(tex);
+            meshInfo.emmisiveIndex = modelTextures.size() - 1;
+            return true;
+        }*/
+
+        // case TextureType::AO:
+        //     mat.AOView = tex.m_texImageView;
+        //     mat.HasAO = true;
+        //     mat.AOPath = path;
+        //     modelTextures.push_back(tex);
+
+    }
+    // Handle missing texture or image
+    printl(Log::LogLevel::Warn,"[Texture] Texture or image not found for material : {}", std::to_string(static_cast<int>(type)));
+    return -1;
 }
 
 void CV::Model::OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh)
@@ -381,8 +433,8 @@ void CV::Model::OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh)
 
     std::vector<u32> simplifiedIndices(optIndices.size());
     size_t optIndexCount = meshopt_simplify(simplifiedIndices.data(), optIndices.data(), indexCount,
-                                            &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), targetIndexCount,
-                                            targetError);
+        &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), targetIndexCount,
+        targetError);
     simplifiedIndices.resize(optIndexCount);
 
     _indices.insert(_indices.end(), simplifiedIndices.begin(), simplifiedIndices.end());
@@ -402,7 +454,7 @@ void CV::Model::ProcessMeshlets(Mesh& mesh)
     Meshlet meshlet = {};
     std::vector<u8> meshletVertices(mesh.vertexCount, 0xff);
 
-    for (size_t i = 0; i <mesh.indexCount; i+=3)
+    for (size_t i = 0; i < mesh.indexCount; i += 3)
     {
         unsigned int a = mesh.indices[i + 0];
         unsigned int b = mesh.indices[i + 1];
@@ -412,24 +464,24 @@ void CV::Model::ProcessMeshlets(Mesh& mesh)
         u8& bv = meshletVertices[b];
         u8& cv = meshletVertices[c];
 
-        if ((meshlet.vertexCount + (av==0xff) + (bv==0xff) + (cv==0xff) > 64) || (meshlet.triangleCount + 1 > 126/3))
+        if ((meshlet.vertexCount + (av == 0xff) + (bv == 0xff) + (cv == 0xff) > 64) || (meshlet.triangleCount + 1 > 126 / 3))
         {
             m_meshlets.push_back(meshlet);
             meshlet = {};
             memset(meshletVertices.data(), 0xff, meshletVertices.size());
         }
 
-        if (av==0xff)
+        if (av == 0xff)
         {
             av = meshlet.vertexCount;
             meshlet.vertices[meshlet.vertexCount++] = a;
         }
-        if (bv==0xff)
+        if (bv == 0xff)
         {
             bv = meshlet.vertexCount;
             meshlet.vertices[meshlet.vertexCount++] = b;
         }
-        if (cv==0xff)
+        if (cv == 0xff)
         {
             cv = meshlet.vertexCount;
             meshlet.vertices[meshlet.vertexCount++] = c;
@@ -445,56 +497,6 @@ void CV::Model::ProcessMeshlets(Mesh& mesh)
     }
 }
 #endif
-
-bool CV::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *textureView, const TextureType type)
-{
-    if (textureView && textureView->texture && textureView->texture->image)
-    {
-        cgltf_image *image = textureView->texture->image;
-        std::string path = _dirPath + "/" + std::string(image->uri);
-
-        Texture tex;
-        tex.LoadTexture(_renderer, path.c_str());
-        switch (type)
-        {
-        case TextureType::ALBEDO:
-            mat.AlbedoView = tex.m_texImageView;
-            mat.HasAlbedo = true;
-            mat.AlbedoPath = path;
-            modelTextures.push_back(tex);
-            return true;
-        // case TextureType::NORMAL:
-        //     mat.NormalView = tex.m_texImageView;
-        //     mat.HasNormal = true;
-        //     mat.NormalPath = path;
-        //     modelTextures.push_back(tex);
-        //     return S_OK;
-        // case TextureType::METALLIC_ROUGHNESS:
-        //     mat.MetallicRoughnessView = tex.m_texImageView;
-        //     mat.HasMetallicRoughness = true;
-        //     mat.MetallicRoughnessPath = path;
-        //     return S_OK;
-        // case TextureType::EMISSIVE:
-        //     mat.EmissiveView = tex.m_texImageView;
-        //     mat.HasEmissive = true;
-        //     mat.EmissivePath = path;
-        //     modelTextures.push_back(tex);
-        //     return S_OK;
-        // case TextureType::AO:
-        //     mat.AOView = tex.m_texImageView;
-        //     mat.HasAO = true;
-        //     mat.AOPath = path;
-        //     modelTextures.push_back(tex);
-        //     return S_OK;
-        default:
-            //printl(Log::LogLevel::Warn,"[Texture] Unknown texture type.");
-            return false;
-        }
-    }
-    // Handle missing texture or image
-    printl(Log::LogLevel::Warn,"[Texture] Texture or image not found for material : {}", std::to_string(static_cast<int>(type)));
-    return false;
-}
 
 void CV::Model::SetBuffers()
 {

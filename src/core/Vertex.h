@@ -21,8 +21,9 @@ namespace  CV
         VkDeviceAddress meshletBufferAddress;
 #endif
         glm::mat3 normalMatrix;
-        u32 materialIndex;
-        float padding[4];
+        u32 albedoIndex;
+        u32 normalIndex;
+        float padding[3];
     };
 
     struct Vertex
