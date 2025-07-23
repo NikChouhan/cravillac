@@ -41,6 +41,8 @@ elseif (is_mode("release")) then
     set_symbols("release")
     add_defines("NDEBUG")
     set_optimize("fastest")
+    set_symbols("hidden")
+    set_strip("all")
     set_warnings("none")
     set_policy("build.optimization.lto", true)
     set_runtimes("MD")

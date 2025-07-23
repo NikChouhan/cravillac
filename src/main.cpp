@@ -93,7 +93,6 @@ int main()
 		});
 	glfwSetMouseButtonCallback(_window, [](auto* window, int button, int action, int mods) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT) {
-			printl(Log::LogLevel::Info, "Yes its hit\n");
 			mouseState.pressedLeft = action == GLFW_PRESS;
 		}
 		double xpos, ypos;
@@ -210,8 +209,6 @@ int main()
 
 		mat4 modelView = viewMatrix * worldMatrix;
 
-
-		//DirectX::XMMATRIX worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;
 		//mat4 worldViewProjMatrix = worldMatrix * viewMatrix * projectionMatrix;
 		mat4 worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;
 

@@ -1,4 +1,0 @@
---rule("compilation.shaders")
-  --  set_extensions(".frag", ".vert", ".comp")
-  --on_buildcmd_file(function (target, batchcmds, sourcefile)
---  batchcmds::vrunv)

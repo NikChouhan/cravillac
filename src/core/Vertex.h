@@ -22,7 +22,7 @@ namespace  CV
 #endif
         glm::mat3 normalMatrix;
         u32 materialIndex;
-        float padding[2];
+        float padding[4];
     };
 
     struct Vertex

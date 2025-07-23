@@ -231,6 +231,7 @@ namespace CV
         vk::PhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = vk::True;
         deviceFeatures.fragmentStoresAndAtomics = vk::True;
+        deviceFeatures.shaderInt64 = vk::True;
 
         vk::DeviceCreateInfo createInfo{};
     	createInfo.pNext = &enabledFeatures;

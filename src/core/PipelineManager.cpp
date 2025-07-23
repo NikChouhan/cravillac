@@ -166,7 +166,7 @@ namespace CV
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = vk::PolygonMode::eFill;
-        rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+        rasterizer.cullMode = vk::CullModeFlagBits::eNone;
         rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f;

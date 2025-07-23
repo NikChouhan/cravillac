@@ -2,7 +2,6 @@ add_requires("stb")
 
 add_requires("directxmath",
 {
-    debug = is_mode("debug"),
     configs =
     {
         shared = false,
