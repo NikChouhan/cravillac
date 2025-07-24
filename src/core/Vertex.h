@@ -23,7 +23,9 @@ namespace  CV
         glm::mat3 normalMatrix;
         u32 albedoIndex;
         u32 normalIndex;
-        float padding[3];
+        u32 metallicIndex;
+        u32 emissiveIndex;
+        float padding;
     };
 
     struct Vertex
@@ -31,6 +33,7 @@ namespace  CV
         glm::vec3 pos;
         glm::vec2 texCoord;
         glm::vec3 normal;
+        glm::vec4 tangent;
     };
 
     struct Meshlet
@@ -42,3 +45,5 @@ namespace  CV
     };
 }
 #endif
+
+// KNOW THAT the lights in the scene are emmisive materials

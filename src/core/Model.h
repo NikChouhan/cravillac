@@ -67,6 +67,8 @@ struct Material
 
     u32 albedoIndex = -1;
     u32 normalIndex = -1;
+    u32 emmisiveIndex = -1;
+    u32 metallicIndex = -1;
 
     std::string AlbedoPath;
     std::string NormalPath;

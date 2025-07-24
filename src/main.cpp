@@ -129,9 +129,8 @@ int main()
 	Model mod1;
 	//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
 	//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
-	//mod1.LoadModel(renderer, "../../../../assets/models/sponza/Sponza.gltf");
-	//mod1.LoadModel(renderer, "../../../../assets/models/bistro/Bistro.glb");
-	mod1.LoadModel(renderer, "../../../../assets/models/bistro2/bistro.gltf");
+	//mod1.LoadModel(renderer, "../../../../assets/models/sponza2/sponza2.gltf");
+	mod1.LoadModel(renderer, "../../../../assets/models/bistro2/bistro2.gltf");
 	//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
 
 #if MESH_SHADING
@@ -322,6 +321,7 @@ int main()
 				pushConstants.normalMatrix = normalMatrix;
 				pushConstants.albedoIndex = material.albedoIndex;
 				pushConstants.normalIndex = material.normalIndex;
+				pushConstants.emissiveIndex = material.emmisiveIndex;
 #if MESH_SHADING
 				commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eMeshNV | vk::ShaderStageFlagBits::eFragment,
 					0, sizeof(PushConstants), &pushConstants);

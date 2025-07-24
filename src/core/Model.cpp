@@ -181,6 +181,7 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
     cgltf_attribute *pos_attribute = nullptr;
     cgltf_attribute *tex_attribute = nullptr;
     cgltf_attribute *norm_attribute = nullptr;
+    cgltf_attribute *tang_attribute = nullptr;
 
     for (int i = 0; i < primitive->attributes_count; i++)
     {
@@ -195,6 +196,10 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
         if (strcmp(primitive->attributes[i].name, "NORMAL") == 0)
         {
             norm_attribute = &primitive->attributes[i];
+        }
+        if (strcmp(primitive->attributes[i].name, "TANGENT") == 0)
+        {
+            tang_attribute = &primitive->attributes[i];
         }
     }
 
@@ -225,6 +230,10 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
         if (cgltf_accessor_read_float(norm_attribute->data, i, &vertex.normal.x, 3) == 0)
         {
             printl(Log::LogLevel::Warn,"[CGLTF] Unable to read Normal attributes!");
+        }
+        if (cgltf_accessor_read_float(tang_attribute->data, i, &vertex.tangent.x, 4) == 0)
+        {
+            printl(Log::LogLevel::Warn, "[CGLTF] Unable to read Tangent attributes!");
         }
         tempVertices.push_back(vertex);
         //vertices.push_back(vertex);
@@ -314,11 +323,15 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
                 Texture& existingTex = modelTextures[textureIndex];
                 if (type == TextureType::ALBEDO) mat.AlbedoView = existingTex.m_texImageView;
                 if (type == TextureType::NORMAL) mat.NormalView = existingTex.m_texImageView;
+                if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = existingTex.m_texImageView;
+                if (type == TextureType::EMISSIVE) mat.EmissiveView= existingTex.m_texImageView;
                 // ... rest types TODO
             }
 
             if (type == TextureType::ALBEDO) mat.albedoIndex = textureIndex;
             if (type == TextureType::NORMAL) mat.normalIndex = textureIndex;
+            if (type == TextureType::METALLIC_ROUGHNESS) mat.metallicIndex = textureIndex;
+            if (type == TextureType::EMISSIVE) mat.emmisiveIndex = textureIndex;
             // ... rest types TODO
         }
 
@@ -366,27 +379,10 @@ u32 CV::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *text
         // Assign the view to the material, but return the index for storage
         if (type == TextureType::ALBEDO) mat.AlbedoView = tex.m_texImageView;
         if (type == TextureType::NORMAL) mat.NormalView = tex.m_texImageView;
+        if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = tex.m_texImageView;
+        if (type == TextureType::EMISSIVE) mat.EmissiveView = tex.m_texImageView;
 
         return newIndex;
-        /*if (type == TextureType::METALLIC_ROUGHNESS)
-        {
-            mat.MetallicRoughnessView = tex.m_texImageView;
-            mat.HasMetallicRoughness = true;
-            mat.MetallicRoughnessPath = path;
-            modelTextures.push_back(tex);
-            meshInfo.metallicIndex = modelTextures.size() - 1;
-            return true;
-        }
-
-        if (type == TextureType::EMISSIVE)
-        {
-            mat.EmissiveView = tex.m_texImageView;
-            mat.HasEmissive = true;
-            mat.EmissivePath = path;
-            modelTextures.push_back(tex);
-            meshInfo.emmisiveIndex = modelTextures.size() - 1;
-            return true;
-        }*/
 
         // case TextureType::AO:
         //     mat.AOView = tex.m_texImageView;
