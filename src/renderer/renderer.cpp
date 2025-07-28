@@ -171,7 +171,9 @@ namespace CV
         QueueFamilyIndices indices = FindQueueFamilies(_physicalDevice, surface);
 
         std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = { indices._graphicsFamily.value(), indices._presentFamily.value() };
+        std::set uniqueQueueFamilies = { indices._graphicsFamily.value(), indices._presentFamily.value() };
+
+        _queueFamily = indices._graphicsFamily.value();
 
         float queuePriority = 1.0f;
         for (auto queueFamily : uniqueQueueFamilies)
@@ -381,9 +383,9 @@ namespace CV
     //    CreateImageView();
     //}
 
-    void Renderer::CreateCommandBuffer(std::vector<vk::CommandBuffer>& cmdBuffers) const
+    void Renderer::CreateCommandBuffer(std::vector<vk::CommandBuffer>& cmdBuffers, size_t count) const
     {
-        cmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        cmdBuffers.resize(count * MAX_FRAMES_IN_FLIGHT);
 
         vk::CommandBufferAllocateInfo allocInfo;
         allocInfo.commandPool = _commandPool;

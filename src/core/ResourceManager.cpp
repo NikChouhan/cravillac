@@ -7,6 +7,7 @@
 #include "renderer.h"
 #include "vk_utils.h"
 
+
 namespace CV
 {
 	ResourceManager::ResourceManager(const std::shared_ptr<Renderer>& renderer) : _renderer(renderer), m_descriptorPool(VK_NULL_HANDLE)
@@ -125,23 +126,23 @@ namespace CV
 
 		if (layoutKey == "ubo") 
 		{
-			vk::DescriptorSetLayoutBinding uboBinding{};
-			uboBinding.binding = 0;
-			uboBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
-			uboBinding.descriptorCount = 1;
-			uboBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
-			uboBinding.pImmutableSamplers = nullptr;
-			bindings.push_back(uboBinding);
+			vk::DescriptorSetLayoutBinding _uboBinding;
+			_uboBinding.binding = 0;
+			_uboBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
+			_uboBinding.descriptorCount = 1;
+			_uboBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+			_uboBinding.pImmutableSamplers = nullptr;
+			bindings.push_back(_uboBinding);
 		}
 		else if (layoutKey == "textures") 
 		{
-			vk::DescriptorSetLayoutBinding textureBinding{};
-			textureBinding.binding = 0;
-			textureBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-			textureBinding.descriptorCount = MAX_TEXTURES;
-			textureBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
-			textureBinding.pImmutableSamplers = nullptr;
-			bindings.push_back(textureBinding);
+			vk::DescriptorSetLayoutBinding _textureBinding;
+			_textureBinding.binding = 0;
+			_textureBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+			_textureBinding.descriptorCount = MAX_TEXTURES;
+			_textureBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+			_textureBinding.pImmutableSamplers = nullptr;
+			bindings.push_back(_textureBinding);
 
 			bindingFlags.push_back(vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind);
 			bindingFlagsCI.bindingCount = 1;
@@ -149,13 +150,13 @@ namespace CV
 		}
 		else if (layoutKey == "ssbo")
 		{
-			vk::DescriptorSetLayoutBinding ssboBinding{};
-			ssboBinding.binding = 0;
-			ssboBinding.descriptorType = vk::DescriptorType::eStorageBuffer;
-			ssboBinding.descriptorCount = 1;
-			ssboBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
-			ssboBinding.pImmutableSamplers = nullptr;
-			bindings.push_back(ssboBinding);
+			vk::DescriptorSetLayoutBinding _ssboBinding;
+			_ssboBinding.binding = 0;
+			_ssboBinding.descriptorType = vk::DescriptorType::eStorageBuffer;
+			_ssboBinding.descriptorCount = 1;
+			_ssboBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+			_ssboBinding.pImmutableSamplers = nullptr;
+			bindings.push_back(_ssboBinding);
 		}
 		// Add more layoutKey cases or make it configurable via a vector input
 

@@ -35,12 +35,13 @@ namespace CV
 		vk::DescriptorSet CreateDescriptorSet(vk::DescriptorSetLayout layout);
 		vk::DescriptorSet UpdateDescriptorSet(vk::DescriptorSet set, uint32_t binding, vk::DescriptorType type, vk::Buffer& buffer, vk::DeviceSize size, const std::optional<std::vector<CV::Texture>>& textures);
 
-		vk::ShaderModule	getShaderModule(const std::string& shaderPath);
+		vk::ShaderModule getShaderModule(const std::string& shaderPath);
 		vk::DescriptorSetLayout getDescriptorSetLayout(const std::string& layoutKey);
 
 		[[nodiscard]] PipelineManager* getPipelineManager() const { return pipelineManager; }
 
-
+		// for imgui
+		vk::DescriptorPool _imguiDescriptorPool;
 	private:
 		PipelineManager* pipelineManager;
 		std::shared_ptr<Renderer> _renderer;

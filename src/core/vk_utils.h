@@ -6,7 +6,6 @@
 #include <optional>
 #include <string>
 #include <GLFW/glfw3.h>
-
 #include <vulkan/vulkan.hpp>
 #include "StandardTypes.h"
 

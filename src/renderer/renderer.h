@@ -1,10 +1,8 @@
 #pragma once
-#include <vector>
-#include <vulkan/vulkan_hpp_macros.hpp>
-#include <vulkan/vulkan_handles.hpp>
 
 #include "pch.h"
-
+#include <vulkan/vulkan_hpp_macros.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace CV
 {
@@ -30,7 +28,7 @@ namespace CV
         void CreateDepthResources();
         // void RecreateSwapChain(); // TODO
         // drawing stuff
-        void CreateCommandBuffer(std::vector<vk::CommandBuffer>& cmdBuffers) const;
+        void CreateCommandBuffer(std::vector<vk::CommandBuffer>& cmdBuffers, size_t count) const;
         // fence stuff
         void CreateSynObjects(std::vector<vk::Semaphore>& imgAvailableSem, std::vector<vk::Semaphore>& renderFinishedSem, std::vector<vk::Fence>& inFlightFences);
         void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT& createInfo);
@@ -39,6 +37,7 @@ namespace CV
         vk::Instance _instance;
         vk::PhysicalDevice _physicalDevice; 
         vk::Device _device;
+        u32 _queueFamily{};
         vk::Queue _graphicsQueue;
         vk::Queue _presentQueue;
         vk::SwapchainKHR _swapChain;
@@ -59,5 +58,7 @@ namespace CV
         std::vector<vk::CommandBuffer> _commandBuffer;
         // sync primitives
         vk::DebugUtilsMessengerEXT _debugMessenger;
+
+        // imgui things
     };
 };

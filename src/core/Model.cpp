@@ -345,7 +345,6 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
     meshInfo.vertexCount = vertexCount;
     meshInfo.indexCount = indexCount;
 
-
     Mesh mesh;
     mesh.vertices = tempVertices;
     mesh.indices = tempIndices;

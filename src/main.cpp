@@ -4,6 +4,7 @@
 #include "common.h"
 #include "renderer.h"
 #include "Camera.h"
+#include "ImguiRenderer.h"
 #include "Model.h"
 #include "Vertex.h"
 #include "vk_utils.h"
@@ -37,6 +38,10 @@ namespace
 
 	CameraPositioner_FirstPerson positioner(kInitialCameraPos, kInitialCameraTarget, vec3(0.0f, 1.0f, 0.0f));
 	Camera camera(positioner);
+
+	bool _showDemoWindow = true;
+
+	vec4 _clearColor = { 0.45f, 0.55f, 0.60f, 1.00f };
 }
 
 int main()
@@ -148,12 +153,10 @@ int main()
 
 	std::vector<vk::DescriptorPoolSize> poolSizes;
 
-	poolSizes.resize(1);
 
 	MAX_TEXTURES = static_cast<uint32_t>(mod1.modelTextures.size()) * MAX_FRAMES_IN_FLIGHT * 2;	// kept it as large as possible cuz lazy
 
-	poolSizes[0].type = vk::DescriptorType::eCombinedImageSampler;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES);
+	poolSizes.push_back({vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES});
 
 	_resourceManager->ConfigureDescriptorPoolSizes(poolSizes, MAX_FRAMES_IN_FLIGHT * poolSizes.size() * 4);
 	std::vector<vk::DescriptorSetLayout> descLayout;
@@ -196,23 +199,23 @@ int main()
 		.build("mesh_raster");
 #endif
 	// cmd buffer and sync objects
-	renderer->CreateCommandBuffer(_cmdBuffers);
+	renderer->CreateCommandBuffer(_cmdBuffers, 2);
 	renderer->CreateSynObjects(_imageAvailableSemaphore, _renderFinishedSemaphore, _inFlightFence);
+
+	//imgui init
+	CV::ImguiRenderer gui = {};
+	gui.InitImgui(renderer, _window);
 
 	auto _cameraUpdate = [&](const MeshInfo& meshInfo) -> CameraPlex
 	{
 		mat4 viewMatrix = positioner.getViewMatrix();
 		mat4 projectionMatrix = camera.getProjMatrix();
-
 		mat4 worldMatrix = meshInfo.transform.Matrix;
-
 		mat4 modelView = viewMatrix * worldMatrix;
-
 		//mat4 worldViewProjMatrix = worldMatrix * viewMatrix * projectionMatrix;
 		mat4 worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;
 
 		CameraPlex camMat;
-
 		camMat.mvp = worldViewProjMatrix;
 		camMat.normalMatrix = glm::transpose(glm::inverse(modelView));
 		return camMat;
@@ -362,6 +365,30 @@ int main()
 		positioner.update(deltaTime, mouseState.pos, mouseState.pressedLeft);
 		const glm::vec3& pos = positioner.getPosition();
 
+		// imgui thingy
+		CV::ImguiRenderer::BeginFrame();
+
+		{
+			static float f = 0.0f;
+			static int counter = 0;
+
+			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+			ImGui::Checkbox("Demo Window", &_showDemoWindow);      // Edit bools storing our window open/close state
+
+			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::ColorEdit3("clear color", reinterpret_cast<float*>(&_clearColor)); // Edit 3 floats representing a color
+
+			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+				counter++;
+			ImGui::SameLine();
+			ImGui::Text("counter = %d", counter);
+
+			/*ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);*/
+			ImGui::End();
+		}
+
 		VK_ASSERT(renderer->_device.waitForFences(1u, &_inFlightFence[_currentFrame], VK_TRUE, UINT64_MAX));
 		VK_ASSERT(renderer->_device.resetFences(1u, &_inFlightFence[_currentFrame]));
 
@@ -404,9 +431,7 @@ int main()
 
 		_currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 		char newTitle[256];
-
 		snprintf(newTitle, sizeof(newTitle), "CV --- CPU time: %.2fms", frameDelta * 1000);
-
 		glfwSetWindowTitle(_window, newTitle);
 	}
 }

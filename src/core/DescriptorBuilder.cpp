@@ -20,7 +20,6 @@ namespace CV
 		allocInfo.pSetLayouts = &layout;
 
 		vk::DescriptorSet descriptorSet;
-
 		VK_ASSERT(device.allocateDescriptorSets(&allocInfo, &descriptorSet));
 
 		return descriptorSet;
