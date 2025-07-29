@@ -193,8 +193,12 @@ namespace CV
         vk::PhysicalDeviceMeshShaderFeaturesNV meshShaderFeatures{};
         meshShaderFeatures.meshShader = vk::True;
 
+        //vk::PhysicalDeviceVulkan11Features vk11features;
+        //vk11features.shaderDrawParameters = vk::True;
+
         // BDA and scalar layout
         vk::PhysicalDeviceScalarBlockLayoutFeatures scalarFeatures{};
+        //scalarFeatures.pNext = &vk11features;
         scalarFeatures.scalarBlockLayout = vk::True;
 #if MESH_SHADING
         scalarFeatures.pNext = &meshShaderFeatures;

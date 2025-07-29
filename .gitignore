@@ -14,8 +14,3 @@ cmake-build-debugvs
 Makefile
 CMakeLists.txt
 compile_commands.json
-
-# too large 
-assets/models/bistro/
-assets/models/bistro2/
-.cache
