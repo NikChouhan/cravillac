@@ -7,11 +7,12 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm\gtx\euler_angles.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <includes/stb_image.h>
+
+#include "Buffer.h"
 #include "Log.h"
-#include "Texture.h"
-#include "renderer.h"
 #include "Vertex.h"
-#include "vk_utils.h"
 
 CV::Model::Model()
 {
@@ -20,11 +21,9 @@ CV::Model::~Model()
 {
 }
 
-void CV::Model::LoadModel(const std::shared_ptr<Renderer>& renderer, const std::string& path)
+void CV::Model::LoadModel(GfxDevice& gfxDevice, const std::string& path)
 {
-    this->_renderer = renderer;
-
-    _resourceManager = new ResourceManager(_renderer);
+    this->_gfxDevice = gfxDevice;
     cgltf_options options = {};
     cgltf_data *data = nullptr;
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
@@ -321,10 +320,10 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
                 textureIndex = textureIndexLookup[imageName];
                 printl(Log::LogLevel::Warn, "[Texture] Reusing texture {} with index {}", imageName, textureIndex);
                 Texture& existingTex = modelTextures[textureIndex];
-                if (type == TextureType::ALBEDO) mat.AlbedoView = existingTex.m_texImageView;
-                if (type == TextureType::NORMAL) mat.NormalView = existingTex.m_texImageView;
-                if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = existingTex.m_texImageView;
-                if (type == TextureType::EMISSIVE) mat.EmissiveView= existingTex.m_texImageView;
+                if (type == TextureType::ALBEDO) mat.AlbedoView = existingTex._imageView;
+                if (type == TextureType::NORMAL) mat.NormalView = existingTex._imageView;
+                if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = existingTex._imageView;
+                if (type == TextureType::EMISSIVE) mat.EmissiveView= existingTex._imageView;
                 // ... rest types TODO
             }
 
@@ -368,18 +367,38 @@ u32 CV::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *text
         cgltf_image *image = textureView->texture->image;
         std::string path = _dirPath + "/" + std::string(image->uri);
 
-        Texture tex;
-        tex.LoadTexture(_renderer, path.c_str());
+        int width, height, channels;
+        //stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
+        unsigned char* imgData = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
+        vk::DeviceSize size = width * height * 4;
+
+        Buffer imgBuffer = CreateBuffer(_gfxDevice,
+            {
+            ._byteSize = size,
+            ._access = MemoryAccess::DEVICE,
+            ._usage = vk::BufferUsageFlagBits::eTransferSrc,
+            ._pContents = imgData });
+
+        Texture tex = CreateTexture(_gfxDevice,
+            {
+            ._width = u32(width),
+            ._height = u32(height),
+            ._mipCount = 1,
+            ._format = vk::Format::eR8G8B8A8Srgb,
+            ._usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+            ._layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+            ._access = vk::AccessFlagBits::eShaderRead,
+            });
         // Push the texture and return its new index
         modelTextures.push_back(tex);
         u32 newIndex = modelTextures.size() - 1;
 
         // Assign the view to the material, but return the index for storage
-        if (type == TextureType::ALBEDO) mat.AlbedoView = tex.m_texImageView;
-        if (type == TextureType::NORMAL) mat.NormalView = tex.m_texImageView;
-        if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = tex.m_texImageView;
-        if (type == TextureType::EMISSIVE) mat.EmissiveView = tex.m_texImageView;
+        if (type == TextureType::ALBEDO) mat.AlbedoView = tex._imageView;
+        if (type == TextureType::NORMAL) mat.NormalView = tex._imageView;
+        if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = tex._imageView;
+        if (type == TextureType::EMISSIVE) mat.EmissiveView = tex._imageView;
 
         return newIndex;
 
@@ -495,83 +514,33 @@ void CV::Model::ProcessMeshlets(Mesh& mesh)
 
 void CV::Model::SetBuffers()
 {
-    vk::DeviceSize bufferSize;
-    vk::Buffer stagingBuffer{};
-    vk::DeviceMemory stagingBufferMemory{};
-    void* data;
-    // meshlet buffer stuff
 #if MESH_SHADING
-    bufferSize = m_meshlets.size() * sizeof(Meshlet);
 
-    stagingBuffer = _resourceManager->CreateBufferBuilder()
-        .setSize(bufferSize)
-        .setUsage(vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eShaderDeviceAddress)
-        .setMemoryProperties(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
-        .build(stagingBufferMemory);
-
-    data = nullptr;
-    vkMapMemory(_renderer->_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, m_meshlets.data(), bufferSize);
-    vkUnmapMemory(_renderer->_device, stagingBufferMemory);
-
-    m_meshletBuffer = _resourceManager->CreateBufferBuilder()
-        .setSize(bufferSize)
-        .setUsage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress)
-        .setMemoryProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
-        .build(m_meshletMemory);
-
-    CopyBuffer(_renderer->_device, _renderer->_commandPool, _renderer->_graphicsQueue, stagingBuffer, m_meshletBuffer,
-               bufferSize);
-    vkDestroyBuffer(_renderer->_device, stagingBuffer, nullptr);
-    vkFreeMemory(_renderer->_device, stagingBufferMemory, nullptr);
+    Buffer meshBuffer = CreateBuffer(_gfxDevice,
+        {
+        ._byteSize = sizeof(Meshlet) * _meshlets.size(),
+        ._access = MemoryAccess::DEVICE,
+        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        ._pContents = _meshlets.data() });
 #else
     // vertex buffer
-    bufferSize = sizeof(Vertex) * _vertices.size();
 
-    stagingBuffer = _resourceManager->CreateBufferBuilder()
-        .setSize(bufferSize)
-        .setUsage(vk::BufferUsageFlagBits::eTransferSrc| vk::BufferUsageFlagBits::eShaderDeviceAddress)
-        .setMemoryProperties(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
-        .build(stagingBufferMemory);
-
-    vkMapMemory(_renderer->_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, _vertices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(_renderer->_device, stagingBufferMemory);
-
-    _vertexBuffer = _resourceManager->CreateBufferBuilder()
-        .setSize(bufferSize)
-        .setUsage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
-        .setMemoryProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
-        .build(_vertexMemory);
-
-    CopyBuffer(_renderer->_device, _renderer->_commandPool, _renderer->_graphicsQueue, stagingBuffer, _vertexBuffer,
-               bufferSize);
+    Buffer vertexBuffer = CreateBuffer(_gfxDevice,
+        {
+        ._byteSize = sizeof(Vertex) * _vertices.size(),
+        ._access = MemoryAccess::DEVICE,
+        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        ._pContents = _vertices.data()});
 #endif
 
     // index buffer
-    bufferSize = _indices.size() * sizeof(_indices[0]);
 
-    stagingBuffer = _resourceManager->CreateBufferBuilder()
-        .setSize(bufferSize)
-        .setUsage(vk::BufferUsageFlagBits::eTransferSrc)
-        .setMemoryProperties(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
-        .build(stagingBufferMemory);
-
-    data = nullptr;
-    vkMapMemory(_renderer->_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, _indices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(_renderer->_device, stagingBufferMemory);
-
-    _indexBuffer = _resourceManager->CreateBufferBuilder()
-        .setSize(bufferSize)
-        .setUsage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
-        .setMemoryProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
-        .build(_indexMemory);
-
-    CopyBuffer(_renderer->_device, _renderer->_commandPool, _renderer->_graphicsQueue, stagingBuffer, _indexBuffer,
-               bufferSize);
-    vkDestroyBuffer(_renderer->_device, stagingBuffer, nullptr);
-    vkFreeMemory(_renderer->_device, stagingBufferMemory, nullptr);
+    Buffer indexBuffer = CreateBuffer(_gfxDevice,
+        {
+        ._byteSize = sizeof(_indices[0]) * _indices.size(),
+        ._access = MemoryAccess::DEVICE,
+        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+        ._pContents = _indices.data() });
 
     // unlike DX11, samplers handled independent of pipeline, so they are handled by the texture class.
     // will be handled during the desc layout stuff. Creating a large texture array,

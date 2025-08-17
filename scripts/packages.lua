@@ -25,6 +25,8 @@ add_requires("imgui docking",
 })
 
 add_requires("glm")
---add_requires("vulkan-memory-allocator")
+add_requires("vulkan-memory-allocator")
 
 add_requires("meshoptimizer")
+
+add_requires("spirv-reflect")

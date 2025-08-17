@@ -34,3 +34,4 @@ namespace SM = DirectX::SimpleMath;
 #include <optional>
 
 #include "Log.h"
+#include <vk_mem_alloc.h>

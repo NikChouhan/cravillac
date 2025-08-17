@@ -1,114 +1,143 @@
-#include <pch.h>
-
 #include "Texture.h"
-#include "renderer.h"
-#include "Log.h"
-#include <vk_utils.h>
 
-//#include <cstddef>
-#define STB_IMAGE_IMPLEMENTATION
-#include <includes/stb_image.h>
-
-#define CGLTF_IMPLEMENTATION
-#include <cgltf.h>
-
-namespace CV
+static Sampler CreateSampler(vk::Device device, SamplerDesc desc)
 {
-    void Texture::LoadTexture(const std::shared_ptr<Renderer>& renderer, const char *filename)
-    {
-        _renderer = renderer;
-        // Load the image using stb_image
-        int width, height, channels;
-        //stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
-        unsigned char *imgData = stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
+	Sampler sampler;
+	vk::SamplerReductionModeCreateInfo reductionModeCreateInfo;
+	reductionModeCreateInfo.reductionMode = desc._reductionMode;
 
-        if (!imgData)
-        {
-            printl(Log::LogLevel::Error,"[STB] Failed to load texture");
-            return;
-        }
-        else
-        {
-            vk::DeviceSize imageSize = width * height * 4;
+	vk::SamplerCreateInfo samplerCreateInfo;
 
-            vk::Buffer stagingBuffer{};
-            vk::DeviceMemory stagingBufferMemory{};
+	samplerCreateInfo.pNext = &reductionModeCreateInfo;
+	samplerCreateInfo.magFilter = desc._filterMode;
+	samplerCreateInfo.minFilter = desc._filterMode;
+	samplerCreateInfo.mipmapMode = desc._samplerMipmapMode;
+	samplerCreateInfo.addressModeU = desc._samplerAddressMode;
+	samplerCreateInfo.addressModeV = desc._samplerAddressMode;
+	samplerCreateInfo.addressModeW = desc._samplerAddressMode;
+	samplerCreateInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
+	samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
+	samplerCreateInfo.maxAnisotropy = 8.f;
+	samplerCreateInfo.anisotropyEnable = vk::False;
 
-            CreateBuffer(renderer->_device, renderer->_physicalDevice, imageSize, vk::BufferUsageFlagBits::eTransferSrc,
-                         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                         stagingBuffer, stagingBufferMemory);
+	sampler._resource = device.createSampler(samplerCreateInfo, nullptr);
+	return sampler;
+}
 
-            void *data;
-            vkMapMemory(renderer->_device, stagingBufferMemory, 0, imageSize, 0, &data);
-            memcpy(data, imgData, static_cast<size_t>(imageSize));
-            vkUnmapMemory(renderer->_device, stagingBufferMemory);
-            stbi_image_free(imgData);
+static vk::ImageAspectFlags GetAspectMask(vk::Format format)
+{
+	return format == vk::Format::eD32Sfloat ? vk::ImageAspectFlagBits::eDepth : vk::ImageAspectFlagBits::eColor;
+}
 
-            // allocate memory inside device (gpu) to upload the texture, bind it to the image memory handle
-            // (watch Tu Wien lecture for more info. TLDR; Vulkan can allocate the memory anywhere inside the hw optimally,
-            // and the image memory handle is whats used to access it)
-            CreateImage(renderer->_physicalDevice, renderer->_device, width, height, vk::Format::eR8G8B8A8Srgb,
-                        vk::ImageTiling::eOptimal,
-                        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-                        vk::MemoryPropertyFlagBits::eDeviceLocal, m_texImage, m_texImageMemory);
+static vk::ImageView CreateImageView(vk::Device device, vk::Image image, vk::Format format, u32 baseMip, u32 mipCount)
+{
+	vk::ImageViewCreateInfo imageViewCreateInfo;
+	imageViewCreateInfo.image = image;
+	imageViewCreateInfo.viewType = vk::ImageViewType::e2D;
+	imageViewCreateInfo.format = format;
+	imageViewCreateInfo.subresourceRange.aspectMask = GetAspectMask(format);
+	imageViewCreateInfo.subresourceRange.baseMipLevel = baseMip;
+	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+	imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-            /* remember: The actual uploading of texture from storage to VRAM occurs here.
-             * The command buffers do the work related to it. So its important to target
-             * this place when I implement a proper texture streaming
-			*/
-            vk::CommandBuffer tempCmdBuffer = BeginSingleTimeCommands(renderer->_device, renderer->_commandPool);
+	vk::ImageView imageView = device.createImageView(imageViewCreateInfo, nullptr);
 
-            TransitionImage(tempCmdBuffer, m_texImage, {}, vk::ImageLayout::eTransferDstOptimal);
-            CopyBufferToImage(tempCmdBuffer, m_texImage, stagingBuffer, width, height);
-            TransitionImage(tempCmdBuffer, m_texImage, vk::ImageLayout::eTransferDstOptimal,
-                            vk::ImageLayout::eShaderReadOnlyOptimal);
+	return imageView;
+}
 
-            EndSingleTimeCommands(renderer->_device, renderer->_graphicsQueue, renderer->_commandPool, tempCmdBuffer);
+Texture CreateTexture(GfxDevice& gfxDevice, TextureDesc desc)
+{
+	Texture texture;
+	texture._width = desc._width;
+	texture._height = desc._height;
+	texture._mipCount = desc._mipCount;
+	texture._resource = desc._resource;
+	texture._format = desc._format;
+	texture._bFromSwapchain = desc._resource != nullptr;
 
-            vkDestroyBuffer(renderer->_device, stagingBuffer, nullptr);
-            vkFreeMemory(renderer->_device, stagingBufferMemory, nullptr);
+	if (texture._resource == nullptr)
+	{
+		vk::ImageCreateInfo imageCreateInfo;
+		imageCreateInfo.imageType = vk::ImageType::e2D;
+		imageCreateInfo.extent.width = desc._width;
+		imageCreateInfo.extent.height = desc._height;
+		imageCreateInfo.extent.depth = 1;
+		imageCreateInfo.mipLevels = desc._mipCount;
+		imageCreateInfo.arrayLayers = 1;
+		imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+		imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+		imageCreateInfo.usage = desc._usage;
+		imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
+		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 
-            CreateTextureImageView();
-            CreateTextureSampler();
-        }
-    }
-    void Texture::CreateTextureImageView()
-    {
-        m_texImageView = CreateImageView(_renderer->_device, m_texImage, vk::Format::eR8G8B8A8Srgb,
-                                         vk::ImageAspectFlagBits::eColor);
-    }
-    void Texture::CreateTextureSampler()
-    {
-        vk::SamplerCreateInfo samplerInfo{};
-        samplerInfo.magFilter = vk::Filter::eLinear;
-        samplerInfo.minFilter = vk::Filter::eLinear;
+		VmaAllocationCreateInfo vmaAllocationCreateInfo;
+		vmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+		
+		VkImage rawImage;
 
-        vk::PhysicalDeviceProperties2 properties{};
-        properties = _renderer->_physicalDevice.getProperties2();
+		VK_ASSERT(static_cast<vk::Result>(vmaCreateImage(gfxDevice._allocator, (imageCreateInfo), &vmaAllocationCreateInfo,
+		(&rawImage), &texture._allocation, nullptr)));
 
-        samplerInfo.addressModeU = vk::SamplerAddressMode::eMirroredRepeat;
-        samplerInfo.addressModeV = vk::SamplerAddressMode::eMirroredRepeat;
-        samplerInfo.addressModeW = vk::SamplerAddressMode::eMirroredRepeat;
-        samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = properties.properties.limits.maxSamplerAnisotropy;
-        samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = vk::CompareOp::eAlways;
-        samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-        samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.0f;
+		texture._resource = vk::Image(rawImage);
+	}
 
-        try
-        {
-            m_texSampler = _renderer->_device.createSampler(samplerInfo);
-            //printl(Log::LogLevel::Info,"[TEXTURE] Success to create Texture Sampler");
-        }
-        catch (vk::SystemError& err)
-        {
-            printl(Log::LogLevel::Error,"[TEXTURE] Failure to create Texture Sampler: {}", std::string(err.what()));
-            m_texSampler = nullptr;
-        }
-    }
-};
+	texture._sampler = CreateSampler(gfxDevice._device, desc._sampler);
+	texture._imageView = CreateImageView(gfxDevice._device, texture._resource, texture._format, 0, desc._mipCount);
+
+	if (desc._layout != vk::ImageLayout::eUndefined)
+	{
+		ImmediateSubmit(gfxDevice, [&](vk::CommandBuffer commandBuffer)
+			{
+				TextureBarrier(commandBuffer, texture, vk::ImageLayout::eUndefined, desc._layout, vk::AccessFlagBits::eNone, desc._access);
+			});
+	}
+
+	return texture;
+}
+
+static void DestroySampler(const GfxDevice& gfxDevice, Sampler sampler)
+{
+	gfxDevice._device.destroySampler(sampler._resource, nullptr);
+}
+
+void DestroyTexture(GfxDevice& gfxDevice, Texture& texture)
+{
+	gfxDevice._device.destroyImageView(texture._imageView, nullptr);
+	DestroySampler(gfxDevice, texture._sampler);
+
+	if (texture._bFromSwapchain)
+	{
+		vmaDestroyImage(gfxDevice._allocator, texture._resource, texture._allocation);
+	}
+}
+
+void DestroyTextureView(GfxDevice& gfxDevice, Texture& texture)
+{
+	gfxDevice._device.destroyImageView(texture._imageView, nullptr);
+	DestroySampler(gfxDevice, texture._sampler);
+}
+
+void TextureBarrier(vk::CommandBuffer commandBuffer, const Texture& texture, vk::ImageLayout oldLayout,
+                    vk::ImageLayout newLayout, vk::AccessFlags srcAccessMask, vk::AccessFlags dstAccessMask,
+                    vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask)
+{
+	vk::ImageSubresourceRange subresourceRange;
+	subresourceRange.aspectMask = GetAspectMask(texture._format);
+	subresourceRange.baseMipLevel = texture._mipIndex;
+	subresourceRange.levelCount = texture._mipCount;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = 1;
+
+	vk::ImageMemoryBarrier imageMemoryBarrier;
+
+	imageMemoryBarrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+	imageMemoryBarrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+	imageMemoryBarrier.srcAccessMask = srcAccessMask;
+	imageMemoryBarrier.dstAccessMask = dstAccessMask;
+	imageMemoryBarrier.oldLayout = oldLayout;
+	imageMemoryBarrier.newLayout = newLayout;
+	imageMemoryBarrier.image = texture._resource;
+	imageMemoryBarrier.subresourceRange = subresourceRange;
+
+	commandBuffer.pipelineBarrier(srcStageMask, dstStageMask, static_cast<vk::DependencyFlags>(0), 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+}

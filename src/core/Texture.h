@@ -1,31 +1,60 @@
-#ifndef TEXTURE_H
-#define TEXTURE_H
+#pragma once
+#include "GfxDevice.h"
 
-#include <memory>
-#include <vulkan/vulkan.hpp>
-
-namespace CV
+struct Sampler
 {
-    class Renderer;
-}
+	vk::Sampler _resource;
+};
 
-namespace CV
+struct Texture
 {
-    class Texture
-    {
-    public:
-        Texture() = default;
-        void LoadTexture(const std::shared_ptr<Renderer>& renderer, const char *filename);
-        void CreateTextureImageView();
-        void CreateTextureSampler();
+	u32 _width = 0;
+	u32 _height = 0;
+	u32 _mipCount = 1;
+	u32 _mipIndex = 0;
+	vk::Format _format = vk::Format::eUndefined;
+	Sampler _sampler{};
+	vk::ImageView _imageView = nullptr;
+	vk::Image _resource = nullptr;
+	VmaAllocation _allocation = nullptr;
+	bool _bFromSwapchain = false;
+};
 
-    public:
-        vk::Image m_texImage = VK_NULL_HANDLE;
-        vk::DeviceMemory m_texImageMemory = VK_NULL_HANDLE;
-        vk::ImageView m_texImageView = VK_NULL_HANDLE;
-        vk::Sampler m_texSampler = VK_NULL_HANDLE;
-        std::shared_ptr<Renderer> _renderer;
-    };
-}
+struct SamplerDesc
+{
+	vk::Filter _filterMode = vk::Filter::eLinear;
+	vk::SamplerReductionMode _reductionMode = vk::SamplerReductionMode::eWeightedAverage;
+	vk::SamplerAddressMode _samplerAddressMode = vk::SamplerAddressMode::eMirroredRepeat;
+	vk::SamplerMipmapMode _samplerMipmapMode = vk::SamplerMipmapMode::eNearest;
+};
 
-#endif
+struct TextureViewDesc
+{
+	u32 _mipIndex{ 0 };
+	u32 _mipCount{ 1 };
+	SamplerDesc sampler;
+};
+
+struct TextureDesc
+{
+	u32 _width = 0;												
+	u32 _height = 0;											
+	u32 _mipCount = 1;											
+	vk::Format _format = vk::Format::eUndefined;				
+	vk::ImageUsageFlags _usage = vk::ImageUsageFlags(0);		
+	vk::ImageLayout _layout = vk::ImageLayout::eUndefined;		// Layout for the copy op (with immediate submit)
+	vk::AccessFlags _access = vk::AccessFlags(0);				// Access flag for texture image copy op (with immediate submit)
+	SamplerDesc _sampler;
+	vk::Image _resource = nullptr;								// [Optional] Usually used for swapchain images
+};
+
+Texture CreateTexture(GfxDevice& gfxDevice, TextureDesc desc);
+void DestroyTexture(GfxDevice& gfxDevice, Texture& texture);
+
+Texture CreateTextureView(GfxDevice& gfxDevice, TextureViewDesc desc);
+void DestroyTextureView(GfxDevice& gfxDevice, Texture& texture);
+
+void TextureBarrier(vk::CommandBuffer commandBuffer, const Texture& texture, vk::ImageLayout oldLayout,
+                    vk::ImageLayout newLayout, vk::AccessFlags srcAccessMask, vk::AccessFlags dstAccessMask,
+                    vk::PipelineStageFlags srcStageMask = vk::PipelineStageFlagBits::eAllCommands,
+                    vk::PipelineStageFlags dstStageMask = vk::PipelineStageFlagBits::eAllCommands);

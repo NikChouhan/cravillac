@@ -5,7 +5,7 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 inline u32 MAX_TEXTURES = 256;
-#define EXTREME 0
+#define EXTREME 1
 
 // meshInfo shading pipeline
 #define MESH_SHADING 0
@@ -38,5 +38,24 @@ constexpr size_t ArraySize(T(&)[N]) { return N; }
 			abort();                                                                                        \
         }                                                                                                   \
     } while (0)
+
+
+// assert for ResultValue types
+// this is not needed at all because VulkanHpp has exceptions enabled
+// although yes, this assert was only half implemented before I got to know about
+// it. Kept for knowledge reasons idk.
+#define VK_ASSERT_RV(call)                                                                                     \
+    do                                                                                                      \
+    {                                                                                                       \
+        auto result = call;                                                                           \
+        if (result.result != vk::Result::eSuccess)                                                                 \
+        {                                                                                                   \
+            fprintf(stderr, "Vulkan error %d at %s:%d\n", static_cast<int>(result), __FILE__, __LINE__);    \
+			abort();                                                                                        \
+        }                                                                                                   \
+    } while (0)
+
+// function pointer thingy
+#define LAMBDA(...) std::function<void(__VA_ARGS__)> const&
 
 #endif // COMMON_H
