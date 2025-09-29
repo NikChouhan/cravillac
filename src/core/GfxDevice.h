@@ -1,7 +1,6 @@
 #pragma once
 
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan_handles.hpp>
+#include <vk_mem_alloc.hpp>
 #include "common.h"
 
 struct SwapChainSupportDetails
@@ -25,7 +24,7 @@ struct GfxDevice
     vk::PhysicalDevice _physicalDevice;
     vk::Device _device;
     Queue _graphicsQueue;
-    VmaAllocator _allocator;
+    vma::Allocator _allocator;
     vk::CommandPool _commandPool;
 };
 

@@ -1,6 +1,7 @@
 #include "Buffer.h"
 
-#include <vk_mem_alloc.h>
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.hpp>
 
 Buffer CreateBuffer(GfxDevice& gfxDevice, BufferDesc desc)
 {
@@ -16,18 +17,19 @@ Buffer CreateBuffer(GfxDevice& gfxDevice, BufferDesc desc)
 	bufferCreateInfo.usage = desc._usage;
 	bufferCreateInfo.sharingMode = vk::SharingMode::eExclusive;
 
-	VmaAllocationCreateInfo allocationCreateInfo;
-	allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	vma::AllocationCreateInfo allocationCreateInfo;
+	allocationCreateInfo.usage = vma::MemoryUsage::eAuto;
 
-	allocationCreateInfo.flags = desc._access == MemoryAccess::HOST
-		                             ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-		                             : 0;
+	if (desc._access == MemoryAccess::HOST)
+	{
+		allocationCreateInfo.flags = vma::AllocationCreateFlagBits::eHostAccessSequentialWrite;
+	}
 
 	Buffer buffer = { ._byteSize = desc._byteSize };
 
-	vmaCreateBuffer(gfxDevice._allocator, reinterpret_cast<VkBufferCreateInfo*>(&bufferCreateInfo),
-	                &allocationCreateInfo, reinterpret_cast<VkBuffer*>(&buffer._resource), &buffer._allocation,
-	                nullptr);
+
+	VK_ASSERT(gfxDevice._allocator.createBuffer(&bufferCreateInfo, 
+		&allocationCreateInfo, &buffer._resource, &buffer._allocation, nullptr));
 
 	if (desc._access == MemoryAccess::HOST)
 	{
@@ -47,9 +49,7 @@ Buffer CreateBuffer(GfxDevice& gfxDevice, BufferDesc desc)
 				._byteSize = desc._byteSize,
 				._access = MemoryAccess::HOST,
 				._usage = vk::BufferUsageFlagBits::eTransferSrc,
-				._pContents = nullptr });
-
-			memcpy(buffer._pMappedData, stagingBuffer._pMappedData, buffer._byteSize);
+				._pContents = desc._pContents });
 
 			ImmediateSubmit(gfxDevice, [&](const vk::CommandBuffer commandBuffer)
 				{

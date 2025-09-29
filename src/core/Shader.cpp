@@ -1,9 +1,11 @@
+#include "Shader.h"
+
 #include <fstream>
 #include  <vector>
-#include "Shader.h"
 #include <spirv_reflect.h>
 
-using namespace CV;
+#include "Log.h"
+
 #define SPV_ASSERT(call)	\
 	do { \
 		SpvReflectResult result = call;\

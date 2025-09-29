@@ -69,28 +69,37 @@ Texture CreateTexture(GfxDevice& gfxDevice, TextureDesc desc)
 		imageCreateInfo.usage = desc._usage;
 		imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
+		imageCreateInfo.format = texture._format;
 
-		VmaAllocationCreateInfo vmaAllocationCreateInfo;
-		vmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-		
-		VkImage rawImage;
+		vma::AllocationCreateInfo vmaAllocationCreateInfo;
+		vmaAllocationCreateInfo.usage = vma::MemoryUsage::eGpuOnly;
+		vmaAllocationCreateInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
 
-		VK_ASSERT(static_cast<vk::Result>(vmaCreateImage(gfxDevice._allocator, (imageCreateInfo), &vmaAllocationCreateInfo,
-		(&rawImage), &texture._allocation, nullptr)));
-
-		texture._resource = vk::Image(rawImage);
+		VK_ASSERT(gfxDevice._allocator.createImage(&imageCreateInfo, 
+			&vmaAllocationCreateInfo, &texture._resource, &texture._allocation, nullptr));
 	}
 
 	texture._sampler = CreateSampler(gfxDevice._device, desc._sampler);
 	texture._imageView = CreateImageView(gfxDevice._device, texture._resource, texture._format, 0, desc._mipCount);
 
-	if (desc._layout != vk::ImageLayout::eUndefined)
+	if (desc._layout != vk::ImageLayout::eUndefined && desc._copyBuffer)
 	{
 		ImmediateSubmit(gfxDevice, [&](vk::CommandBuffer commandBuffer)
 			{
-				TextureBarrier(commandBuffer, texture, vk::ImageLayout::eUndefined, desc._layout, vk::AccessFlagBits::eNone, desc._access);
+				TextureBarrier(commandBuffer, texture, vk::ImageLayout::eUndefined,
+					vk::ImageLayout::eTransferDstOptimal, vk::AccessFlagBits::eNone, desc._access);
+			});
+		ImmediateSubmit(gfxDevice, [&](vk::CommandBuffer commandBuffer)
+			{
+				CopyBufferToImage(commandBuffer, texture._resource, desc._copyBuffer, desc._width, desc._height);
+			});
+		ImmediateSubmit(gfxDevice, [&](vk::CommandBuffer commandBuffer)
+			{
+				TextureBarrier(commandBuffer, texture, vk::ImageLayout::eTransferDstOptimal,
+					desc._layout, vk::AccessFlagBits::eNone, desc._access);
 			});
 	}
+
 
 	return texture;
 }
@@ -117,7 +126,8 @@ void DestroyTextureView(GfxDevice& gfxDevice, Texture& texture)
 	DestroySampler(gfxDevice, texture._sampler);
 }
 
-void TextureBarrier(vk::CommandBuffer commandBuffer, const Texture& texture, vk::ImageLayout oldLayout,
+// used for transition of images mostly
+void TextureBarrier(vk::CommandBuffer& commandBuffer, const Texture& texture, vk::ImageLayout oldLayout,
                     vk::ImageLayout newLayout, vk::AccessFlags srcAccessMask, vk::AccessFlags dstAccessMask,
                     vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask)
 {
@@ -140,4 +150,30 @@ void TextureBarrier(vk::CommandBuffer commandBuffer, const Texture& texture, vk:
 	imageMemoryBarrier.subresourceRange = subresourceRange;
 
 	commandBuffer.pipelineBarrier(srcStageMask, dstStageMask, static_cast<vk::DependencyFlags>(0), 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+}
+
+void CopyBufferToImage(vk::CommandBuffer& commandBuffer, vk::Image& texImage, vk::Buffer& buffer, u32 width, u32 height)
+{
+
+	vk::BufferImageCopy2 region{};
+	region.sType = vk::StructureType::eBufferImageCopy2;
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+	region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+	region.imageOffset = vk::Offset3D{ 0, 0, 0 };
+	region.imageExtent = vk::Extent3D{ width, height, 1 };
+
+	vk::CopyBufferToImageInfo2 bufferCI{};
+	bufferCI.sType = vk::StructureType::eCopyBufferToImageInfo2;
+	bufferCI.srcBuffer = buffer;
+	bufferCI.regionCount = 1;
+	bufferCI.pRegions = &region;
+	bufferCI.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
+	bufferCI.dstImage = texImage;
+
+	commandBuffer.copyBufferToImage2(&bufferCI);
 }

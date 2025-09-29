@@ -1,11 +1,17 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_enums.hpp>
+
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
+
 #include "StandardTypes.h"
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 inline u32 MAX_TEXTURES = 256;
-#define EXTREME 1
+#define EXTREME 0
 
 // meshInfo shading pipeline
 #define MESH_SHADING 0

@@ -1,6 +1,6 @@
 #pragma once
 #include "GfxDevice.h"
-
+#include "Buffer.h"
 struct Sampler
 {
 	vk::Sampler _resource;
@@ -16,7 +16,7 @@ struct Texture
 	Sampler _sampler{};
 	vk::ImageView _imageView = nullptr;
 	vk::Image _resource = nullptr;
-	VmaAllocation _allocation = nullptr;
+	vma::Allocation _allocation = nullptr;
 	bool _bFromSwapchain = false;
 };
 
@@ -46,6 +46,7 @@ struct TextureDesc
 	vk::AccessFlags _access = vk::AccessFlags(0);				// Access flag for texture image copy op (with immediate submit)
 	SamplerDesc _sampler;
 	vk::Image _resource = nullptr;								// [Optional] Usually used for swapchain images
+	vk::Buffer _copyBuffer = nullptr;							// [Optional] For copying vkBuffer (with texture data) to the Texture
 };
 
 Texture CreateTexture(GfxDevice& gfxDevice, TextureDesc desc);
@@ -54,7 +55,10 @@ void DestroyTexture(GfxDevice& gfxDevice, Texture& texture);
 Texture CreateTextureView(GfxDevice& gfxDevice, TextureViewDesc desc);
 void DestroyTextureView(GfxDevice& gfxDevice, Texture& texture);
 
-void TextureBarrier(vk::CommandBuffer commandBuffer, const Texture& texture, vk::ImageLayout oldLayout,
+void TextureBarrier(vk::CommandBuffer& commandBuffer, const Texture& texture, vk::ImageLayout oldLayout,
                     vk::ImageLayout newLayout, vk::AccessFlags srcAccessMask, vk::AccessFlags dstAccessMask,
                     vk::PipelineStageFlags srcStageMask = vk::PipelineStageFlagBits::eAllCommands,
                     vk::PipelineStageFlags dstStageMask = vk::PipelineStageFlagBits::eAllCommands);
+
+void CopyBufferToImage(vk::CommandBuffer& commandBuffer, vk::Image& texImage,
+	vk::Buffer& buffer, u32 width, u32 height);

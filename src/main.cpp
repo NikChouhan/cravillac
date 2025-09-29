@@ -3,15 +3,13 @@
 
 #include "common.h"
 #include "Camera.h"
+#include "FrameSyncState.h"
 #include "GfxDevice.h"
-#include "ImguiRenderer.h"
 #include "Model.h"
 #include "Vertex.h"
 
 namespace
 {
-	using Log = CV::Log;
-	using Model = CV::Model;
 	constexpr uint32_t WIDTH = 1920;
 	constexpr uint32_t HEIGHT = 1080;
 
@@ -61,8 +59,7 @@ int main()
 
 	GfxDevice gfxDevice = CreateDevice(_window,
 		{ ._bEnableValidationLayers = true });
-
-
+	FrameSync frameSync = CreateFrameSync(gfxDevice, {._isTrue = true});
 
 	glfwSetCursorPosCallback(_window, [](auto* window, double x, double y) {
 		int width, height;
@@ -105,12 +102,10 @@ int main()
 		}
 		});
 	// set resources
-	//Model mod1;
-	//mod1.LoadModel(renderer,"../../../../assets/models/suzanne/Suzanne.gltf");
-	//mod1.LoadModel(renderer,"../../../../assets/models/flighthelmet/FlightHelmet.gltf");
-	//mod1.LoadModel(gfxDevice, "../../../../assets/models/sponza2/sponza2.gltf");
-	//mod1.LoadModel(renderer, "../../../../assets/models/bistro2/bistro2.gltf");
-	//mod1.LoadModel(renderer,"../../../../assets/models/Cube/cube.gltf");
+	const std::string modelPath = "../../../../assets/models/bistro2/bistro2.gltf";
+	Model mod1 = LoadModel(gfxDevice, frameSync,
+		{
+		._path = modelPath});
 
 //#if MESH_SHADING
 //	// bda + pvp for meshlet buffer address
@@ -129,7 +124,7 @@ int main()
 	{
 		mat4 viewMatrix = positioner.getViewMatrix();
 		mat4 projectionMatrix = camera.getProjMatrix();
-		mat4 worldMatrix = meshInfo.transform.Matrix;
+		mat4 worldMatrix = meshInfo._transform.Matrix;
 		mat4 modelView = viewMatrix * worldMatrix;
 		//mat4 worldViewProjMatrix = worldMatrix * viewMatrix * projectionMatrix;
 		mat4 worldViewProjMatrix = projectionMatrix * viewMatrix * worldMatrix;

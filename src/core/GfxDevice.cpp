@@ -7,7 +7,6 @@
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
-using Log = CV::Log;
 static HANDLE hConsole = GetStdHandle(STD_ERROR_HANDLE);
 
 struct QueueFamilyIndices
@@ -196,10 +195,10 @@ static vk::Instance CreateInstance(bool enableValidationLayers)
 
     if (enableValidationLayers && !CheckValidationLayerSupport(validationLayers))
     {
-        printl(CV::Log::LogLevel::Error, "[VULKAN] Validation layers requested but not available");
+        printl(Log::LogLevel::Error, "[VULKAN] Validation layers requested but not available");
     }
     else
-	    printl(CV::Log::LogLevel::Info, "[VULKAN] Validation layers requested available");
+	    printl(Log::LogLevel::Info, "[VULKAN] Validation layers requested available");
 
     auto appInfo = vk::ApplicationInfo{};
     appInfo.pApplicationName = "Vulkan Test";
@@ -401,7 +400,7 @@ static VmaAllocator CreateAllocator(vk::Instance instance, vk::PhysicalDevice ph
 {
     const auto& d = VULKAN_HPP_DEFAULT_DISPATCHER;
 
-    VmaVulkanFunctions vulkanFunctions{};
+    vma::VulkanFunctions vulkanFunctions{};
     vulkanFunctions.vkGetInstanceProcAddr = d.vkGetInstanceProcAddr;
     vulkanFunctions.vkGetDeviceProcAddr = d.vkGetDeviceProcAddr;
     vulkanFunctions.vkGetPhysicalDeviceProperties = d.vkGetPhysicalDeviceProperties;
@@ -430,15 +429,16 @@ static VmaAllocator CreateAllocator(vk::Instance instance, vk::PhysicalDevice ph
     vulkanFunctions.vkGetDeviceImageMemoryRequirements = d.vkGetDeviceImageMemoryRequirements;
 
 
-    VmaAllocatorCreateInfo allocatorCreateInfo{};
+    vma::AllocatorCreateInfo allocatorCreateInfo{};
+    allocatorCreateInfo.flags = vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
     allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
     allocatorCreateInfo.instance = instance;
     allocatorCreateInfo.physicalDevice = physicalDevice;
     allocatorCreateInfo.device = device;
     allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
-    VmaAllocator allocator;
-    VK_ASSERT((static_cast<vk::Result>(vmaCreateAllocator(&allocatorCreateInfo, &allocator))));
+    vma::Allocator allocator;
+    VK_ASSERT(createAllocator(&allocatorCreateInfo, &allocator));
 
     return allocator;
 }
@@ -488,7 +488,7 @@ void DestroyDevice(GfxDevice& gfxDevice)
     gfxDevice = {};
 }
 
-std::vector<vk::CommandBuffer> CreateCommandBuffer(const GfxDevice& gfxDevice, const u32 count)
+static std::vector<vk::CommandBuffer> CreateCommandBuffer(const GfxDevice& gfxDevice, const u32 count)
 {
     vk::CommandBufferAllocateInfo commandBufferAllocateInfo;
     commandBufferAllocateInfo.commandPool = gfxDevice._commandPool;
@@ -509,6 +509,7 @@ void ImmediateSubmit(const GfxDevice& gfxDevice, std::function<void(vk::CommandB
 
     vk::CommandBufferBeginInfo beginInfo;
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    VK_ASSERT(commandBuffer.begin(&beginInfo));
     callback(commandBuffer);
 
     commandBuffer.end();

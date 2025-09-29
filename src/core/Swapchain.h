@@ -22,4 +22,4 @@ struct SwapchainDesc
 Swapchain CreateSwapchain(GfxDevice& gfxDevice, GLFWwindow* window, SwapchainDesc& desc);
 void DestroySwapchain(GfxDevice& gfxDevice, Swapchain& swapchain);
 void SubmitAndPresent(GfxDevice& gfxDevice, vk::CommandBuffer& commandBuffer, Swapchain& swapchain, u32 index,
-                      FrameSyncState& frameSyncState);
+                      FrameSync& frameSyncState);

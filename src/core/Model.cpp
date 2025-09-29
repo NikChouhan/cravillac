@@ -5,189 +5,168 @@
 #include "Model.h"
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm\gtx\euler_angles.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <includes/stb_image.h>
+
+#define CGLTF_IMPLEMENTATION
+#include <cgltf.h>
 
 #include "Buffer.h"
 #include "Log.h"
 #include "Vertex.h"
 
-CV::Model::Model()
+static u32 LoadMaterialTexture(GfxDevice& gfxDevice, FrameSync& frameSync, Model& model,
+    Material& mat, const cgltf_texture_view* textureView, const TextureType type)
 {
-}
-CV::Model::~Model()
-{
-}
-
-void CV::Model::LoadModel(GfxDevice& gfxDevice, const std::string& path)
-{
-    this->_gfxDevice = gfxDevice;
-    cgltf_options options = {};
-    cgltf_data *data = nullptr;
-    cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
-
-    if (result != cgltf_result_success)
-        printl(Log::LogLevel::Error,"[CGLTF] Failed to parse gltf file");
-    else
-        printl(Log::LogLevel::Info,"[CGLTF] Successfully parsed gltf file");
-
-    result = cgltf_load_buffers(&options, data, path.c_str());
-
-    if (result != cgltf_result_success)
+    if (textureView && textureView->texture && textureView->texture->image)
     {
-        cgltf_free(data);
-        printl(Log::LogLevel::Error,"[CGLTF] Failed to load buffers");
+        cgltf_image* image = textureView->texture->image;
+        std::string path = model._dirPath + "/" + std::string(image->uri);
+
+        int width, height, channels;
+        //stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
+        unsigned char* imgData = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+        vk::DeviceSize size = width * height * 4;
+
+        Buffer imgBuffer = CreateBuffer(gfxDevice,
+            {
+            ._byteSize = size,
+            ._access = MemoryAccess::HOST,
+            ._usage = vk::BufferUsageFlagBits::eTransferSrc,
+            ._pContents = imgData });
+
+        Texture tex = CreateTexture(gfxDevice,
+            {
+            ._width = u32(width),
+            ._height = u32(height),
+            ._mipCount = 1,
+            ._format = vk::Format::eR8G8B8A8Srgb,
+            ._usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+            ._layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+            ._access = vk::AccessFlagBits::eShaderRead,
+            ._copyBuffer = imgBuffer._resource
+            });
+        // Push the texture and return its new index
+        model._modelTextures.push_back(tex);
+        u32 newIndex = model._modelTextures.size() - 1;
+
+        // Assign the view to the material, but return the index for storage
+        if (type == TextureType::ALBEDO) mat._albedoView = tex._imageView;
+        if (type == TextureType::NORMAL) mat._normalView = tex._imageView;
+        if (type == TextureType::METALLIC_ROUGHNESS) mat._metallicRoughnessView = tex._imageView;
+        if (type == TextureType::EMISSIVE) mat._emissiveView = tex._imageView;
+
+        return newIndex;
+
+        // case TextureType::AO:
+        //     mat.AOView = tex.m_texImageView;
+        //     mat.HasAO = true;
+        //     mat.AOPath = path;
+        //     modelTextures.push_back(tex);
+
     }
-    else
-    {
-        printl(Log::LogLevel::Info,"[CGLTF] Successfully loaded buffers");
-    }
-
-    cgltf_scene *scene = data->scene;
-
-    if (!scene)
-    {
-        printl(Log::LogLevel::Error,"[CGLTF] No scene found in gltf file");
-    }
-    else
-    {
-        printl(Log::LogLevel::Info,"[CGLTF] Scene found in gltf file");
-        _dirPath = path.substr(0, path.find_last_of("/"));
-
-        for (size_t i = 0; i < (scene->nodes_count); i++)
-        {
-            Transformation transform;
-            ProcessNode(scene->nodes[i], data, _vertices, _indices, transform);
-        }
-        // no of nodes
-        printl(Log::LogLevel::InfoDebug,"[CGLTF] No of nodes in the scene: {} ", scene->nodes_count);
-
-        SetBuffers();
-
-        printl(Log::LogLevel::Info,"[CGLTF] Successfully loaded gltf file");
-    }
-
-    ValidateResources();
-
-    cgltf_free(data);
+    // Handle missing texture or image
+    printl(Log::LogLevel::Warn, "[Texture] Texture or image not found for material : {}", std::to_string(static_cast<int>(type)));
+    return -1;
 }
 
-//glm::mat4 CV::Model::ComputeNormalMatrix(const glm::mat4 worldMatrix)
-//{
-//    glm::mat4 normalMatrix = ;
-//    return normalMatrix;
-//}
-
-void CV::Model::ProcessNode(cgltf_node *node, const cgltf_data *data, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
+static void OptimiseMesh(Model& model, MeshInfo& meshInfo, Mesh& mesh)
 {
-    Transformation localTransform = parentTransform;
-    glm::mat4 translationMatrix(1.0f);
-    glm::mat4 rotationMatrix(1.0f);
-    glm::mat4 scaleMatrix(1.0f);
+    size_t indexCount = meshInfo._indexCount;
+    size_t vertexCount = meshInfo._vertexCount;
 
-    if (node->has_translation) {
-        glm::vec3 translation = glm::vec3(node->translation[0], node->translation[1], node->translation[2]);
-        localTransform.Position = translation;
-        translationMatrix = glm::translate(glm::mat4(1.0f), translation);
-    }
-    if (node->has_rotation) {
-        // TODO: transform quaternion
-        rotationMatrix = glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
-    }
-    if (node->has_scale) {
-        glm::vec3 scale = glm::vec3(node->scale[0], node->scale[1], node->scale[2]);
-        localTransform.Scale = scale;
-        scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
-    }
+    std::vector<unsigned int> remap(indexCount);
+    size_t optVertexCount = meshopt_generateVertexRemap(remap.data(), mesh._indices.data(), indexCount, mesh._vertices.data(), vertexCount, sizeof(Vertex));
 
-    if (node->has_matrix) {
-        localTransform.Matrix *= glm::make_mat4(node->matrix);
-    }
-    else {
-        localTransform.Matrix *= translationMatrix * rotationMatrix * scaleMatrix;
-    }
+    std::vector<u32> optIndices;
+    std::vector<Vertex> optVertices;
+    optIndices.resize(indexCount);
+    optVertices.resize(optVertexCount);
 
-    //if (node->camera)
-    //{
-    //    const cgltf_camera_perspective& perspective = node->camera->data.perspective;
+    // Optimisation 1 - Remove duplicate vertices
+    meshopt_remapIndexBuffer(optIndices.data(), mesh._indices.data(), indexCount, remap.data());
+    meshopt_remapVertexBuffer(optVertices.data(), mesh._vertices.data(), vertexCount, sizeof(Vertex), remap.data());
 
-    //    float yfov = static_cast<float>(perspective.yfov);
-    //    float aspectRatio = static_cast<float>(perspective.aspect_ratio);
-    //    float znear = static_cast<float>(perspective.znear);
-    //    float zfar = (perspective.has_zfar) ? static_cast<float>(perspective.zfar) : FLT_MAX;
+    // Optimisation 2 - improve the locality of the vertices
+    meshopt_optimizeVertexCache(optIndices.data(), optIndices.data(), indexCount, optVertexCount);
 
-    //    camera->InitAsPerspective(yfov, _renderer->m_width, _renderer->m_width/aspectRatio, znear, zfar);    
-    //}
+    // Optimization 3 - reduce pixel overdraw
+    meshopt_optimizeOverdraw(optIndices.data(), optIndices.data(), indexCount, &(optVertices[0]._position.x), optVertexCount, sizeof(Vertex), static_cast<float>(1.05));
 
-    //localTransform.Matrix = scaleMatrix * rotationMatrix * translationMatrix;
-    //Log::InfoDebug("[CGLTF] parentTransform Matrix: {}", localTransform.Matrix);
+    // Optimization 4 - optimize access to the vertex buffer
+    meshopt_optimizeVertexFetch(optVertices.data(), optIndices.data(), indexCount, optVertices.data(), optVertexCount, sizeof(Vertex));
 
-    // Process meshInfo if exists
-    if (node->mesh)
-    {
-        for (size_t i = 0; i < (node->mesh->primitives_count); i++)
-        {
-            //Log::InfoDebug("[CGLTF] parentTransform Matrix: {}", localTransform.Matrix);
-            /*Log::InfoDebug("[CGLTF] parentTransform Position: {}", localTransform.Position);
-            Log::InfoDebug("[CGLTF] parentTransform Rotation: {}", localTransform.Rotation);
-            Log::InfoDebug("[CGLTF] parentTransform Scale: {}", localTransform.Scale);*/
+    // Optimization 5 - create simplified version of the model
+    float threshold = 0.5f;
+    size_t targetIndexCount = (size_t)(threshold * indexCount);
+    float targetError = 0.3f;
 
-            ProcessMesh(&node->mesh->primitives[i], vertices, indices, localTransform);   // remember that the indices and the vertices passed here are _indices and _vertices refs
-        }
-    }
+    std::vector<u32> simplifiedIndices(optIndices.size());
+    size_t optIndexCount = meshopt_simplify(simplifiedIndices.data(), optIndices.data(), indexCount,
+        &(optVertices[0]._position.x), optVertexCount, sizeof(Vertex), targetIndexCount,
+        targetError);
+    simplifiedIndices.resize(optIndexCount);
 
-    // Recursively process child nodes
-    for (size_t i = 0; i < node->children_count; i++)
-    {
-        ProcessNode(node->children[i], data, vertices, indices, localTransform);
-    }
+    model._indices.insert(model._indices.end(), simplifiedIndices.begin(), simplifiedIndices.end());
+    model._vertices.insert(model._vertices.end(), optVertices.begin(), optVertices.end());
+
+    meshInfo._indexCount = optIndexCount;
+    meshInfo._vertexCount = optVertexCount;
+
+    mesh._vertices = optVertices;
+    mesh._indices = optIndices;
+    mesh._vertexCount = static_cast<u32>(optVertexCount);
+    mesh._indexCount = static_cast<u32>(optIndexCount);
 }
 
-void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &vertices, std::vector<u32> &indices, Transformation& parentTransform)
+
+static void ProcessPrimitive(GfxDevice& gfxDevice, FrameSync& frameSync,
+                             cgltf_primitive* primitive, Model& model, Transformation& parentTransform)
 {
-    u32 vertexOffset = static_cast<u32>(vertices.size());
-    u32 indexOffset = static_cast<u32>(indices.size());
+    u32 vertexOffset = static_cast<u32>(model._vertices.size());
+    u32 indexOffset = static_cast<u32>(model._indices.size());
 
     std::vector<Vertex> tempVertices;
     std::vector<u32> tempIndices;
 
     if (primitive->type != cgltf_primitive_type_triangles)
     {
-        printl(Log::LogLevel::Warn,"[CGLTF] Primitive type is not triangles");
+        printl(Log::LogLevel::Warn, "[CGLTF] Primitive type is not triangles");
         return;
     }
 
     if (primitive->indices == nullptr)
     {
-        printl(Log::LogLevel::Error,"[CGLTF] Primitive has no indices");
+        printl(Log::LogLevel::Error, "[CGLTF] Primitive has no indices");
         return;
     }
 
     if (primitive->material == nullptr)
     {
-        printl(Log::LogLevel::Error,"[CGLTF] Primitive has no material");
+        printl(Log::LogLevel::Error, "[CGLTF] Primitive has no material");
         return;
     }
 
     MeshInfo meshInfo;
 
-    meshInfo.transform = parentTransform;
+    meshInfo._transform = parentTransform;
     //meshInfo.normalMatrix = ComputeNormalMatrix(parentTransform.Matrix);
 
     // Get attributes
-    cgltf_attribute *pos_attribute = nullptr;
-    cgltf_attribute *tex_attribute = nullptr;
-    cgltf_attribute *norm_attribute = nullptr;
-    cgltf_attribute *tang_attribute = nullptr;
+    cgltf_attribute* pos_attribute = nullptr;
+    cgltf_attribute* tex_attribute = nullptr;
+    cgltf_attribute* norm_attribute = nullptr;
+    cgltf_attribute* tang_attribute = nullptr;
 
     for (int i = 0; i < primitive->attributes_count; i++)
     {
         if (strcmp(primitive->attributes[i].name, "POSITION") == 0)
         {
             pos_attribute = &primitive->attributes[i];
-        }   
+        }
         if (strcmp(primitive->attributes[i].name, "TEXCOORD_0") == 0)
         {
             tex_attribute = &primitive->attributes[i];
@@ -204,7 +183,7 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
 
     if (!pos_attribute || !tex_attribute || !norm_attribute)
     {
-        printl(Log::LogLevel::Warn,"[CGLTF] Missing attributes in primitive");
+        printl(Log::LogLevel::Warn, "[CGLTF] Missing attributes in primitive");
         return;
     }
 
@@ -218,19 +197,19 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
         Vertex vertex = {};
 
         // Read original vertex data
-        if (cgltf_accessor_read_float(pos_attribute->data, i, &vertex.pos.x, 3) == 0)
+        if (cgltf_accessor_read_float(pos_attribute->data, i, &vertex._position.x, 3) == 0)
         {
-            printl(Log::LogLevel::Warn,"[CGLTF] Unable to read Position attributes!");
+            printl(Log::LogLevel::Warn, "[CGLTF] Unable to read Position attributes!");
         }
-        if (cgltf_accessor_read_float(tex_attribute->data, i, &vertex.texCoord.x, 2) == 0)
+        if (cgltf_accessor_read_float(tex_attribute->data, i, &vertex._texCoord.x, 2) == 0)
         {
-            printl(Log::LogLevel::Warn,"[CGLTF] Unable to read Texture attributes!");
+            printl(Log::LogLevel::Warn, "[CGLTF] Unable to read Texture attributes!");
         }
-        if (cgltf_accessor_read_float(norm_attribute->data, i, &vertex.normal.x, 3) == 0)
+        if (cgltf_accessor_read_float(norm_attribute->data, i, &vertex._normal.x, 3) == 0)
         {
-            printl(Log::LogLevel::Warn,"[CGLTF] Unable to read Normal attributes!");
+            printl(Log::LogLevel::Warn, "[CGLTF] Unable to read Normal attributes!");
         }
-        if (cgltf_accessor_read_float(tang_attribute->data, i, &vertex.tangent.x, 4) == 0)
+        if (cgltf_accessor_read_float(tang_attribute->data, i, &vertex._tangent.x, 4) == 0)
         {
             printl(Log::LogLevel::Warn, "[CGLTF] Unable to read Tangent attributes!");
         }
@@ -247,9 +226,9 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
     // material
     // remember this is pointing towards the material pointer.
     // In gltf as long as the material remains the same, the pointer is the same even for diff primitives
-    cgltf_material *material = primitive->material; 
+    cgltf_material* material = primitive->material;
 
-    if (!materialLookup.contains(material)) // if the hash table doesn't have the material hash
+    if (!model._materialLookup.contains(material)) // if the hash table doesn't have the material hash
     {
         Material mat = {};
 
@@ -306,173 +285,223 @@ void CV::Model::ProcessMesh(cgltf_primitive *primitive, std::vector<Vertex> &ver
             std::string imageName = view->texture->image->uri;
             u32 textureIndex = -1;
 
-            if (!loadedTextures.contains(imageName)) // If texture file is new
+            if (!model._loadedTextures.contains(imageName)) // If texture file is new
             {
-                textureIndex = LoadMaterialTexture(mat, view, type);
+                textureIndex = LoadMaterialTexture(gfxDevice, frameSync, model, mat, view, type);
 
                 // Cache the index for this image file
-                loadedTextures.insert(imageName);
-                textureIndexLookup[imageName] = textureIndex;
+                model._loadedTextures.insert(imageName);
+                model._textureIndexLookup[imageName] = textureIndex;
                 printl(Log::LogLevel::Info, "[Texture] Loaded texture {} with index {}", imageName, textureIndex);
             }
             else
             {
-                textureIndex = textureIndexLookup[imageName];
+                textureIndex = model._textureIndexLookup[imageName];
                 printl(Log::LogLevel::Warn, "[Texture] Reusing texture {} with index {}", imageName, textureIndex);
-                Texture& existingTex = modelTextures[textureIndex];
-                if (type == TextureType::ALBEDO) mat.AlbedoView = existingTex._imageView;
-                if (type == TextureType::NORMAL) mat.NormalView = existingTex._imageView;
-                if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = existingTex._imageView;
-                if (type == TextureType::EMISSIVE) mat.EmissiveView= existingTex._imageView;
+                Texture& existingTex = model._modelTextures[textureIndex];
+                if (type == TextureType::ALBEDO) mat._albedoView = existingTex._imageView;
+                if (type == TextureType::NORMAL) mat._normalView = existingTex._imageView;
+                if (type == TextureType::METALLIC_ROUGHNESS) mat._metallicRoughnessView = existingTex._imageView;
+                if (type == TextureType::EMISSIVE) mat._emissiveView = existingTex._imageView;
                 // ... rest types TODO
             }
 
-            if (type == TextureType::ALBEDO) mat.albedoIndex = textureIndex;
-            if (type == TextureType::NORMAL) mat.normalIndex = textureIndex;
-            if (type == TextureType::METALLIC_ROUGHNESS) mat.metallicIndex = textureIndex;
-            if (type == TextureType::EMISSIVE) mat.emmisiveIndex = textureIndex;
+            if (type == TextureType::ALBEDO) mat._albedoIndex = textureIndex;
+            if (type == TextureType::NORMAL) mat._normalIndex = textureIndex;
+            if (type == TextureType::METALLIC_ROUGHNESS) mat._metallicIndex = textureIndex;
+            if (type == TextureType::EMISSIVE) mat._emmisiveIndex = textureIndex;
             // ... rest types TODO
         }
 
-        _materials.push_back(mat);
-        materialLookup[material] = _materials.size() - 1;
+        model._materials.push_back(mat);
+        model._materialLookup[material] = model._materials.size() - 1;
     }
-    meshInfo.materialIndex = static_cast<u32>(materialLookup[material]);
-    meshInfo.transform = parentTransform;
-    meshInfo.startIndex = indexOffset;
-    meshInfo.startVertex = vertexOffset;
-    meshInfo.vertexCount = vertexCount;
-    meshInfo.indexCount = indexCount;
+    meshInfo._materialIndex = static_cast<u32>(model._materialLookup[material]);
+    meshInfo._transform = parentTransform;
+    meshInfo._startIndex = indexOffset;
+    meshInfo._startVertex = vertexOffset;
+    meshInfo._vertexCount = vertexCount;
+    meshInfo._indexCount = indexCount;
 
     Mesh mesh;
-    mesh.vertices = tempVertices;
-    mesh.indices = tempIndices;
-    mesh.vertexCount = static_cast<u32>(vertexCount);
-    mesh.indexCount = static_cast<u32>(indexCount);
+    mesh._vertices = tempVertices;
+    mesh._indices = tempIndices;
+    mesh._vertexCount = static_cast<u32>(vertexCount);
+    mesh._indexCount = static_cast<u32>(indexCount);
 
     /*for (int i = 0; i < tempVertices.size(); i++) _vertices.push_back(tempVertices[i]);
     for (int i = 0; i < tempIndices.size(); i++) _indices.push_back(tempIndices[i]);*/
 
-    OptimiseMesh(meshInfo, mesh);
+    OptimiseMesh(model, meshInfo, mesh);
 #if MESH_SHADING
     ProcessMeshlets(mesh);
 #endif
-    _meshes.push_back(meshInfo);
+    model._meshes.push_back(meshInfo);
 }
 
-u32 CV::Model::LoadMaterialTexture(Material &mat, const cgltf_texture_view *textureView, const TextureType type)
+
+static void ProcessNode(GfxDevice& gfxDevice, FrameSync& frameSync, cgltf_node* node, Model& model, Transformation& parentTransform)
 {
-    if (textureView && textureView->texture && textureView->texture->image)
-    {
-        cgltf_image *image = textureView->texture->image;
-        std::string path = _dirPath + "/" + std::string(image->uri);
+    Transformation localTransform = parentTransform;
+    glm::mat4 translationMatrix(1.0f);
+    glm::mat4 rotationMatrix(1.0f);
+    glm::mat4 scaleMatrix(1.0f);
 
-        int width, height, channels;
-        //stbi_set_flip_vertically_on_load(true); // Flip the image vertically for DirectX
-        unsigned char* imgData = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-        vk::DeviceSize size = width * height * 4;
-
-        Buffer imgBuffer = CreateBuffer(_gfxDevice,
-            {
-            ._byteSize = size,
-            ._access = MemoryAccess::DEVICE,
-            ._usage = vk::BufferUsageFlagBits::eTransferSrc,
-            ._pContents = imgData });
-
-        Texture tex = CreateTexture(_gfxDevice,
-            {
-            ._width = u32(width),
-            ._height = u32(height),
-            ._mipCount = 1,
-            ._format = vk::Format::eR8G8B8A8Srgb,
-            ._usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-            ._layout = vk::ImageLayout::eShaderReadOnlyOptimal,
-            ._access = vk::AccessFlagBits::eShaderRead,
-            });
-        // Push the texture and return its new index
-        modelTextures.push_back(tex);
-        u32 newIndex = modelTextures.size() - 1;
-
-        // Assign the view to the material, but return the index for storage
-        if (type == TextureType::ALBEDO) mat.AlbedoView = tex._imageView;
-        if (type == TextureType::NORMAL) mat.NormalView = tex._imageView;
-        if (type == TextureType::METALLIC_ROUGHNESS) mat.MetallicRoughnessView = tex._imageView;
-        if (type == TextureType::EMISSIVE) mat.EmissiveView = tex._imageView;
-
-        return newIndex;
-
-        // case TextureType::AO:
-        //     mat.AOView = tex.m_texImageView;
-        //     mat.HasAO = true;
-        //     mat.AOPath = path;
-        //     modelTextures.push_back(tex);
-
+    if (node->has_translation) {
+        glm::vec3 translation = glm::vec3(node->translation[0], node->translation[1], node->translation[2]);
+        localTransform.Position = translation;
+        translationMatrix = glm::translate(glm::mat4(1.0f), translation);
     }
-    // Handle missing texture or image
-    printl(Log::LogLevel::Warn,"[Texture] Texture or image not found for material : {}", std::to_string(static_cast<int>(type)));
-    return -1;
-}
+    if (node->has_rotation) {
+        // TODO: transform quaternion
+        rotationMatrix = glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
+    }
+    if (node->has_scale) {
+        glm::vec3 scale = glm::vec3(node->scale[0], node->scale[1], node->scale[2]);
+        localTransform.Scale = scale;
+        scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
+    }
 
-void CV::Model::OptimiseMesh(MeshInfo& meshInfo, Mesh& mesh)
+    if (node->has_matrix) {
+        localTransform.Matrix *= glm::make_mat4(node->matrix);
+    }
+    else {
+        localTransform.Matrix *= translationMatrix * rotationMatrix * scaleMatrix;
+    }
+
+    //if (node->camera)
+    //{
+    //    const cgltf_camera_perspective& perspective = node->camera->data.perspective;
+
+    //    float yfov = static_cast<float>(perspective.yfov);
+    //    float aspectRatio = static_cast<float>(perspective.aspect_ratio);
+    //    float znear = static_cast<float>(perspective.znear);
+    //    float zfar = (perspective.has_zfar) ? static_cast<float>(perspective.zfar) : FLT_MAX;
+
+    //    camera->InitAsPerspective(yfov, _renderer->m_width, _renderer->m_width/aspectRatio, znear, zfar);    
+    //}
+
+    //localTransform.Matrix = scaleMatrix * rotationMatrix * translationMatrix;
+    //Log::InfoDebug("[CGLTF] parentTransform Matrix: {}", localTransform.Matrix);
+
+    // Process meshInfo if exists
+    if (node->mesh)
+    {
+        for (size_t i = 0; i < (node->mesh->primitives_count); i++)
+        {
+            //Log::InfoDebug("[CGLTF] parentTransform Matrix: {}", localTransform.Matrix);
+            /*Log::InfoDebug("[CGLTF] parentTransform Position: {}", localTransform.Position);
+            Log::InfoDebug("[CGLTF] parentTransform Rotation: {}", localTransform.Rotation);
+            Log::InfoDebug("[CGLTF] parentTransform Scale: {}", localTransform.Scale);*/
+            ProcessPrimitive(gfxDevice, frameSync, &node->mesh->primitives[i], model, localTransform);
+            // remember that the indices and the vertices passed here are _indices and _vertices refs
+        }
+    }
+
+    // Recursively process child nodes
+    for (size_t i = 0; i < node->children_count; i++)
+    {
+        ProcessNode(gfxDevice, frameSync, node->children[i], model, localTransform);
+    }
+}
+static void SetResources(GfxDevice& gfxDevice, Model& model)
 {
-    size_t indexCount = meshInfo.indexCount;
-    size_t vertexCount = meshInfo.vertexCount;
-
-    std::vector<unsigned int> remap(indexCount);
-    size_t optVertexCount = meshopt_generateVertexRemap(remap.data(), mesh.indices.data(), indexCount, mesh.vertices.data(), vertexCount, sizeof(Vertex));
-
-    std::vector<u32> optIndices;
-    std::vector<Vertex> optVertices;
-    optIndices.resize(indexCount);
-    optVertices.resize(optVertexCount);
-
-    // Optimisation 1 - Remove duplicate vertices
-    meshopt_remapIndexBuffer(optIndices.data(), mesh.indices.data(), indexCount, remap.data());
-    meshopt_remapVertexBuffer(optVertices.data(), mesh.vertices.data(), vertexCount, sizeof(Vertex), remap.data());
-
-    // Optimisation 2 - improve the locality of the vertices
-    meshopt_optimizeVertexCache(optIndices.data(), optIndices.data(), indexCount, optVertexCount);
-
-    // Optimization 3 - reduce pixel overdraw
-    meshopt_optimizeOverdraw(optIndices.data(), optIndices.data(), indexCount, &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), static_cast<float>(1.05));
-
-    // Optimization 4 - optimize access to the vertex buffer
-    meshopt_optimizeVertexFetch(optVertices.data(), optIndices.data(), indexCount, optVertices.data(), optVertexCount, sizeof(Vertex));
-
-    // Optimization 5 - create simplified version of the model
-    float threshold = 0.5f;
-    size_t targetIndexCount = (size_t)(threshold * indexCount);
-    float targetError = 0.3f;
-
-    std::vector<u32> simplifiedIndices(optIndices.size());
-    size_t optIndexCount = meshopt_simplify(simplifiedIndices.data(), optIndices.data(), indexCount,
-        &(optVertices[0].pos.x), optVertexCount, sizeof(Vertex), targetIndexCount,
-        targetError);
-    simplifiedIndices.resize(optIndexCount);
-
-    _indices.insert(_indices.end(), simplifiedIndices.begin(), simplifiedIndices.end());
-    _vertices.insert(_vertices.end(), optVertices.begin(), optVertices.end());
-
-    meshInfo.indexCount = optIndexCount;
-    meshInfo.vertexCount = optVertexCount;
-
-    mesh.vertices = optVertices;
-    mesh.indices = optIndices;
-    mesh.vertexCount = static_cast<u32>(optVertexCount);
-    mesh.indexCount = static_cast<u32>(optIndexCount);
-}
 #if MESH_SHADING
-void CV::Model::ProcessMeshlets(Mesh& mesh)
+    model._meshletBuffer = CreateBuffer(_gfxDevice,
+        {
+        ._byteSize = sizeof(Meshlet) * _meshlets.size(),
+        ._access = MemoryAccess::DEVICE,
+        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        ._pContents = _meshlets.data() });
+#else
+    // vertex buffer
+
+    model._vertexBuffer = CreateBuffer(gfxDevice,
+        {
+        ._byteSize = sizeof(Vertex) * model._vertices.size(),
+        ._access = MemoryAccess::DEVICE,
+        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        ._pContents = model._vertices.data() });
+#endif
+
+    // index buffer
+
+    model._indexBuffer = CreateBuffer(gfxDevice,
+        {
+        ._byteSize = sizeof(model._indices[0]) * model._indices.size(),
+        ._access = MemoryAccess::DEVICE,
+        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+        ._pContents = model._indices.data() });
+
+    // unlike DX11, samplers handled independent of pipeline, so they are handled by the texture class.
+    // will be handled during the desc layout stuff. Creating a large texture array,
+    // making it index with the corresponding material index and using it directly in shader i.e descriptor indexing
+}
+
+Model LoadModel(GfxDevice& gfxDevice, FrameSync& frameSync, ModelDesc desc)
+{
+    Model model{};
+    cgltf_options options{};
+    cgltf_data* data = nullptr;
+    cgltf_result result = cgltf_parse_file(&options, desc._path.c_str(), &data);
+
+    if (result != cgltf_result_success)
+        printl(Log::LogLevel::Error, "[CGLTF] Failed to parse gltf file");
+    else
+        printl(Log::LogLevel::Info, "[CGLTF] Successfully parsed gltf file");
+
+    result = cgltf_load_buffers(&options, data, desc._path.c_str());
+
+    if (result != cgltf_result_success)
+    {
+        cgltf_free(data);
+        printl(Log::LogLevel::Error, "[CGLTF] Failed to load buffers");
+    }
+    else
+    {
+        printl(Log::LogLevel::Info, "[CGLTF] Successfully loaded buffers");
+    }
+
+    cgltf_scene* scene = data->scene;
+
+    if (!scene)
+    {
+        printl(Log::LogLevel::Error, "[CGLTF] No scene found in gltf file");
+    }
+    else
+    {
+        printl(Log::LogLevel::Info, "[CGLTF] Scene found in gltf file");
+        model._dirPath = desc._path.substr(0, desc._path.find_last_of("/"));
+
+        for (size_t i = 0; i < (scene->nodes_count); i++)
+        {
+            Transformation transform;
+            ProcessNode(gfxDevice, frameSync, scene->nodes[i], model, transform);
+        }
+        // no of nodes
+        printl(Log::LogLevel::InfoDebug, "[CGLTF] No of nodes in the scene: {} ", scene->nodes_count);
+
+        SetResources(gfxDevice, model);
+
+        printl(Log::LogLevel::Info, "[CGLTF] Successfully loaded gltf file");
+    }
+    //ValidateResources();
+    cgltf_free(data);
+
+    return model;
+}
+
+#if MESH_SHADING
+static void ProcessMeshlets(Mesh& mesh)
 {
     Meshlet meshlet = {};
-    std::vector<u8> meshletVertices(mesh.vertexCount, 0xff);
+    std::vector<u8> meshletVertices(mesh._vertexCount, 0xff);
 
-    for (size_t i = 0; i < mesh.indexCount; i += 3)
+    for (size_t i = 0; i < mesh._indexCount; i += 3)
     {
-        unsigned int a = mesh.indices[i + 0];
-        unsigned int b = mesh.indices[i + 1];
-        unsigned int c = mesh.indices[i + 2];
+        unsigned int a = mesh._indices[i + 0];
+        unsigned int b = mesh._indices[i + 1];
+        unsigned int c = mesh._indices[i + 2];
 
         u8& av = meshletVertices[a];
         u8& bv = meshletVertices[b];
@@ -511,50 +540,3 @@ void CV::Model::ProcessMeshlets(Mesh& mesh)
     }
 }
 #endif
-
-void CV::Model::SetBuffers()
-{
-#if MESH_SHADING
-
-    Buffer meshBuffer = CreateBuffer(_gfxDevice,
-        {
-        ._byteSize = sizeof(Meshlet) * _meshlets.size(),
-        ._access = MemoryAccess::DEVICE,
-        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        ._pContents = _meshlets.data() });
-#else
-    // vertex buffer
-
-    Buffer vertexBuffer = CreateBuffer(_gfxDevice,
-        {
-        ._byteSize = sizeof(Vertex) * _vertices.size(),
-        ._access = MemoryAccess::DEVICE,
-        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        ._pContents = _vertices.data()});
-#endif
-
-    // index buffer
-
-    Buffer indexBuffer = CreateBuffer(_gfxDevice,
-        {
-        ._byteSize = sizeof(_indices[0]) * _indices.size(),
-        ._access = MemoryAccess::DEVICE,
-        ._usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-        ._pContents = _indices.data() });
-
-    // unlike DX11, samplers handled independent of pipeline, so they are handled by the texture class.
-    // will be handled during the desc layout stuff. Creating a large texture array,
-    // making it index with the corresponding material index and using it directly in shader i.e descriptor indexing
-}
-
-void CV::Model::ValidateResources() const
-{
-    printl(Log::LogLevel::Info,
-                "[CGLTF] Validating Model Resources: \nVertices: {} \nIndices: {}\nMaterials: {}\nMeshes: {}",
-                _vertices.size(), _indices.size(), _materials.size(), _meshes.size());
-    // Check camera position
-    //DirectX::XMFLOAT3 pos;
-    /*XMStoreFloat3(&pos, camera->GetPosition());
-    Log::Info("[D3D] Camera Position: " + std::to_string(pos.x) + ", " +
-              std::to_string(pos.y) + ", " + std::to_string(pos.z));*/
-}
