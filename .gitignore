@@ -14,3 +14,4 @@ cmake-build-debugvs
 Makefile
 CMakeLists.txt
 compile_commands.json
+assets/models/bistro2
