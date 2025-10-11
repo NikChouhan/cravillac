@@ -19,7 +19,7 @@ struct ColorAttachmentDesc
 
 struct AttachmentLayout
 {
-	std::initializer_list<ColorAttachmentDesc> colorAttachments;
+	std::initializer_list<ColorAttachmentDesc> _colorAttachments;
 	vk::Format _depthStencilFormat = vk::Format::eUndefined;
 };
 

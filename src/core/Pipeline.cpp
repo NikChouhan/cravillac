@@ -2,6 +2,8 @@
 #include <vector>
 #include "Pipeline.h"
 
+#include "Vertex.h"
+
 static vk::DescriptorSetLayout CreateDescriptorSetLayout(vk::Device device, const std::vector<vk::DescriptorSetLayoutBinding>& layoutBindings)
 {
 	vk::DescriptorSetLayoutCreateInfo setLayoutCreateInfo;
@@ -44,7 +46,7 @@ static std::vector<vk::DescriptorSetLayoutBinding> MergeSetLayoutBindings(const 
 
 	for (const Shader& shader : shaders)
 	{
-		for (const vk::DescriptorSetLayoutBinding& layoutBinding : shader.layoutBindings)
+		for (const vk::DescriptorSetLayoutBinding& layoutBinding : shader._layoutBindings)
 		{
 			if (MergeBindingShaderStage(mergeLayoutBIndings, layoutBinding))
 			{
@@ -65,19 +67,19 @@ static vk::PushConstantRange MergePushConstants(Shaders& shaders)
 
 	for (const Shader& shader : shaders)
 	{
-		if (shader.pushConstants.stageFlags)
+		if (shader._pushConstants.stageFlags)
 		{
 			if (!mergePushConstants.stageFlags)
 			{
 				mergePushConstants = {
-					.offset = shader.pushConstants.offset,
-					.size = shader.pushConstants.size };
+					.offset = shader._pushConstants.offset,
+					.size = shader._pushConstants.size };
 			}
 
-			assert(mergePushConstants.offset == shader.pushConstants.offset);
-			assert(mergePushConstants.size == shader.pushConstants.size);
+			assert(mergePushConstants.offset == shader._pushConstants.offset);
+			assert(mergePushConstants.size == shader._pushConstants.size);
 
-			mergePushConstants.stageFlags |= shader.pushConstants.stageFlags;
+			mergePushConstants.stageFlags |= shader._pushConstants.stageFlags;
 		}
 	}
 
@@ -89,7 +91,11 @@ static Pipeline CreatePipeline(GfxDevice& gfxDevice, vk::PipelineBindPoint pipel
 	Pipeline pipeline;
 	pipeline._type = pipelineBindPoint;
 
-	vk::PushConstantRange pushConstant = MergePushConstants(shaders);
+	//vk::PushConstantRange pushConstant = MergePushConstants(shaders);
+	vk::PushConstantRange pushConstant;
+	pushConstant.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+	pushConstant.offset = 0;
+	pushConstant.size = sizeof(PushConstants);
 
 	std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = MergeSetLayoutBindings(shaders);
 
@@ -106,13 +112,13 @@ static Pipeline CreatePipeline(GfxDevice& gfxDevice, vk::PipelineBindPoint pipel
 
 static vk::Pipeline CreateGraphicsPipeline(vk::Device device, vk::PipelineLayout& pipelineLayout, GraphicsPipelineDesc desc)
 {
-	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages(desc._shaders.size());
+	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 	for (const auto& shader : desc._shaders)
 	{
 		vk::PipelineShaderStageCreateInfo shaderStageCreateInfo;
-		shaderStageCreateInfo.stage = shader.stage;
-		shaderStageCreateInfo.module = shader.resource;
-		shaderStageCreateInfo.pName = shader.pEntry;
+		shaderStageCreateInfo.stage = shader._stage;
+		shaderStageCreateInfo.module = shader._resource;
+		shaderStageCreateInfo.pName = shader._pEntry;
 		shaderStages.push_back(shaderStageCreateInfo);
 	}
 
@@ -156,9 +162,10 @@ static vk::Pipeline CreateGraphicsPipeline(vk::Device device, vk::PipelineLayout
 	multisampling.alphaToCoverageEnable = VK_FALSE;
 	multisampling.alphaToOneEnable = VK_FALSE;
 
-	std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments(desc._attachmentLayout.colorAttachments.size());
+	std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments;
+	colorBlendAttachments.reserve(desc._attachmentLayout._colorAttachments.size());
 
-	for (auto colorAttachmentState : desc._attachmentLayout.colorAttachments)
+	for (auto colorAttachmentState : desc._attachmentLayout._colorAttachments)
 	{
 		vk::PipelineColorBlendAttachmentState colorBlendAttachment;
 		colorBlendAttachment.blendEnable = colorAttachmentState._bBlendEnable;
@@ -176,14 +183,14 @@ static vk::Pipeline CreateGraphicsPipeline(vk::Device device, vk::PipelineLayout
 	vk::PipelineColorBlendStateCreateInfo colorBlending;
 	colorBlending.logicOpEnable = VK_FALSE;
 	colorBlending.logicOp = vk::LogicOp::eCopy;
-	colorBlending.attachmentCount = 1;
+	colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
 	colorBlending.pAttachments = colorBlendAttachments.data();
 	colorBlending.blendConstants = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 
 	std::vector<vk::Format> colorFormats;
-	colorFormats.reserve(desc._attachmentLayout.colorAttachments.size());
+	colorFormats.reserve(desc._attachmentLayout._colorAttachments.size());
 
-	for (ColorAttachmentDesc colorAttachmentState : desc._attachmentLayout.colorAttachments)
+	for (ColorAttachmentDesc colorAttachmentState : desc._attachmentLayout._colorAttachments)
 	{
 		colorFormats.push_back(colorAttachmentState._format);
 	}

@@ -3,11 +3,11 @@
 
 struct Shader
 {
-	vk::ShaderModule resource = nullptr;
-	vk::ShaderStageFlagBits stage = vk::ShaderStageFlagBits::eAll;
-	const char* pEntry = "main";
-	std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{};
-	vk::PushConstantRange pushConstants;
+	vk::ShaderModule _resource = nullptr;
+	vk::ShaderStageFlagBits _stage = vk::ShaderStageFlagBits::eAll;
+	const char* _pEntry = "main";
+	std::vector<vk::DescriptorSetLayoutBinding> _layoutBindings{};
+	vk::PushConstantRange _pushConstants;
 };
 
 typedef std::initializer_list<Shader> Shaders;

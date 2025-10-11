@@ -27,6 +27,9 @@ ConstantBuffer<PushConstants> pushConstants;
 [shader("pixel")]
 float4 main(FragmentInput input) : SV_Target
 {
+    // UV test
+    // return float4(input.texCoord.x, input.texCoord.y, 0.0f, 1.0f);
+
     float3 ambientColor = float3(0.2f, 0.2f, 0.2f);
     float3 diffuseColor = float3(0.8f, 0.8f, 0.8f);
     float3 lightDir = normalize(float3(1.0f, 1.0f, 1.0f));
@@ -52,6 +55,8 @@ float4 main(FragmentInput input) : SV_Target
     }
     outColor.rgb *= (ambientColor + diffuseColor * diffuseIntensity); // Apply diffuse lighting
     outColor.a = 1.0f; // Set alpha to 1.0 for opaque
+
+    outColor = float4(1., 0., 0., 1.);
     
     return outColor;
 }

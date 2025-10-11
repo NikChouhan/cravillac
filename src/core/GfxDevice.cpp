@@ -488,7 +488,7 @@ void DestroyDevice(GfxDevice& gfxDevice)
     gfxDevice = {};
 }
 
-static std::vector<vk::CommandBuffer> CreateCommandBuffer(const GfxDevice& gfxDevice, const u32 count)
+std::vector<vk::CommandBuffer> CreateCommandBuffer(const GfxDevice& gfxDevice, const u32 count)
 {
     vk::CommandBufferAllocateInfo commandBufferAllocateInfo;
     commandBufferAllocateInfo.commandPool = gfxDevice._commandPool;
@@ -505,6 +505,8 @@ static std::vector<vk::CommandBuffer> CreateCommandBuffer(const GfxDevice& gfxDe
 
 void ImmediateSubmit(const GfxDevice& gfxDevice, std::function<void(vk::CommandBuffer)> const& callback)
 {
+    // change the function such that a global reusable command buffer is used everytime
+    // to avoid the stupid elden ring bug
     vk::CommandBuffer commandBuffer = CreateCommandBuffer(gfxDevice, 1).at(0);
 
     vk::CommandBufferBeginInfo beginInfo;

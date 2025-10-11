@@ -84,7 +84,7 @@ static vk::SwapchainKHR CreateSwapchain(vk::Device device, vk::PhysicalDevice ph
     return swapchain;
 }
 
-Swapchain CreateSwapchain(GfxDevice& gfxDevice, GLFWwindow* window, SwapchainDesc& desc)
+Swapchain CreateSwapchain(GfxDevice& gfxDevice, GLFWwindow* window, SwapchainDesc desc)
 {
     SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(gfxDevice._physicalDevice, gfxDevice._surface);
     auto surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport._formats);

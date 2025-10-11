@@ -38,6 +38,7 @@ static vk::ImageView CreateImageView(vk::Device device, vk::Image image, vk::For
 	imageViewCreateInfo.subresourceRange.aspectMask = GetAspectMask(format);
 	imageViewCreateInfo.subresourceRange.baseMipLevel = baseMip;
 	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+	imageViewCreateInfo.subresourceRange.levelCount = mipCount;
 	imageViewCreateInfo.subresourceRange.layerCount = 1;
 
 	vk::ImageView imageView = device.createImageView(imageViewCreateInfo, nullptr);

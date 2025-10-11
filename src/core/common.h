@@ -10,7 +10,7 @@
 #include "StandardTypes.h"
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-inline u32 MAX_TEXTURES = 256;
+inline u32 MAX_TEXTURES = 1024;
 #define EXTREME 0
 
 // meshInfo shading pipeline

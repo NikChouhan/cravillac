@@ -80,20 +80,20 @@ Shader CreateShader(GfxDevice& gfxDevice, ShaderDesc desc)
     assert(spvModule.push_constant_block_count <= 1);
 
     Shader shader;
-    shader.stage = GetShaderStage(spvModule.shader_stage);
-    shader.pEntry = desc.pEntry;
+    shader._stage = GetShaderStage(spvModule.shader_stage);
+    shader._pEntry = desc.pEntry;
 
     vk::ShaderModuleCreateInfo shaderModuleCreateInfo;
     shaderModuleCreateInfo.codeSize = static_cast<u32>(spvSource.size());
     shaderModuleCreateInfo.pCode = reinterpret_cast<u32*>(spvSource.data());
 
-    shader.resource = gfxDevice._device.createShaderModule(shaderModuleCreateInfo, nullptr);
+    shader._resource = gfxDevice._device.createShaderModule(shaderModuleCreateInfo, nullptr);
 
     if (spvModule.push_constant_block_count > 0 && spvModule.push_constant_blocks != nullptr)
     {
-        shader.pushConstants.stageFlags = shader.stage;
-        shader.pushConstants.offset = spvModule.push_constant_blocks->offset;
-        shader.pushConstants.size = spvModule.push_constant_blocks->size;
+        shader._pushConstants.stageFlags = shader._stage;
+        shader._pushConstants.offset = spvModule.push_constant_blocks->offset;
+        shader._pushConstants.size = spvModule.push_constant_blocks->size;
     }
     u32 spvBindingCount = 0;
     SPV_ASSERT(spvReflectEnumerateDescriptorBindings(&spvModule, &spvBindingCount, nullptr));
@@ -101,18 +101,18 @@ Shader CreateShader(GfxDevice& gfxDevice, ShaderDesc desc)
     std::vector<SpvReflectDescriptorBinding*> spvReflectDescriptorBindings(spvBindingCount);
     SPV_ASSERT(spvReflectEnumerateDescriptorBindings(&spvModule, &spvBindingCount, spvReflectDescriptorBindings.data()));
 
-    shader.layoutBindings.reserve(spvBindingCount);
+    shader._layoutBindings.reserve(spvBindingCount);
     for (u32 layoutBindingIndex = 0; layoutBindingIndex < spvBindingCount; ++layoutBindingIndex)
     {
         vk::DescriptorSetLayoutBinding descriptorSetLayoutBinding{};
 
         descriptorSetLayoutBinding.binding = spvReflectDescriptorBindings[layoutBindingIndex]->binding;
-        descriptorSetLayoutBinding.descriptorCount = 1;
+        descriptorSetLayoutBinding.descriptorCount = MAX_TEXTURES;
         descriptorSetLayoutBinding.descriptorType = GetDescriptorType(spvReflectDescriptorBindings[layoutBindingIndex]->descriptor_type);
-        descriptorSetLayoutBinding.stageFlags = shader.stage;
+        descriptorSetLayoutBinding.stageFlags = shader._stage;
         descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
 
-        shader.layoutBindings.push_back(descriptorSetLayoutBinding);
+        shader._layoutBindings.push_back(descriptorSetLayoutBinding);
     }
 
     spvReflectDestroyShaderModule(&spvModule);
@@ -122,6 +122,6 @@ Shader CreateShader(GfxDevice& gfxDevice, ShaderDesc desc)
 
 void DestroyShader(GfxDevice& gfxDevice, Shader& shader)
 {
-    gfxDevice._device.destroyShaderModule(shader.resource, nullptr);
+    gfxDevice._device.destroyShaderModule(shader._resource, nullptr);
 }
 
