@@ -1,7 +1,6 @@
 #include "Buffer.h"
 
-#define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.hpp>
+#include <vk_mem_alloc.h>
 
 Buffer CreateBuffer(GfxDevice& gfxDevice, BufferDesc desc)
 {
@@ -12,24 +11,24 @@ Buffer CreateBuffer(GfxDevice& gfxDevice, BufferDesc desc)
 		desc._usage |= vk::BufferUsageFlagBits::eTransferDst;
 	}
 
-	vk::BufferCreateInfo bufferCreateInfo;
+	vk::BufferCreateInfo bufferCreateInfo {};
 	bufferCreateInfo.size = desc._byteSize;
 	bufferCreateInfo.usage = desc._usage;
 	bufferCreateInfo.sharingMode = vk::SharingMode::eExclusive;
 
-	vma::AllocationCreateInfo allocationCreateInfo;
-	allocationCreateInfo.usage = vma::MemoryUsage::eAuto;
+	VmaAllocationCreateInfo allocationCreateInfo {};
+	allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
 	if (desc._access == MemoryAccess::HOST)
 	{
-		allocationCreateInfo.flags = vma::AllocationCreateFlagBits::eHostAccessSequentialWrite;
+		allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 	}
 
 	Buffer buffer = { ._byteSize = desc._byteSize };
 
-
-	VK_ASSERT(gfxDevice._allocator.createBuffer(&bufferCreateInfo, 
-		&allocationCreateInfo, &buffer._resource, &buffer._allocation, nullptr));
+	VK_ASSERT(static_cast<vk::Result>(vmaCreateBuffer(gfxDevice._allocator, reinterpret_cast<VkBufferCreateInfo*>(&bufferCreateInfo),
+		&allocationCreateInfo, reinterpret_cast<VkBuffer*>(&buffer._resource), &buffer._allocation,
+		nullptr)));
 
 	if (desc._access == MemoryAccess::HOST)
 	{
@@ -45,6 +44,7 @@ Buffer CreateBuffer(GfxDevice& gfxDevice, BufferDesc desc)
 		}
 		else
 		{
+			//desc._usage ^= vk::BufferUsageFlagBits::eTransferDst;
 			Buffer stagingBuffer = CreateBuffer(gfxDevice, {
 				._byteSize = desc._byteSize,
 				._access = MemoryAccess::HOST,
@@ -53,12 +53,12 @@ Buffer CreateBuffer(GfxDevice& gfxDevice, BufferDesc desc)
 
 			ImmediateSubmit(gfxDevice, [&](const vk::CommandBuffer commandBuffer)
 				{
-					vk::BufferCopy copyRegion;
+					vk::BufferCopy copyRegion {};
 					copyRegion.size = desc._byteSize;
 					commandBuffer.copyBuffer(stagingBuffer._resource, buffer._resource, 1, &copyRegion);
 				});
 
-			DestroyBuffer(gfxDevice, stagingBuffer);
+			//DestroyBuffer(gfxDevice, stagingBuffer);
 		}
 	}
 	return buffer;

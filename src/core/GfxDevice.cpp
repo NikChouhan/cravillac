@@ -328,6 +328,9 @@ static vk::Device CreateDevice(vk::PhysicalDevice physicalDevice, u32 queueFamil
     scalarFeatures.pNext = &meshShaderFeatures;
 #endif
 
+    vk::PhysicalDeviceVulkan11Features vulkan11Features;
+    vulkan11Features.shaderDrawParameters = vk::True;
+
     vk::PhysicalDeviceBufferDeviceAddressFeatures bdaFeatures{};
     bdaFeatures.bufferDeviceAddress = vk::True;
     bdaFeatures.bufferDeviceAddressCaptureReplay = vk::True;
@@ -380,6 +383,7 @@ static vk::Device CreateDevice(vk::PhysicalDevice physicalDevice, u32 queueFamil
     enabledFeatures.pNext = &bindless;
     bindless.pNext = &bdaFeatures;
     bdaFeatures.pNext = &scalarFeatures;
+    scalarFeatures.pNext = &vulkan11Features;
 
     try
     {
@@ -400,7 +404,7 @@ static VmaAllocator CreateAllocator(vk::Instance instance, vk::PhysicalDevice ph
 {
     const auto& d = VULKAN_HPP_DEFAULT_DISPATCHER;
 
-    vma::VulkanFunctions vulkanFunctions{};
+    VmaVulkanFunctions vulkanFunctions{};
     vulkanFunctions.vkGetInstanceProcAddr = d.vkGetInstanceProcAddr;
     vulkanFunctions.vkGetDeviceProcAddr = d.vkGetDeviceProcAddr;
     vulkanFunctions.vkGetPhysicalDeviceProperties = d.vkGetPhysicalDeviceProperties;
@@ -429,16 +433,16 @@ static VmaAllocator CreateAllocator(vk::Instance instance, vk::PhysicalDevice ph
     vulkanFunctions.vkGetDeviceImageMemoryRequirements = d.vkGetDeviceImageMemoryRequirements;
 
 
-    vma::AllocatorCreateInfo allocatorCreateInfo{};
-    allocatorCreateInfo.flags = vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
+    VmaAllocatorCreateInfo allocatorCreateInfo{};
+    allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
     allocatorCreateInfo.instance = instance;
     allocatorCreateInfo.physicalDevice = physicalDevice;
     allocatorCreateInfo.device = device;
     allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
-    vma::Allocator allocator;
-    VK_ASSERT(createAllocator(&allocatorCreateInfo, &allocator));
+    VmaAllocator allocator;
+    VK_ASSERT((static_cast<vk::Result>(vmaCreateAllocator(&allocatorCreateInfo, &allocator))));
 
     return allocator;
 }

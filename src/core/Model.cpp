@@ -329,8 +329,8 @@ static void ProcessPrimitive(GfxDevice& gfxDevice, FrameSync& frameSync,
     mesh._vertexCount = static_cast<u32>(vertexCount);
     mesh._indexCount = static_cast<u32>(indexCount);
 
-    /*for (int i = 0; i < tempVertices.size(); i++) _vertices.push_back(tempVertices[i]);
-    for (int i = 0; i < tempIndices.size(); i++) _indices.push_back(tempIndices[i]);*/
+    //for (int i = 0; i < tempVertices.size(); i++) model._vertices.push_back(tempVertices[i]);
+    //for (int i = 0; i < tempIndices.size(); i++) model._indices.push_back(tempIndices[i]);
 
     OptimiseMesh(model, meshInfo, mesh);
 #if MESH_SHADING

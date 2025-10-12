@@ -16,6 +16,9 @@ inline u32 MAX_TEXTURES = 1024;
 // meshInfo shading pipeline
 #define MESH_SHADING 0
 
+// BDA pipeline
+#define BDA_ENABLED 0
+
 // array size
 template <typename T, size_t N>
 constexpr size_t ArraySize(T(&)[N]) { return N; }

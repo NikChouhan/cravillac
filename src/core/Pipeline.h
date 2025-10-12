@@ -25,7 +25,7 @@ struct AttachmentLayout
 
 struct RasterizationDesc
 {
-	vk::CullModeFlags _cullMode = vk::CullModeFlagBits::eBack;
+	vk::CullModeFlags _cullMode = vk::CullModeFlagBits::eNone;
 	vk::FrontFace _frontFace = vk::FrontFace::eCounterClockwise;
 };
 
@@ -33,7 +33,7 @@ struct DepthStencilDesc
 {
 	bool _bDepthTestEnable = false;
 	bool _bDepthWriteEnable = false;
-	vk::CompareOp _depthCompareOp = vk::CompareOp::eGreater;
+	vk::CompareOp _depthCompareOp = vk::CompareOp::eLess;
 };
 
 struct GraphicsPipelineDesc

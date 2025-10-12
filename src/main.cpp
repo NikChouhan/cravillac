@@ -64,13 +64,15 @@ int main()
 	
 	int currentFrame{ 0 };
 
-	glfwSetCursorPosCallback(_window, [](auto* window, double x, double y) {
+	glfwSetCursorPosCallback(_window, [](auto* window, double x, double y) 
+		{
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		mouseState.pos.x = static_cast<float>(x / width);
 		mouseState.pos.y = 1.0f - static_cast<float>(y / height);
 		});
-	glfwSetMouseButtonCallback(_window, [](auto* window, int button, int action, int mods) {
+	glfwSetMouseButtonCallback(_window, [](auto* window, int button, int action, int mods) 
+		{
 		if (button == GLFW_MOUSE_BUTTON_LEFT) {
 			mouseState.pressedLeft = action == GLFW_PRESS;
 		}
@@ -81,7 +83,8 @@ int main()
 
 		});
 
-	glfwSetKeyCallback(_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+	glfwSetKeyCallback(_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) 
+		{
 		const bool pressed = action != GLFW_RELEASE;
 		if (key == GLFW_KEY_ESCAPE && pressed)
 			glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -134,7 +137,8 @@ int main()
 
 	InitialiseSwapchainTextures();
 
-	FrameSync frameSync = CreateFrameSync(gfxDevice, swapChain._textures.size(), { ._isTrue = true });
+	FrameSync frameSync = CreateFrameSync(gfxDevice, swapChain._textures.size(),
+		{ ._isTrue = true });
 
 	const char* vShaderPath = "shaders/mesh.vert.spv";
 	const char* fShaderPath = "shaders/mesh.frag.spv";
@@ -149,14 +153,16 @@ int main()
 		.pEntry = "main" });
 
 	// set resources
-	const std::string modelPath = "../../../../assets/models/bistro2/bistro2.gltf";
+	//const std::string modelPath = "../../../../assets/models/bistro2/bistro2.gltf";
+	const std::string modelPath = "../../../../assets/models/sponza2/sponza2.gltf";
 	Model mod1 = LoadModel(gfxDevice, frameSync,
 		{
 		._path = modelPath });
 
 	DescriptorPool descriptorPool = CreateDescriptorPool(gfxDevice,
 		{
-		._poolSizes = {{vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES}},
+		._poolSizes = {{vk::DescriptorType::eCombinedImageSampler,
+		MAX_FRAMES_IN_FLIGHT * MAX_TEXTURES}},
 		._flags = vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
 		._maxSets = MAX_FRAMES_IN_FLIGHT * 4 });
 
@@ -180,7 +186,7 @@ int main()
 			}
 			},
 		._rasterizationDesc = {
-			{vk::CullModeFlagBits::eBack},
+			{vk::CullModeFlagBits::eNone},
 			{vk::FrontFace::eCounterClockwise}
 		},
 		._depthStencilDesc = {
@@ -202,12 +208,15 @@ int main()
 	vk::DeviceAddress meshBDA;
 	vk::BufferDeviceAddressInfo meshletBufferAddressInfo{};
 	meshletBufferAddressInfo.buffer = mod1._meshletBuffer;
-	meshBDA = renderer->_device.getBufferAddress(&meshletBufferAddressInfo);
+	meshBDA = gfxDevice._device.getBufferAddress(&meshletBufferAddressInfo);
 #else
 	// bda + pvp get vertex buffer address
 	vk::BufferDeviceAddressInfo vertexBufferAddressInfo{};
 	vertexBufferAddressInfo.buffer = mod1._vertexBuffer._resource;
+#if BDA_ENABLED
 	vk::DeviceAddress vertexBDA = gfxDevice._device.getBufferAddress(&vertexBufferAddressInfo);
+#endif
+
 #endif
 
 	std::vector<vk::CommandBuffer> commandBuffers = CreateCommandBuffer(gfxDevice, 2);
@@ -237,11 +246,14 @@ int main()
 
 		TextureBarrier(commandBuffer, swapChain._textures[imageIndex], vk::ImageLayout::eUndefined,
 			vk::ImageLayout::eColorAttachmentOptimal, vk::AccessFlagBits::eNone,
-			vk::AccessFlagBits::eColorAttachmentWrite);
+			vk::AccessFlagBits::eColorAttachmentWrite, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+			vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
 		TextureBarrier(commandBuffer, depthTexture, vk::ImageLayout::eUndefined,
 			vk::ImageLayout::eDepthAttachmentOptimal, vk::AccessFlagBits::eNone,
-			vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+			vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+			vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests,
+			vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests);
 
 		vk::RenderingAttachmentInfo colorAttachmentInfo{};
 		colorAttachmentInfo.imageView = swapChain._textures[imageIndex]._imageView;
@@ -289,8 +301,9 @@ int main()
 			0, 1, &descriptor._descriptorSet, 0, nullptr);
 
 		PushConstants pushConstants;
-
+#if BDA_ENABLED
 		pushConstants.vertexBufferAddress = vertexBDA;
+#endif
 
 		for (const auto& meshInfo : mod1._meshes) {
 			const auto& material = mod1._materials[meshInfo._materialIndex];

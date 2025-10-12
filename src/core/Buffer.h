@@ -5,7 +5,7 @@ struct Buffer
 {
 	vk::DeviceSize _byteSize{ 0 };
 	vk::Buffer _resource = nullptr;
-	vma::Allocation _allocation = nullptr;
+	VmaAllocation _allocation = nullptr;
 	void* _pMappedData = nullptr;
 };
 

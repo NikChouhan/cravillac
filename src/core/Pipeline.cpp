@@ -122,11 +122,53 @@ static vk::Pipeline CreateGraphicsPipeline(vk::Device device, vk::PipelineLayout
 		shaderStages.push_back(shaderStageCreateInfo);
 	}
 
+	// BDA
+#if BDA_ENABLED
 	vk::PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
 	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
 	vertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr;
 	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr;
+#endif
+
+
+	// -------------------------------- Non BDA work --------------------------------
+
+	vk::VertexInputBindingDescription bindingDescription{};
+	bindingDescription.binding = 0;
+	bindingDescription.stride = sizeof(Vertex); 
+	bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+
+	std::array<vk::VertexInputAttributeDescription, 4> attributeDescriptions{};
+
+	attributeDescriptions[0].binding = 0;
+	attributeDescriptions[0].location = 0;
+	attributeDescriptions[0].format = vk::Format::eR32G32B32Sfloat;
+	attributeDescriptions[0].offset = offsetof(Vertex, _position);
+
+	attributeDescriptions[1].binding = 0;
+	attributeDescriptions[1].location = 1;
+	attributeDescriptions[1].format = vk::Format::eR32G32Sfloat;
+	attributeDescriptions[1].offset = offsetof(Vertex, _texCoord);
+
+	attributeDescriptions[2].binding = 0;
+	attributeDescriptions[2].location = 2;
+	attributeDescriptions[2].format = vk::Format::eR32G32B32Sfloat;
+	attributeDescriptions[2].offset = offsetof(Vertex, _normal);
+
+	attributeDescriptions[3].binding = 0;
+	attributeDescriptions[3].location = 3;
+	attributeDescriptions[3].format = vk::Format::eR32G32B32A32Sfloat;
+	attributeDescriptions[3].offset = offsetof(Vertex, _tangent);
+
+	vk::PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
+	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
+	vertexInputStateCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+
+	// --------------------------- Non BDA end ------------------------------------------
 
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
 	inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;

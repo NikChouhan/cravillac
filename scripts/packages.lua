@@ -25,7 +25,6 @@ add_requires("imgui docking",
 })
 
 add_requires("glm")
-add_requires("vulkan-memory-allocator-hpp")
 
 add_requires("meshoptimizer")
 

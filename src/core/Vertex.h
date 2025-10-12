@@ -14,7 +14,9 @@ namespace SM = DirectX::SimpleMath;
 struct PushConstants
 {
     glm::mat4 mvp;
+#if BDA_ENABLED
     vk::DeviceAddress vertexBufferAddress;
+#endif
 #if MESH_SHADING
     VkDeviceAddress meshletBufferAddress;
 #endif

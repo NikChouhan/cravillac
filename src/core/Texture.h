@@ -1,4 +1,5 @@
 #pragma once
+
 #include "GfxDevice.h"
 #include "Buffer.h"
 struct Sampler
@@ -16,7 +17,7 @@ struct Texture
 	Sampler _sampler{};
 	vk::ImageView _imageView = nullptr;
 	vk::Image _resource = nullptr;
-	vma::Allocation _allocation = nullptr;
+	VmaAllocation _allocation = nullptr;
 	bool _bFromSwapchain = false;
 };
 

@@ -72,12 +72,11 @@ Texture CreateTexture(GfxDevice& gfxDevice, TextureDesc desc)
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 		imageCreateInfo.format = texture._format;
 
-		vma::AllocationCreateInfo vmaAllocationCreateInfo;
-		vmaAllocationCreateInfo.usage = vma::MemoryUsage::eGpuOnly;
-		vmaAllocationCreateInfo.requiredFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
+		VmaAllocationCreateInfo vmaAllocationCreateInfo {};
+		vmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-		VK_ASSERT(gfxDevice._allocator.createImage(&imageCreateInfo, 
-			&vmaAllocationCreateInfo, &texture._resource, &texture._allocation, nullptr));
+		static_cast<vk::Result>(vmaCreateImage(gfxDevice._allocator, (imageCreateInfo), &vmaAllocationCreateInfo,
+			reinterpret_cast<VkImage*>(&texture._resource), &texture._allocation, nullptr));
 	}
 
 	texture._sampler = CreateSampler(gfxDevice._device, desc._sampler);

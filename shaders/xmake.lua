@@ -66,7 +66,7 @@ rule("shader_compile")
                     "-target", "spirv",
                     "-stage", stage,
                     "-entry", "main",
-                    "-profile", "spirv_1_4",
+                    "-profile", "spirv_1_6",
                     "-force-glsl-scalar-layout",
                     "-O0",  -- No optimization for debug builds
                     "-g",   -- Generate debug info
@@ -104,7 +104,7 @@ rule("shader_compile")
                     "-target", "spirv",
                     "-stage", stage,
                     "-entry", "main", 
-                    "-profile", "spirv_1_4",
+                    "-profile", "spirv_1_6",
                     "-O0",  -- No optimization for debug builds
                     "-g",   -- Generate debug info
                     "-o", outputfile,

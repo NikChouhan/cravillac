@@ -10,7 +10,7 @@ struct FragmentInput
 struct PushConstants
 {
     float4x4 mvp;   // not used here, but in vertex shader
-    uint64_t vertexBufferAddress;
+    //uint64_t vertexBufferAddress; //  useful when i enable BDA path
     float3x3 normalMatrix;
     uint32_t albedoIndex;
     uint32_t normalIndex;
@@ -56,7 +56,7 @@ float4 main(FragmentInput input) : SV_Target
     outColor.rgb *= (ambientColor + diffuseColor * diffuseIntensity); // Apply diffuse lighting
     outColor.a = 1.0f; // Set alpha to 1.0 for opaque
 
-    outColor = float4(1., 0., 0., 1.);
+    //outColor = float4(1., 0., 0., 1.);
     
     return outColor;
 }
