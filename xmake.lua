@@ -3,21 +3,25 @@ set_xmakever("2.9.4")
 -- includes("scripts/compile.lua")
 includes("scripts/packages.lua")
 includes("src/xmake.lua")
-includes("shaders/xmake.lua")
+--includes("shaders/xmake.lua")
 
 add_rules("mode.debug", "mode.release")
 set_defaultmode("debug")
 add_includedirs("src")
 if is_os("windows") then
     add_syslinks("user32.lib", "kernel32.lib", "shell32.lib", "comctl32.lib")
+    add_defines("_Win32")
 end
 if is_os("linux") then
-    add_syslinks("dl", "pthread", "X11", "Xxf86vm", "Xrandr", "Xi")
+    add_syslinks("glfw", "vulkan", "dl", "pthread", "Xxf86vm", "Xrandr", "Xi")
+    add_defines("USE_WAYLAND")
 end 
 
 add_defines("UNICODE", "_UNICODE")
 
-add_includedirs("src", "src/core", "src/renderer", "src/includes", { public = true })
+set_toolchains("clang")
+
+add_includedirs("src", "src/core", "src/includes", { public = true })
 
 if is_host("windows") then
     local vulkan_sdk = os.getenv("VULKAN_SDK")
@@ -53,5 +57,9 @@ target("game")
     set_kind("binary")
     add_files("src/*.cpp")
     add_headerfiles("src/*.h")
-    add_deps("engine")
+
+    set_pcxxheader("src/pch.h", {public = true})
+    add_files("src/core/*.cpp", "src/includes/*.cpp")
+    add_headerfiles("src/core/*.h")
+    add_packages("directxmath", "glfw", "glm", "spirv-reflect", {public = true})
 target_end()

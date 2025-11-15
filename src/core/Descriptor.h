@@ -1,4 +1,5 @@
 #pragma once
+
 #include "GfxDevice.h"
 
 struct Pipeline;

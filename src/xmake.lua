@@ -1,7 +1,0 @@
-target("engine")
-    set_kind("static")
-    set_pcxxheader("pch.h", {public = true})
-    add_files("core/*.cpp", "includes/*.cpp")
-    add_headerfiles("core/*.h")
-    add_packages("directxmath", "glfw", "cgltf","imgui", "meshoptimizer", "glm", "spirv-reflect", {public = true})
-target_end()

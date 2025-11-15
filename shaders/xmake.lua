@@ -84,13 +84,10 @@ rule("shader_compile")
         else
             -- Handle non-Windows platforms (Linux/macOS)
             local slang_paths = {
-                "slangc",  -- Try PATH first
-                path.join(os.getenv("SLANG_HOME") or "", "bin", "slangc"),
-                path.join(os.getenv("SLANG_SDK") or "", "bin", "slangc"),
-                "/usr/local/bin/slangc",
-                "/opt/slang/bin/slangc"
+                 "bin/slangc/bin/slangc"
             }
-            
+            -- provide your own slanc paths (path from root)
+
             local slang_cmd = nil
             for _, slang_path in ipairs(slang_paths) do
                 if os.isfile(slang_path) or (slang_path == "slangc" and os.execv("which", {"slangc"}, {try = true})) then
@@ -98,19 +95,20 @@ rule("shader_compile")
                     break
                 end
             end
-            
+
             if slang_cmd then
                 batchcmds:execv(slang_cmd, {
                     "-target", "spirv",
                     "-stage", stage,
-                    "-entry", "main", 
+                    "-entry", "main",
                     "-profile", "spirv_1_6",
+                    "-force-glsl-scalar-layout",
                     "-O0",  -- No optimization for debug builds
                     "-g",   -- Generate debug info
                     "-o", outputfile,
                     sourcefile
                 })
-                
+
                 batchcmds:add_depfiles(sourcefile)
                 batchcmds:set_depmtime(os.mtime(outputfile))
             else

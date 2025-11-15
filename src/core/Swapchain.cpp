@@ -1,7 +1,7 @@
 #include "Swapchain.h"
 
 #include <glm/ext/vector_common.hpp>
-#undef max;
+#undef max
 
 static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
 {

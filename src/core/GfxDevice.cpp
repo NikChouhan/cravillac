@@ -1,4 +1,4 @@
-#define VMA_IMPLEMENTATION
+
 #include "vk_mem_alloc.h"
 
 #include "GfxDevice.h"
@@ -7,7 +7,7 @@
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
-static HANDLE hConsole = GetStdHandle(STD_ERROR_HANDLE);
+//static HANDLE hConsole = GetStdHandle(STD_ERROR_HANDLE);
 
 struct QueueFamilyIndices
 {
@@ -74,30 +74,30 @@ static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(
     const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData)
 {
-    WORD color = FOREGROUND_RED | FOREGROUND_INTENSITY;
+    // WORD color = FOREGROUND_RED | FOREGROUND_INTENSITY;
 
-    switch (messageSeverity)
-    {
-    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-        color = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
-        break;
-    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-        color = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
-        break;
-    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-        color = FOREGROUND_RED | FOREGROUND_INTENSITY;
-        break;
-    default:
-        break;
-    }
+    // switch (messageSeverity)
+    // {
+    // case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+    //     color = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+    //     break;
+    // case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+    //     color = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+    //     break;
+    // case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+    //     color = FOREGROUND_RED | FOREGROUND_INTENSITY;
+    //     break;
+    // default:
+    //     break;
+    // }
 
-    SetConsoleTextAttribute(hConsole, color);
+    // SetConsoleTextAttribute(hConsole, color);
 
     std::cerr << "[Validation][" << vk::to_string(messageSeverity) << "] "
         << "[" << pCallbackData->pMessageIdName << " | " << pCallbackData->messageIdNumber << "] "
         << pCallbackData->pMessage << "\n\n";
 
-    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset to default gray
+    //SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Reset to default gray
 #if _WIN32
 #if EXTREME
     if (messageSeverity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)

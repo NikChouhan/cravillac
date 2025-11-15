@@ -7,6 +7,8 @@
 #include <sstream>
 #include "StandardTypes.h"
 
+#include <format>
+
 class Log
 {
 public:
@@ -36,6 +38,6 @@ private:
     static bool m_initialized;
 }; 
 
-#define printl(level, format, ...) Log::PrintL(level, format, __VA_ARGS__)
+#define printl(level, format, ...) Log::PrintL(level, format __VA_OPT__(,) __VA_ARGS__)
 
 #endif// LOG_H

@@ -1,9 +1,12 @@
 #pragma once
 
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan_structs.hpp>
+#include <functional>
 
+#include "VulkanCommon.h"
+#include <vk_mem_alloc.h>
 #include "common.h"
+
+#include "Log.h"
 
 struct SwapChainSupportDetails
 {

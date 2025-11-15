@@ -8,11 +8,11 @@
 #include "Buffer.h"
 #include "GfxDevice.h"
 #include "Texture.h"
+#include "Vertex.h"
 
 struct FrameSync;
 struct Meshlet;
 struct Texture;
-struct Vertex;
 
 struct ModelDesc
 {

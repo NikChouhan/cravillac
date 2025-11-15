@@ -1,16 +1,18 @@
 #include <pch.h>
 
-#include <meshoptimizer.h>
+#ifdef NULL
+#undef NULL
+#endif
+#define NULL nullptr
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include "Model.h"
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <includes/stb_image.h>
 
-#define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 
 #include "Buffer.h"
@@ -73,54 +75,54 @@ static u32 LoadMaterialTexture(GfxDevice& gfxDevice, FrameSync& frameSync, Model
     return -1;
 }
 
-static void OptimiseMesh(Model& model, MeshInfo& meshInfo, Mesh& mesh)
-{
-    size_t indexCount = meshInfo._indexCount;
-    size_t vertexCount = meshInfo._vertexCount;
+// static void OptimiseMesh(Model& model, MeshInfo& meshInfo, Mesh& mesh)
+// {
+//     size_t indexCount = meshInfo._indexCount;
+//     size_t vertexCount = meshInfo._vertexCount;
 
-    std::vector<unsigned int> remap(indexCount);
-    size_t optVertexCount = meshopt_generateVertexRemap(remap.data(), mesh._indices.data(), indexCount, mesh._vertices.data(), vertexCount, sizeof(Vertex));
+//     std::vector<unsigned int> remap(indexCount);
+//     size_t optVertexCount = meshopt_generateVertexRemap(remap.data(), mesh._indices.data(), indexCount, mesh._vertices.data(), vertexCount, sizeof(Vertex));
 
-    std::vector<u32> optIndices;
-    std::vector<Vertex> optVertices;
-    optIndices.resize(indexCount);
-    optVertices.resize(optVertexCount);
+//     std::vector<u32> optIndices;
+//     std::vector<Vertex> optVertices;
+//     optIndices.resize(indexCount);
+//     optVertices.resize(optVertexCount);
 
-    // Optimisation 1 - Remove duplicate vertices
-    meshopt_remapIndexBuffer(optIndices.data(), mesh._indices.data(), indexCount, remap.data());
-    meshopt_remapVertexBuffer(optVertices.data(), mesh._vertices.data(), vertexCount, sizeof(Vertex), remap.data());
+//     // Optimisation 1 - Remove duplicate vertices
+//     meshopt_remapIndexBuffer(optIndices.data(), mesh._indices.data(), indexCount, remap.data());
+//     meshopt_remapVertexBuffer(optVertices.data(), mesh._vertices.data(), vertexCount, sizeof(Vertex), remap.data());
 
-    // Optimisation 2 - improve the locality of the vertices
-    meshopt_optimizeVertexCache(optIndices.data(), optIndices.data(), indexCount, optVertexCount);
+//     // Optimisation 2 - improve the locality of the vertices
+//     meshopt_optimizeVertexCache(optIndices.data(), optIndices.data(), indexCount, optVertexCount);
 
-    // Optimization 3 - reduce pixel overdraw
-    meshopt_optimizeOverdraw(optIndices.data(), optIndices.data(), indexCount, &(optVertices[0]._position.x), optVertexCount, sizeof(Vertex), static_cast<float>(1.05));
+//     // Optimization 3 - reduce pixel overdraw
+//     meshopt_optimizeOverdraw(optIndices.data(), optIndices.data(), indexCount, &(optVertices[0]._position.x), optVertexCount, sizeof(Vertex), static_cast<float>(1.05));
 
-    // Optimization 4 - optimize access to the vertex buffer
-    meshopt_optimizeVertexFetch(optVertices.data(), optIndices.data(), indexCount, optVertices.data(), optVertexCount, sizeof(Vertex));
+//     // Optimization 4 - optimize access to the vertex buffer
+//     meshopt_optimizeVertexFetch(optVertices.data(), optIndices.data(), indexCount, optVertices.data(), optVertexCount, sizeof(Vertex));
 
-    // Optimization 5 - create simplified version of the model
-    float threshold = 0.5f;
-    size_t targetIndexCount = (size_t)(threshold * indexCount);
-    float targetError = 0.3f;
+//     // Optimization 5 - create simplified version of the model
+//     float threshold = 0.5f;
+//     size_t targetIndexCount = (size_t)(threshold * indexCount);
+//     float targetError = 0.3f;
 
-    std::vector<u32> simplifiedIndices(optIndices.size());
-    size_t optIndexCount = meshopt_simplify(simplifiedIndices.data(), optIndices.data(), indexCount,
-        &(optVertices[0]._position.x), optVertexCount, sizeof(Vertex), targetIndexCount,
-        targetError);
-    simplifiedIndices.resize(optIndexCount);
+//     std::vector<u32> simplifiedIndices(optIndices.size());
+//     size_t optIndexCount = meshopt_simplify(simplifiedIndices.data(), optIndices.data(), indexCount,
+//         &(optVertices[0]._position.x), optVertexCount, sizeof(Vertex), targetIndexCount,
+//         targetError);
+//     simplifiedIndices.resize(optIndexCount);
 
-    model._indices.insert(model._indices.end(), simplifiedIndices.begin(), simplifiedIndices.end());
-    model._vertices.insert(model._vertices.end(), optVertices.begin(), optVertices.end());
+//     model._indices.insert(model._indices.end(), simplifiedIndices.begin(), simplifiedIndices.end());
+//     model._vertices.insert(model._vertices.end(), optVertices.begin(), optVertices.end());
 
-    meshInfo._indexCount = optIndexCount;
-    meshInfo._vertexCount = optVertexCount;
+//     meshInfo._indexCount = optIndexCount;
+//     meshInfo._vertexCount = optVertexCount;
 
-    mesh._vertices = optVertices;
-    mesh._indices = optIndices;
-    mesh._vertexCount = static_cast<u32>(optVertexCount);
-    mesh._indexCount = static_cast<u32>(optIndexCount);
-}
+//     mesh._vertices = optVertices;
+//     mesh._indices = optIndices;
+//     mesh._vertexCount = static_cast<u32>(optVertexCount);
+//     mesh._indexCount = static_cast<u32>(optIndexCount);
+// }
 
 
 static void ProcessPrimitive(GfxDevice& gfxDevice, FrameSync& frameSync,
@@ -232,7 +234,7 @@ static void ProcessPrimitive(GfxDevice& gfxDevice, FrameSync& frameSync,
     {
         Material mat = {};
 
-        HRESULT hr = E_FAIL;
+        bool hr = false;
 
         // map texture types to their respective textures
         std::unordered_map<TextureType, cgltf_texture_view*> textureMap;
@@ -329,10 +331,10 @@ static void ProcessPrimitive(GfxDevice& gfxDevice, FrameSync& frameSync,
     mesh._vertexCount = static_cast<u32>(vertexCount);
     mesh._indexCount = static_cast<u32>(indexCount);
 
-    //for (int i = 0; i < tempVertices.size(); i++) model._vertices.push_back(tempVertices[i]);
-    //for (int i = 0; i < tempIndices.size(); i++) model._indices.push_back(tempIndices[i]);
+    for (int i = 0; i < tempVertices.size(); i++) model._vertices.push_back(tempVertices[i]);
+    for (int i = 0; i < tempIndices.size(); i++) model._indices.push_back(tempIndices[i]);
 
-    OptimiseMesh(model, meshInfo, mesh);
+    //OptimiseMesh(model, meshInfo, mesh);
 #if MESH_SHADING
     ProcessMeshlets(mesh);
 #endif

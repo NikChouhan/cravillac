@@ -585,6 +585,7 @@ STBIDEF int   stbi_zlib_decode_noheader_buffer(char *obuffer, int olen, const ch
 
 
 #include <stdarg.h>
+#include <stddef.h> // ptrdiff_t on osx
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -801,8 +802,6 @@ static int stbi__sse2_available(void)
 
 // stbi__context structure is our basic context used by all images, so it
 // contains all the IO context, plus some basic image information
-
-#define NULL 0
 typedef struct
 {
    stbi__uint32 img_x, img_y;

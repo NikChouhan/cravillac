@@ -1,4 +1,4 @@
-add_requires("stb")
+--add_requires("stb")
 
 add_requires("directxmath",
 {
@@ -13,19 +13,19 @@ add_requires("glfw",
 {
 })
 
-add_requires("cgltf")
+--add_requires("cgltf")
 
-add_requires("imgui docking",
-{
-   configs =
-   {
-       glfw = true,
-       vulkan = true
-   }
-})
+-- add_requires("imgui docking",
+-- {
+--    configs =
+--    {
+--        glfw = true,
+--        vulkan = true
+--    }
+-- })
 
 add_requires("glm")
 
-add_requires("meshoptimizer")
+--add_requires("meshoptimizer")
 
 add_requires("spirv-reflect")
