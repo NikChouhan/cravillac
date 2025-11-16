@@ -20,6 +20,7 @@
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
     #include <vulkan/vulkan_wayland.h>
 #elif defined(VK_USE_PLATFORM_WIN32_KHR)
+    #include <Windows.h>
     #include <vulkan/vulkan_win32.h>
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
     #include <vulkan/vulkan_xlib.h>
@@ -27,6 +28,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#define GLFW_INCLUDE_NONE
+//#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>

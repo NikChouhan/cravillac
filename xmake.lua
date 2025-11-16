@@ -3,7 +3,7 @@ set_xmakever("2.9.4")
 -- includes("scripts/compile.lua")
 includes("scripts/packages.lua")
 includes("src/xmake.lua")
---includes("shaders/xmake.lua")
+includes("shaders/xmake.lua")
 
 add_rules("mode.debug", "mode.release")
 set_defaultmode("debug")
@@ -15,11 +15,10 @@ end
 if is_os("linux") then
     add_syslinks("glfw", "vulkan", "dl", "pthread", "Xxf86vm", "Xrandr", "Xi")
     add_defines("USE_WAYLAND")
+    set_toolchains("clang")
 end 
 
 add_defines("UNICODE", "_UNICODE")
-
-set_toolchains("clang")
 
 add_includedirs("src", "src/core", "src/includes", { public = true })
 

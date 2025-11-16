@@ -37,7 +37,11 @@ private:
     static void LogMessage(LogLevel level, cstring msg);
     static bool m_initialized;
 }; 
-
+#ifdef _WIN32
+#define printl(level, format, ...) Log::PrintL(level, format, __VA_ARGS__)
+#endif
+#ifdef USE_WAYLAND
 #define printl(level, format, ...) Log::PrintL(level, format __VA_OPT__(,) __VA_ARGS__)
+#endif
 
 #endif// LOG_H
