@@ -50,7 +50,7 @@ int main()
 
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	GLFWwindow* _window = glfwCreateWindow(WIDTH, HEIGHT, title, nullptr, nullptr);
 	glfwMakeContextCurrent(_window);
 	//glfwSetWindowUserPointer(window, this); //dk the use case?
